@@ -37,6 +37,7 @@ import videoic from "../assets/images/video.svg";
 // rating start
 import { Rating } from 'react-simple-star-rating'
 import { UserDetails } from "./Utils";
+import { addVat } from "./commonFunction";
 
 const socket = io.connect("https://uat.presshop.live:3005");
 
@@ -46,7 +47,7 @@ function ChatCardSocket(props) {
     const [roomId, setRoomId] = useState(null);
     const [msg, setMsg] = useState("")
     const [messages, setMessages] = useState([]);
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(false);
     const [name, setName] = useState()
     const [profileImage, setProfileImage] = useState()
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -75,12 +76,6 @@ function ChatCardSocket(props) {
         setRating(rate)
     }
 
-    // Optinal callback functions
-    const onPointerEnter = () => console.log('Enter')
-    const onPointerLeave = () => console.log('Leave')
-    const onPointerMove = (value, index) => console.log(value, index)
-
-
     const Profile = async () => {
         setLoading(true)
         try {
@@ -96,21 +91,6 @@ function ChatCardSocket(props) {
 
     const JoinRoom = () => {
         socket.emit("room join", { room_id: roomDetails?.roomsdetails?.room_id })
-    }
-
-    const SendMessage = () => {
-        const obj = {
-            room_id: roomDetails?.roomsdetails?.room_id,
-            receiver_id: roomDetails?.hopper_id._id,
-            message: msg,
-            sender_id: roomDetails?.task_id?.mediahouse_id
-        }
-        socket.emit("chat message", obj)
-        socket.on("chat message", (obj) => {
-        })
-
-        setMsg("")
-        getMessages()
     }
 
     useEffect(() => {
@@ -187,15 +167,29 @@ function ChatCardSocket(props) {
     }
 
     const stripePayment = async (curr) => {
+        setLoading(true);
 
         let obj = {
             image_id: curr?.image_id,
             customer_id: UserDetails.stripe_customer_id,
             amount: curr?.media?.amount,
             type: "task_content",
-            task_id: taskId
+            task_id: taskId,
+            description:curr?.content?.heading || curr?.content?.description
         }
         const resp = await Post('mediahouse/createPayment', obj)
+
+        let obj1 = {
+            room_id: curr?.room_id,
+            sender_id: curr?.sender_id?._id,
+            receiver_id: curr?.receiver_id?._id,
+            sender_type: "mediahouse",
+            message_type: 'buy',
+            amount: curr?.media?.amount,
+        }
+
+        socket.emit("offer message", obj1)
+        setLoading(false);
         window.open(resp.data.url, '_blank')
         if (resp) {
         }
@@ -219,6 +213,7 @@ function ChatCardSocket(props) {
     }
 
     const requestMoreContent = (curr) => {
+        setLoading(true);
 
         try {
             let obj = {
@@ -233,7 +228,9 @@ function ChatCardSocket(props) {
             socket.on("offer message", (obj) => {
                 getMessages()
             })
+            setLoading(false);
         } catch (error) {
+            setLoading(false);
         }
     }
 
@@ -268,9 +265,7 @@ function ChatCardSocket(props) {
     }
 
     const RatingNReview = (curr) => {
-
-        console.log('curr---------->', curr, messages, roomDetails)
-
+        
         const obj = {
             room_id: curr?.room_id,
             sender_type: "Mediahouse",
@@ -280,15 +275,18 @@ function ChatCardSocket(props) {
             review: review,
             chat_id: messages && messages.find((obj) => obj.message_type === "rating_mediaHouse")?._id,
             type: "task_content",
-            image_id: curr?.image_id
+            image_id: curr?.image_id,
+            message_type: "rating_mediaHouse"
         }
+        console.log(obj);
+
+        return;
+
         socket.emit("rating", obj)
         socket.on("rating", (obj) => {
         })
         getMessages(roomDetails?.roomsdetails?._id)
     }
-
-
 
     useEffect(() => {
         TaskDetails()
@@ -324,9 +322,6 @@ function ChatCardSocket(props) {
                                             </p>
                                             <p className="cht_time mb-0">{moment(roomDetails?.createdAt).format('h:mm A, D MMM YYYY')}</p>
                                         </div>
-                                        {
-                                            console.log('roomDetails---->', roomDetails)
-                                        }
                                         <p className="mb-0 msg">This task has been accepted by {roomDetails?.hopper_id?.user_name}</p>
                                         <div className="ofr_crd position-relative">
                                             <img src={tickic} alt="Accepted" className="acpte" />
@@ -416,7 +411,7 @@ function ChatCardSocket(props) {
                                                     </p>
                                                     <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
                                                 </div>
-                                                <p className="mb-0 msg auto_press_msg">Congrats, you’ve successfully purchased 1 {curr?.thumbnail_url ? "video" : "photo"} for £{curr?.amount} from {curr?.sender_id?.user_name}. Please download the water-mark free, and  high definition content, by clicking below</p>
+                                                <p className="mb-0 msg auto_press_msg">Congrats, you’ve successfully purchased 1 {curr?.thumbnail_url ? "video" : "photo"} for £{curr?.thumbnail_url ? addVat(taskDetails.videos_price) : addVat(taskDetails.photo_price)} from {curr?.sender_id?.user_name}. Please download the water-mark free, and  high definition content, by clicking below</p>
                                                 <div className="usr_upld_opts">
                                                     <button className="theme_btn" onClick={() => DownloadContent(curr?.image_id)}>
                                                         Download
@@ -513,12 +508,7 @@ function ChatCardSocket(props) {
                         <div className="chat_content_list">
                             {hoppers && hoppers.map((curr) => {
                                 return (
-                                    <div className="chatting_itm d-flex align-items-center" onClick={() => setRoomDetails(curr)}>
-                                        {
-                                            curr?.task_id?.content?.map((el) => (
-                                                <img src={el?.media} alt="User" className="usr_img" />
-                                            ))
-                                        }
+                                    <div className="chatting_itm d-flex align-items-center justify-content-space-between" onClick={() => setRoomDetails(curr)}>
                                         <img src={process.env.REACT_APP_AVATAR_IMAGE + curr.avatar_detals[0].avatar} alt="User" className="usr_img" />
                                         <div className="cht_txt w-100">
                                             <div className="d-flex align-items-center justify-content-between">

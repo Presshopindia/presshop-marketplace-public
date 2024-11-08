@@ -43,22 +43,26 @@ const SourcedContent = () => {
   const [sortingField, setSortingField] = useState("");
   const [sortingValue, setSortingValue] = useState("");
   const [sortingType, setSortingType] = useState("");
+  const [loading, setLoading] = useState(false);
 
 
   const TaskDetails = async () => {
-    const resp = await Get(`mediaHouse/tasks/count?${sortingField && sortingField}=${sortingValue && sortingValue}`)
-    if (resp) {
-      // console.log(resp.data.sourced_content_from_tasks)
-      setSourcedContent(resp.data.sourced_content_from_tasks)
-
-      // console.log(sourcedContennewt)
+    setLoading(true)
+    try {
+      const resp = await Get(`mediaHouse/Content/Count?${sortingField && sortingField}=${sortingValue && sortingValue}`)
+      if (resp) {
+        setSourcedContent(resp.data.sourced_content_from_tasks)
+        setLoading(false)
+      }
     }
-    //  setLoading(false)
+    catch (error) {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     TaskDetails()
-  })
+  }, [])
   const handleCloseFilterComponent = (values) => {
     setOpenFilterComponent(values)
   }
@@ -95,6 +99,7 @@ const SourcedContent = () => {
 
   return (
     <>
+      {loading && <Loader />}
       <Header />
       <div className="feedTags_search">
         <Container fluid>
@@ -132,7 +137,7 @@ const SourcedContent = () => {
               <div className="feedsMain_wrap">
                 <div className="feedsContainer feedUSourcedContent mb-0" >
                   <div className="feedContent_header">
-                    <h1 className='rw_hdng'>Content sourced from tasks</h1>
+                    <h1 className='rw_hdng'>Content purchased from tasks</h1>
                   </div>
                   <Row className=''>
                     {
@@ -144,19 +149,17 @@ const SourcedContent = () => {
                           <Col lg={3} md={4} sm={6}>
                             <Link to={`/sourced-content-detail/${curr?._id}`}>
                               <ContentFeedCard feedImg={process.env.REACT_APP_UPLOADED_CONTENT + content}
-
-                                feedTag={"Most Viewed"}
                                 feedTypeImg1={curr.type === "audio" ? interviewic : curr.type === "video" ? videoic : cameraic}
+                                lnkto={`/sourced-content-detail/${curr?._id}`}
+                                viewDetail={`/sourced-content-detail/${curr?._id}`}
                                 content_id={curr?._id}
-                                type_img={curr?.task_id?.type === "shared" ? shared : exclusive}
-                                user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_details?.avatar_details[0]?.avatar}
+                                user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_details?.avatar_details?.avatar}
                                 author_Name={curr?.hopper_details?.user_name}
-                                type_tag={curr?.task_id?.type}
                                 feedHead={curr?.task_id?.heading}
                                 viewTransaction={"View details"}
                                 postcount={"1"}
                                 fvticns={favic}
-                                feedTime={moment(curr?.task_id?.createdAt).format("hh:mm A , DD MMMM YY")} feedLocation={curr?.task_id?.location} contentPrice={`${curr?.task_id?.photo_price}`}
+                                feedTime={moment(curr?.createdAt).format("hh:mm A , DD MMMM YYYY")} feedLocation={curr?.task_id?.location} contentPrice={`${curr?.task_id?.photo_price}`}
                               />
                             </Link>
                           </Col>

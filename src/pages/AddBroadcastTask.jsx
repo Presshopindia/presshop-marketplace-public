@@ -14,6 +14,7 @@ import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
 import Loader from "../component/Loader";
 import MarkPin from "../component/MarkPin";
 import { Slide } from 'react-toastify';
+import { successToasterFun } from "../component/commonFunction";
 
 const libraries = ["places"];
 const mapContainerStyle = {
@@ -31,7 +32,7 @@ const AddBroadcastTask = (props) => {
   const [categories, setCategories] = useState([]);
   const minTime = dayjs()
     .set("hour", new Date().getHours())
-    .set("minute", new Date().getMinutes());
+    .set("minute", new Date().getMinutes() + 30);
   const [loading, setLoading] = useState(false);
 
   const [street_address, setstreet_address] = useState("");
@@ -42,9 +43,34 @@ const AddBroadcastTask = (props) => {
   });
 
   const [selectedTime, setSelectedTime] = useState("");
+  const [timeError, setTimeError] = useState(null);
+
+  // const handleTimeChange = (time) => {
+  //   setTimeError(null);
+  //   const selected = moment(time.$d);
+  //   const nowPlus30 = moment().add(30, 'minute');
+  
+  //   if (selected.isBefore(nowPlus30)) {
+  //     setTimeError('Please select a time at least 30 minutes from now');
+  //   } else {
+  //     setSelectedTime(time);
+  //     setEnd_time(selected.format('HH:mm'));
+  //   }
+  // };
 
   const handleTimeChange = (time) => {
-    setSelectedTime(time);
+    setTimeError(null); // Reset error initially
+    const selected = moment(time.$d);
+    const nowPlus30 = moment().add(30, 'minute'); // Current time + 30 mins
+    
+    // Check if selected time is before now + 30 minutes when today is selected
+
+    if (end_date === moment().format('YYYY-MM-DD') && selected.isBefore(nowPlus30)) {
+      setTimeError('Please select a time at least 30 minutes from now');
+    } else {
+      setSelectedTime(time);
+      setEnd_time(selected.format('HH:mm'));
+    }
   };
 
   function capitalizeFirstLetter(string) {
@@ -74,63 +100,63 @@ const AddBroadcastTask = (props) => {
   const [show, setShow] = useState(props.isOpen);
   const [value, setValue] = React.useState(dayjs(new Date()));
 
-  const [markerPosition, setMarkerPosition] = useState(null);
+  // const [markerPosition, setMarkerPosition] = useState(null);
 
-  const handleMapClick = (event) => {
-    // console.log(event, `<-----what is here`)
-    const lat = event.latLng.lat();
-    const lng = event.latLng.lng();
+  // const handleMapClick = (event) => {
+  //   // console.log(event, `<-----what is here`)
+  //   const lat = event.latLng.lat();
+  //   const lng = event.latLng.lng();
 
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (place, status) => {
-      if (status === "OK") {
-        setDetails((prev) => ({
-          ...prev,
-          location: place[0].formatted_address,
-        }));
-        setDetails((prev) => ({
-          ...prev,
-          address_location: {
-            coordinates: [
-              place[0].geometry.location.lat(),
-              place[0].geometry.location.lng(),
-            ],
-          },
-        }));
-      } else {
-        // console.log(`Geocoder failed due to: ${status}`);
-      }
-    });
-    setMarkerPosition({ lat, lng });
-  };
+  //   const geocoder = new window.google.maps.Geocoder();
+  //   geocoder.geocode({ location: { lat, lng } }, (place, status) => {
+  //     if (status === "OK") {
+  //       setDetails((prev) => ({
+  //         ...prev,
+  //         location: place[0].formatted_address,
+  //       }));
+  //       setDetails((prev) => ({
+  //         ...prev,
+  //         address_location: {
+  //           coordinates: [
+  //             place[0].geometry.location.lat(),
+  //             place[0].geometry.location.lng(),
+  //           ],
+  //         },
+  //       }));
+  //     } else {
+  //       // console.log(`Geocoder failed due to: ${status}`);
+  //     }
+  //   });
+  //   setMarkerPosition({ lat, lng });
+  // };
 
-  const handleMarkerDragEnd = (event) => {
-    const lat = event.latLng.lat();
-    const lng = event.latLng.lng();
+  // const handleMarkerDragEnd = (event) => {
+  //   const lat = event.latLng.lat();
+  //   const lng = event.latLng.lng();
 
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (place, status) => {
-      if (status === "OK") {
-        setDetails((prev) => ({
-          ...prev,
-          location: place[0].formatted_address,
-        }));
-        setDetails((prev) => ({
-          ...prev,
-          address_location: {
-            coordinates: [
-              place[0].geometry.location.lat(),
-              place[0].geometry.location.lng(),
-            ],
-          },
-        }));
-      } else {
-        // console.log(`Geocoder failed due to: ${status}`);
-      }
-    });
+  //   const geocoder = new window.google.maps.Geocoder();
+  //   geocoder.geocode({ location: { lat, lng } }, (place, status) => {
+  //     if (status === "OK") {
+  //       setDetails((prev) => ({
+  //         ...prev,
+  //         location: place[0].formatted_address,
+  //       }));
+  //       setDetails((prev) => ({
+  //         ...prev,
+  //         address_location: {
+  //           coordinates: [
+  //             place[0].geometry.location.lat(),
+  //             place[0].geometry.location.lng(),
+  //           ],
+  //         },
+  //       }));
+  //     } else {
+  //       // console.log(`Geocoder failed due to: ${status}`);
+  //     }
+  //   });
 
-    setMarkerPosition({ lat, lng });
-  };
+  //   setMarkerPosition({ lat, lng });
+  // };
 
   const handleClose = () => {
     setShow(false);
@@ -155,9 +181,9 @@ const AddBroadcastTask = (props) => {
     setShowPopup(true);
   };
 
-  const handlePopupClose = () => {
-    setShowPopup(false);
-  };
+  // const handlePopupClose = () => {
+  //   setShowPopup(false);
+  // };
 
   const onMapLoadStreet = (map) => {
     const searchBox = new window.google.maps.places.SearchBox(
@@ -210,22 +236,14 @@ const AddBroadcastTask = (props) => {
         // toast.error("Select Location")
       } else if (details.apartment == "") {
         return setError({ ...error, apartment: "Required" });
+      } else if (timeError) {
+        return successToasterFun(timeError)
       } else {
 
         setLoading(true);
         const resp = await Post("mediaHouse/createTask", details);
         if (resp) {
-          toast.success('Your task is successfully broadcasted. Cheers', {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-            transition: Slide,
-            });
+          successToasterFun('Your task is successfully broadcasted. Cheers')
           props.show();
           setLoading(false);
           setDetails({
@@ -247,12 +265,13 @@ const AddBroadcastTask = (props) => {
           });
           setEnd_date("");
           setEnd_time("");
+          setTimeError(null);
           handleClose();
         }
       }
     } catch (error) {
       setLoading(false);
-      // console.log(error, "error");
+      console.log(error, "error.message");
     }
   };
 
@@ -309,6 +328,7 @@ const AddBroadcastTask = (props) => {
                   <LocalizationProvider dateAdapter={AdapterDayjs} locale="en">
                     <TimePicker
                       className="tsk_time_inp"
+                        
                       value={selectedTime}
                       onChange={(e) => {
                         if (e !== null) {
@@ -321,12 +341,15 @@ const AddBroadcastTask = (props) => {
                         end_date === moment(new Date()).format("YYYY-MM-DD") &&
                         minTime
                       }
+                      disabled={!end_date}
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           error={false}
                           placeholder="HH:MM"
+                          readonly
                         />
+                  
                       )}
                     />
                   </LocalizationProvider>
@@ -492,7 +515,7 @@ const AddBroadcastTask = (props) => {
                       />
                     </svg>
                     <input
-                      placeholder="Enter Apartment number/House name "
+                      placeholder="Enter Apartment number/Building name "
                       className="tsk_loc_inp form-control"
                       onChange={(e) => {handleChange(e); setError({...error, apartment: ""})}}
                       name="apartment"

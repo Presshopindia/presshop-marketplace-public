@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import Col from "react-bootstrap/Col";
 import Container from "react-bootstrap/Container";
 import Modal from "react-bootstrap/Modal";
@@ -7,7 +7,11 @@ import Form from "react-bootstrap/Form";
 import chair from "../assets/images/chair.svg";
 import user from "../assets/images/user.svg";
 import lock from "../assets/images/sortIcons/lock.svg";
+import addPic from "../assets/images/add-square.svg";
 // import eye from "../assets/images/sortIcons/custom.svg"
+import 'react-phone-number-input/style.css'
+import PhoneInput from 'react-phone-number-input'
+
 import {
   Checkbox,
   FormControlLabel,
@@ -23,45 +27,38 @@ import { BsEyeSlash, BsEye } from "react-icons/bs";
 import { Get, Post } from "../services/user.services";
 import { toast } from "react-toastify";
 import Loader from "./Loader";
+
 const UserDetailsPopup = (props) => {
   const navigate = useNavigate();
+  const [departmentTypes, setDepartmentTypes] = useState([]);
   const [designation, setDesignation] = useState([]);
-  const [submit, setSubmit] = useState(false);
+  const [office, setOffice] = useState([]);
   const [show, setShow] = useState(true);
   const [error, setError] = useState({});
+  const [value, setValue] = useState();
+  const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState({
+    user_full_name: "",
     user_first_name: "",
     user_last_name: "",
     user_email: "",
+    administator_full_name: "",
     administator_first_name: "",
     administator_last_name: "",
     administator_email: "",
+    office_id: "option1",
+    designation_id: "option1",
+    department_id: "option1",
+    phone: "",
+    country_code: "",
+    profile_image: ""
   });
-  const [visibility1, setVisibility1] = useState(false);
-  const [visibility2, setVisibility2] = useState(false);
-  const [isChecked, setIsChecked] = useState({
-    check1: false,
-    check2: false,
-    check3: false,
-    check4: false,
-  });
-  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     setDetails({ ...details, [e.target.name]: e.target.value });
-  };
-
-  const handleCheck = (e) => {
-    setIsChecked({ ...isChecked, [e.target.name]: e.target.checked });
-  };
-
-  const Navigate = () => {
-    if (
-      isChecked.check1 &&
-      isChecked.check2 &&
-      isChecked.check3 &&
-      isChecked.check4
-    ) {
+    if (e.target.name == "administator_email") {
+      const list = await Post('mediaHouse/getOfficeListBasedUponMediahouseEmail', { email: e.target.value });
+      setOffice(list?.data?.data);
     }
   };
 
@@ -70,34 +67,48 @@ const UserDetailsPopup = (props) => {
     setDesignation(list.data.data);
   };
 
+  const getDepartmentType = async () => {
+    const list = await Get("mediaHouse/getDepartmentType");
+    setDepartmentTypes(list.data.data);
+  };
+
+  // Phone input ref-
+  const phoneInputRef = useRef(null);
+  const handleCountryCodeChange = (e) => {
+    phoneInputRef.current.focus();
+  };
+
+  const AddCompanyLogo = async (file) => {
+    const Formdata = new FormData();
+    Formdata.append("path", "user");
+    Formdata.append("media", file);
+    const filepath = await Post("mediaHouse/uploadUserMedia", Formdata);
+    setDetails({ ...details, profile_image: filepath.data.path })
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setLoading(true);
 
-    try{
-      const obj = {
-        user_first_name: details.user_first_name,
-        user_last_name: details.user_last_name,
-        user_email: details.user_email,
-        administator_first_name: details.administator_first_name,
-        administator_last_name: details.administator_last_name,
-        administator_email: details.administator_email,
-      };
+    const obj = {
+      ...details,
+      user_first_name: details?.user_full_name?.split(" ")?.[0],
+      user_last_name: details?.user_full_name?.split(" ")?.[1],
+      administator_first_name: details?.administator_full_name?.split(" ")?.[1],
+      administator_last_name: details?.administator_full_name?.split(" ")?.[1],
+    }
+
+    try {
       const list = await Post(`mediaHouse/userRegisteration`, obj);
       if (list) {
-        // console.log(list?.data?.data?._id, `<<<<<<this is the id of requsetregister`)
         toast.success("Onboarding request sent");
         localStorage.setItem("requsetregisterId", list?.data?.data?._id);
-  
         setLoading(false);
-  
         navigate("/landing-page");
       }
     }
-    catch(error){
+    catch (error) {
       setLoading(false);
-      console.log(error);
       setError({
         email: error.response.data.errors.msg.includes("E11000") ? "This email already exists" : ""
       })
@@ -106,13 +117,15 @@ const UserDetailsPopup = (props) => {
 
   useEffect(() => {
     getDesignation();
+    getDepartmentType();
   }, []);
+
 
   return (
     <>
-    {
-      loading && <Loader/>
-    }
+      {
+        loading && <Loader />
+      }
       <div className="admin_popup_dtl">
         <Modal
           show={show}
@@ -133,8 +146,41 @@ const UserDetailsPopup = (props) => {
             <Modal.Body className="show-grid modal-body border-0">
               <Container>
                 <Row>
-                  <p className="bg_lbl">Your details</p>
+                  <p className="bg_lbl">Administrator details</p>
                   <Col xs={12} md={6}>
+                    <Form.Group className="mb-4 form-group">
+                      <img src={user} alt="" />
+                      <Form.Control
+                        type="text"
+                        pattern="\S.*"
+                        title="First Name should not start with space"
+                        size="sm"
+                        name="administator_full_name"
+                        className="user"
+                        placeholder="Enter full name"
+                        required
+                        onChange={handleChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Form.Group className="mb-4 form-group">
+                      <Form.Control
+                        type="email"
+                        pattern="\S.*"
+                        size="sm"
+                        name="administator_email"
+                        className="user"
+                        placeholder="Enter official email id"
+                        required
+                        onChange={handleChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <p className="bg_lbl">Your details</p>
+                  {/* <Col xs={12} md={6}>
                     <Form.Group className="mb-4 form-group">
                       <img src={user} alt="" />
                       <Form.Control
@@ -186,57 +232,188 @@ const UserDetailsPopup = (props) => {
                       </span> : null
                       }
                     </Form.Group>
-                  </Col>
-                </Row>
+                  </Col> */}
 
-                <Row>
-                  <p className="bg_lbl">Administrator details</p>
-                  <Col xs={12} md={6}>
-                    <Form.Group className="mb-4 form-group">
-                      <img src={user} alt="" />
-                      <Form.Control
-                        type="text"
-                        pattern="\S.*"
-                        title="First Name should not start with space"
-                        size="sm"
-                        name="administator_first_name"
-                        className="user"
-                        placeholder="Enter first name"
-                        required
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Form.Group className="mb-4 form-group">
-                      <img src={user} alt="" />
-                      <Form.Control
-                        type="text"
-                        pattern="\S.*"
-                        title="Last Name should not start with space"
-                        size="sm"
-                        name="administator_last_name"
-                        className="user"
-                        placeholder="Enter last name"
-                        required
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Form.Group className="mb-4 form-group">
-                      <Form.Control
-                        type="email"
-                        pattern="\S.*"
-                        size="sm"
-                        name="administator_email"
-                        className="user"
-                        placeholder="Enter official email id"
-                        required
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
+                  <Row className="rw_gp_sml">
+                    <Col lg={9} md={9} sm={12}>
+                      <Row className="comp_frm_gap">
+                        <Col lg={6} md={6} xs={12}>
+                          <Form.Group className="form-group">
+                            <img src={user} alt="" />
+                            <Form.Control
+                              type="text"
+                              pattern="\S.*"
+                              title="First Name should not start with space"
+                              size="sm"
+                              name="user_full_name"
+                              className="user"
+                              placeholder="Enter full name *"
+                              required
+                              onChange={handleChange}
+                              value={details?.user_full_name}
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="form-group">
+                            <img src={chair} alt="" />
+                            <Select
+                              className="w-100 slct_sign"
+                              value={details?.designation_id}
+                              onChange={(e) => handleChange(e)}
+                              name="designation_id"
+                            >
+                              <MenuItem
+                                disabled
+                                className="selectPlaceholder"
+                                value="option1"
+                              >
+                                Select Designation
+                              </MenuItem>
+                              {designation &&
+                                designation.map((value, index) => (
+                                  <MenuItem
+                                    key={value._id}
+                                    value={value._id}
+                                  >
+                                    {value.name}
+                                  </MenuItem>
+                                ))}
+                            </Select>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="form-group">
+                            <img src={user} alt="" />
+                            <Select
+                              className="w-100 slct_sign"
+                              value={details?.office_id}
+                              onChange={(e) => handleChange(e)}
+                              name="office_id"
+                            >
+                              <MenuItem
+                                className="selectPlaceholder"
+                                value="option1"
+                                selected
+                              >
+                                Select office name *
+                              </MenuItem>
+                              {office &&
+                                office.map((value, index) => {
+                                  return (
+                                    <MenuItem value={value._id}>
+                                      {value.name}
+                                    </MenuItem>
+                                  );
+                                })}
+                            </Select>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="form-group">
+                            <img src={chair} alt="" />
+                            <Select
+                              className="w-100 slct_sign"
+                              value={details?.department_id}
+                              onChange={(e) => handleChange(e)}
+                              name="department_id"
+                            >
+                              <MenuItem
+                                className="selectPlaceholder"
+                                value="option1"
+                                selected
+                              >
+                                Select department *
+                              </MenuItem>
+                              <MenuItem
+                                disabled
+                                className="selectPlaceholder"
+                                value="option1"
+                              >
+                                Select Department
+                              </MenuItem>
+                              {departmentTypes &&
+                                departmentTypes.map((value, index) => {
+                                  return (
+                                    <MenuItem value={value._id}>
+                                      {value.name}
+                                    </MenuItem>
+                                  );
+                                })}
+                            </Select>
+                          </Form.Group>
+                        </Col>
+                      </Row>
+                    </Col>
+                    <Col lg={3} md={3} sm={12}>
+                      <div className="currentPic logo_inp position-relative text-center">
+                        <img src={details?.profile_image || addPic} alt="" className={details?.profile_image ? "uploaded" : ""} />
+                        {/* <img
+                          className="uploaded"
+                          src={addPic}
+                          alt=""
+                        /> */}
+                        <span className="mt-2 d-block">
+                          Add profile pic
+                        </span>
+
+                        <input
+                          type="file"
+                          required
+                          onChange={(e) => {
+                            AddCompanyLogo(e.target.files[0]);
+                          }}
+                        />
+                      </div>
+                    </Col>
+                    <Row className="mt-4 mb-4 user-row">
+                      <Col md={6}>
+                        <div className="number_inp_wrap">
+                          {/* Phone start */}
+                          <input
+                            type="number"
+                            className="input_nmbr"
+                            placeholder="Phone"
+                            name="phone"
+                            onChange={(e) => {
+                              if (e.target.value.length <= 12) {
+                                handleChange(e)
+                              }
+                            }}
+                            maxLength={12}
+                            value={details?.phone}
+                            ref={phoneInputRef}
+                          />
+                          <div className="primry_phone_input">
+                            <PhoneInput
+                              className="f_1 cntry_code"
+                              international
+                              required
+                              countryCallingCodeEditable={false}
+                              name="country_code"
+                              onChange={(e) => { setDetails({ ...details, country_code: e }); handleCountryCodeChange(e) }}
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                      <Col lg={6} md={6} xs={12} className="p-0">
+                        <Form.Group className="form-group">
+                          <img src={user} alt="" />
+                          <Form.Control
+                            type="email"
+                            title="First Name should not start with space"
+                            size="sm"
+                            name="user_email"
+                            className="user"
+                            placeholder="Enter email *"
+                            required
+                            onChange={(e) => handleChange(e)}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                  </Row>
+
                 </Row>
 
                 <Col md={12} className="mb-3">

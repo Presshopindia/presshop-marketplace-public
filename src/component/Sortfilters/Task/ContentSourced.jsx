@@ -26,14 +26,18 @@ import Form from "react-bootstrap/Form";
 import { BsEye } from "react-icons/bs";
 
 
-const ContentSourced = ({ close, hide, closeContentSourced, contentRangeTimeValues }) => {
+const ContentSourced = ({ close, hide, closeContentSourced, contentRangeTimeValues,active,setActive }) => {
   const [start_date, setStartDate] = useState(null);
   const [end_date, setEndDate] = useState(null);
   const [paramSort, setParmsSort] = useState({ paramsName: "", params: "" })
 
-  const [active, setActive] = useState("")
+  //const [active, setActive] = useState("")
 
   const handleClose = (values) => {
+    if(values===false){
+      contentRangeTimeValues("")
+      setActive("")
+    }
     closeContentSourced(values)
   }
   const [sorting, setSorting] = useState("")
@@ -43,6 +47,7 @@ const ContentSourced = ({ close, hide, closeContentSourced, contentRangeTimeValu
   }
   const handleSort = () => {
     contentRangeTimeValues(sorting)
+    handleClose()
   }
 
 
@@ -75,13 +80,13 @@ const ContentSourced = ({ close, hide, closeContentSourced, contentRangeTimeValu
 
         hide &&
         <div className="filter_wrap">
-          <div className="srt_fltr_hdr" onClick={() => handleClose(false)}>
+          <div className="srt_fltr_hdr" onClick={() => handleClose()}>
             <img src={closeic} height="17px" className="icn close" alt="Close"
               onClick={close}
             />
             <p className="hdng">Sort and filter</p>
             <div className="notf_icn_wrp" onClick={() => handleClose(false)}>
-              {/* <a className="link">Clear all</a> */}
+              <a className="link">Clear all</a>
             </div>
           </div>
           <div className="srt_sub_hdng">

@@ -7,10 +7,11 @@ import { Link, useNavigate } from "react-router-dom";
 import usrLoginbg from "../assets/images/usrLoginbg.jpg";
 import Form from "react-bootstrap/Form";
 import Email from "../assets/images/mail.svg";
-import forgotrtimg from "../assets/images/forgotrtimg.svg";
+// import forgotrtimg from "../assets/images/forgotrtimg.svg";
 import { Post } from "../services/user.services";
 import { toast } from "react-toastify";
 import Loader from "../component/Loader";
+import LoginHeader from "../component/LoginHeader";
 
 const UserForgetPassword = () => {
   const navigate = useNavigate();
@@ -33,14 +34,16 @@ const UserForgetPassword = () => {
       }
     }
     catch(error){
-      console.log(error);
+      // console.log(error);
       setLoading(false);
     }
   };
 
   return (
     <>
-      <HeaderN />
+      {/* <HeaderN /> */}
+      <LoginHeader />
+
       {
         loading && <Loader/>
       }
@@ -50,7 +53,7 @@ const UserForgetPassword = () => {
             <form onSubmit={ForgotPassword}>
               <Row className="row-w-m m-0">
                 <Col lg={6} md={6} sm={12} xs={12} className="p-0 lft_colm">
-                  <img src={forgotrtimg} alt="" className="resp_bg" />
+                  <img src={"https://uat-presshope.s3.eu-west-2.amazonaws.com/public/user/1721378348137forgotrtimg.svg"} alt="" className="resp_bg" />
                   <div className="login_stepsWrap left-pdng forget_pass_wrap left-side cstm_ht bg-white">
                     <div className="onboardMain">
                       <div className="onboardIntro sign_section border-bottom-0 ">
@@ -132,7 +135,7 @@ const UserForgetPassword = () => {
                 </Col>
                 <Col lg={6} md={6} sm={12} xs={12} className="rt_col">
                   <div className="left-side right-side position-relative">
-                    <img src={forgotrtimg} className="w-100" alt="" />
+                    <img src={"https://uat-presshope.s3.eu-west-2.amazonaws.com/public/user/1721378348137forgotrtimg.svg"} className="w-100" alt="" />
                     <div className="tri"></div>
                     <div className="circle"></div>
                     <div className="big_circle"></div>

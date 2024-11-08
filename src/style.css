@@ -19056,6 +19056,7 @@ input[type=number] {
   height: 40px;
 }
 
+
 .sm_btn_blk {
   height: 40px;
   font-size: 15px !important;
@@ -20071,6 +20072,7 @@ input[type=number] {
 
 .tbl_crd.bg_grey {
   background: #f3f5f4 !important;
+  min-height: 450px;
 }
 
 .tbl_crd.bg_grey .cont_type_wrp {
@@ -23344,6 +23346,10 @@ button.sort_btn.small_sort_btn {
   width: 14px;
 }
 
+.PhoneInputCountryIcon {
+  border:none !important;
+}
+
 .profile_mdl_body .PhoneInputCountry .PhoneInputCountrySelectArrow {
   font-size: 27px;
 }
@@ -24065,5 +24071,6 @@ a.txtBlack svg {
   -o-object-fit: contain;
   object-fit: contain;
 }
+
 
 /*# sourceMappingURL=style.css.map */

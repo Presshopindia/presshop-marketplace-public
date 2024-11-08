@@ -15,6 +15,8 @@ import {
   Typography,
   Button,
   Tooltip,
+  Stack,
+  Pagination,
 } from "@mui/material";
 import {
   BsArrowUp,
@@ -22,17 +24,18 @@ import {
   BsArrowDown,
   BsEye,
   BsChevronDown,
+  BsArrowLeft,
 } from "react-icons/bs";
 import { AiFillCaretDown, AiOutlineClose } from "react-icons/ai";
 import taskIcon from "../assets/images/taskIcon.svg";
-import barclays from "../assets/images/bankLogos/Barclays.svg";
+import barclays from "../assets/images/bankLogos/Barclays.png";
 import lloyds from "../assets/images/bankLogos/lloyds.svg";
 import { FiEdit, FiX } from "react-icons/fi";
 import ReactApexChart from "react-apexcharts";
 import SortingDialog from "../popups/SortingDialog";
 import avatar from "../assets/images/avatar.png";
 import task from "../assets/images/task.svg";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import TransactionSort from "../popups/TransactionSort";
 import { MdAdd } from "react-icons/md";
 import audioic from "../assets/images/audio-icon.svg";
@@ -43,6 +46,7 @@ import cont2 from "../assets/images/img2.png";
 import cont3 from "../assets/images/img3.jpg";
 import calendar from "../assets/images/calendar.svg";
 import cameraic from "../assets/images/camera.svg";
+import interviewic from "../assets/images/interview.svg";
 import celebrity from "../assets/images/celebrity.svg";
 import idimg from "../assets/images/celebrity.svg";
 import videoic from "../assets/images/video.svg";
@@ -62,34 +66,13 @@ import ChartsSort from "../component/Sortfilters/Dashboard/ChartsSort";
 import audiobg from "../assets/images/audimgbg.svg";
 import audiosm from "../assets/images/audimgsmall.svg";
 import audioimg from "../assets/images/audimg.svg";
+import docsic from "../assets/images/docsic.svg";
+import { formatAmountInMillion } from "../component/commonFunction";
+import { initStateOfContentSummary, initStateOfSortFilterAccount } from "../component/staticData";
+import { PaginationComp } from "../component/Pagination";
 
 const Accounts = () => {
-  const [open, setOpen] = useState(false);
-  const [currId, setCurrId] = useState(null);
-
-  const handleOpen = () => {
-    setOpen(true);
-  };
   const navigate = useNavigate();
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  // 2nd dialog
-  const [open2, setOpen2] = useState(false);
-
-  const handleOpen2 = () => {
-    setOpen2(true);
-  };
-
-  const handleClose2 = () => {
-    setOpen2(false);
-  };
-
-  const Navigate = (type) => {
-    navigate(`/accounts-tables/${type}`);
-  };
 
   const [fundInvested, setFundInvested] = useState({
     options: {
@@ -127,78 +110,13 @@ const Accounts = () => {
     ],
   });
 
-  // const [chartData] = useState({
-  //   options: {
-  //     chart: {
-  //       id: "basic-bar"
-  //     },
-  //     xaxis: {
-  //       categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  //     },
-  //     colors: ["#EC4E54"]
-  //   },
-  //   series: [
-  //     {
-  //       name: "sales",
-  //       data: [30, 40, 45, 50, 49, 60, 70, 91, 75, 60, 45, 30]
-  //     }
-  //   ]
-  // });
-
-  const [chartData2] = useState({
-    options: {
-      chart: {
-        id: "basic-bar",
-      },
-      xaxis: {
-        categories: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ],
-      },
-      colors: ["#20639B"],
-    },
-    series: [
-      {
-        name: "sales",
-        data: [30, 40, 45, 50, 49, 60, 70, 91, 75, 60, 45, 30],
-      },
-    ],
-  });
-
-  // const [chartData3] = useState({
-  //   options: {
-  //     chart: {
-  //       id: "basic-bar"
-  //     },
-  //     xaxis: {
-  //       categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  //     },
-  //     colors: ["#53C5AE"]
-  //   },
-  //   series: [
-  //     {
-  //       name: "sales",
-  //       data: [30, 40, 45, 50, 49, 60, 70, 91, 75, 60, 45, 30]
-  //     }
-  //   ]
-  // });
-
   const [accountCount, setAccountCount] = useState();
   const [openFilterComponent, setOpenFilterComponent] = useState(false);
-  const [transaction_details, setTransaction_Details] = useState();
+  const [transaction_details, setTransaction_Details] = useState([]);
+  const [vatDetails, setVatDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState("");
+  const [active, setActive] = useState('');
   const handleChange = (event) => {
     setSelectedOption(event.target.value);
   };
@@ -207,6 +125,7 @@ const Accounts = () => {
   const [timeValues, setTimeValues] = useState("");
   const [parentTimeValues, setParentTimeValues] = useState("");
   const [openSortTask, setOpenSortTask] = useState(false);
+  const [taskState, setTaskState] = useState("");
   const [chartName, setChartName] = useState({
     task: "",
     transactionDetails: "",
@@ -218,20 +137,35 @@ const Accounts = () => {
     setTimeValues(values);
   };
 
-  const parentTimeValuesHandler = (values) => {
-    setParentTimeValues(values);
-  };
+  // Pagination- 
+  const [tranPage, setTranPage] = useState(1);
+  const [vatPage, setVatPage] = useState(1);
 
-  // console.log("timeValues 178", timeValues);
+  // Account and Vat sort filter-
+  const [accountSortFilter, setAccountSortFilter] = useState(initStateOfSortFilterAccount)
+  const [contentSummary, setContentSummary] = useState(initStateOfContentSummary);
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
 
-  // open components -
-  const [openSortComponent, setOpenSortComponent] = useState(false);
-  const [openTransactionDetail, setOpenTransactionDetail] = useState(false);
-  const [openVatDetails, setOpenVatDetails] = useState(false);
+  const parsedSort = query.get("sort") || "false";
+  const parsedTask = query.get("task") || "false";
+  const parsedContent = query.get("content") || "false";
+  const parsedPaymentMade = query.get("payment_made") || "false";
+  const parsedPaymentPending = query.get("payment_pending") || "false";
 
-  const handleCloseSortComponent = (values) => {
-    setOpenSortComponent(values);
-  };
+  useEffect(() => {
+    setAccountSortFilter({
+      sort: parsedSort,
+      priceRange: {
+        start: 0,
+        end: 0
+      },
+      task: parsedTask,
+      content: parsedContent,
+      payment_made: parsedPaymentMade,
+      payment_pending: parsedPaymentPending,
+    });
+  }, []);
 
   const ReportCount = async () => {
     setLoading(true);
@@ -247,41 +181,435 @@ const Accounts = () => {
     }
   };
 
+  const [totalPage, setTotalPage] = useState(1)
   const TransactionDetails = async () => {
     setLoading(true);
 
     try {
-      const resp = await Get(
-        `mediahouse/getallinvoiseforMediahouse?${(chartName.transactionDetails == "transactionDetails" &&
-          timeValues) ||
-        parentTimeValues
-        }=${(chartName.transactionDetails == "transactionDetails" &&
-          timeValues) ||
-        parentTimeValues
-        }`
-      );
+      let resp;
+      if (query.get("type") || tranPage) {
+        resp = await Get(`mediahouse/getallinvoiseforMediahouse?${parsedSort}=${parsedSort}&task=${parsedTask}&content=${parsedContent}&task=${parsedTask}&payment_made=${parsedPaymentMade}&payment_pending=${parsedPaymentPending}&limit=5&offset=${(tranPage - 1) * 5}`)
+      }
+      else {
+        resp = await Get(`mediahouse/getallinvoiseforMediahouse`)
+      }
       if (resp) {
         setLoading(false);
         setTransaction_Details(resp.data.resp);
-        setChartName({ ...chartName, transactionDetails: "" });
+        setTotalPage(Math.ceil(resp.data.count / 5))
       }
     } catch (error) {
       setLoading(false);
-      setChartName({ ...chartName, transactionDetails: "" });
     }
   };
 
-  const FundInvested = async () => {
+  const VatDetails = async () => {
     setLoading(true);
 
     try {
+      let resp;
+      if (query.get("type") || vatPage) {
+        resp = await Get(`mediahouse/getallinvoiseforMediahouse?${parsedSort}=${parsedSort}&task=${parsedTask}&content=${parsedContent}&task=${parsedTask}&payment_made=${parsedPaymentMade}&payment_pending=${parsedPaymentPending}&limit=5&offset=${(tranPage - 1) * 5}`)
+      }
+      else {
+        resp = await Get(`mediahouse/getallinvoiseforMediahouse`)
+      }
+      if (resp) {
+        setLoading(false);
+        setVatDetails(resp.data.resp);
+      }
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  // const FundInvested = async () => {
+  //   setLoading(true);
+
+  //   try {
+  //     const resp = await Get(
+  //       `mediahouse/AccountfundInvested?${taskState}=${taskState}`
+  //     );
+  //     if (resp) {
+  //       setFundInvested((prevTaskSummary) => ({
+  //         ...prevTaskSummary,
+  //         options: {
+  //           ...prevTaskSummary.options,
+  //           xaxis: {
+  //             ...prevTaskSummary.options.xaxis,
+  //             categories: [
+  //               "Jan",
+  //               "Feb",
+  //               "Mar",
+  //               "Apr",
+  //               "May",
+  //               "Jun",
+  //               "Jul",
+  //               "Aug",
+  //               "Sep",
+  //               "Oct",
+  //               "Nov",
+  //               "Dec",
+  //             ],
+  //           },
+  //         },
+
+  //         tooltip: {
+  //           enabled: true,
+  //           custom: function({ series, seriesIndex, dataPointIndex, w }) {
+  //             const value = series[seriesIndex][dataPointIndex];
+  //             return `<div class="custom-tooltip">
+  //                       <span>Custom Tooltip Message</span>
+  //                     </div>`;
+  //           },
+  //         },
+
+  //         series: [
+  //           {
+  //             ...prevTaskSummary.series[0],
+  //             data: [
+  //               (resp.data.data.jan).toFixed(2),
+  //               (resp.data.data.feb).toFixed(2),
+  //               (resp.data.data.mar).toFixed(2),
+  //               (resp.data.data.apr).toFixed(2),
+  //               (resp.data.data.may).toFixed(2),
+  //               (resp.data.data.june).toFixed(2),
+  //               (resp.data.data.july).toFixed(2),
+  //               (resp.data.data.aug).toFixed(2),
+  //               (resp.data.data.sept).toFixed(2),
+  //               (resp.data.data.oct).toFixed(2),
+  //               (resp.data.data.nov).toFixed(2),
+  //               (resp.data.data.dec).toFixed(2),
+  //             ],
+  //           },
+  //         ],
+  //       }));
+  //       setLoading(false);
+  //       setChartName({ ...chartName, task: "" });
+  //     }
+  //   } catch (error) {
+  //     // console.log(error);
+  //     setLoading(false);
+  //     setChartName({ ...chartName, task: "" });
+  //   }
+  // };
+  const FundInvested = async () => {
+    setLoading(true);
+  
+    try {
       const resp = await Get(
-        `mediahouse/AccountfundInvested?${(chartName.task == "task" && contentTimeValues) || parentTimeValues
-        }=${(chartName.task == "task" && contentTimeValues) || parentTimeValues
-        }`
+        `mediahouse/AccountfundInvested?${taskState}=${taskState}`
       );
       if (resp) {
         setFundInvested((prevTaskSummary) => ({
+          ...prevTaskSummary,
+          options: {
+            ...prevTaskSummary.options,
+            xaxis: {
+              categories: [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ],
+            },
+        
+            tooltip: {
+              enabled: true,
+              x: {
+                // Customize tooltip to show "Month sales"
+                formatter: function (val, opts) {
+                  return `${val} sales`; // For example, "July sales"
+                },
+              },
+              y: {
+                formatter: function (val) {
+                  // return `$${val.toFixed(2)}`;  // Formats the sales value, e.g., "$123.45"
+                  return "£"+formatAmountInMillion(val);
+                },
+              },
+            },
+            dataLabels: {
+              enabled: true, // Enables showing values on the bars
+              formatter: function (val) {
+                // return "£"+formatAmountInMillion(val);
+              return val ? "£"+formatAmountInMillion(val):""; // e.g., "$123.45"
+
+                // Adds $ before value on top of the bars
+              },
+              // style: {
+              //   colors: ['#000']  // Change color of the labels if necessary
+              // }
+            }
+          },
+          series: [
+            {
+              // Content purchased
+            // name: "Content purchased",
+            name: "Funds invested",
+
+
+              data: [
+                resp.data.data.jan.toFixed(2),
+                resp.data.data.feb.toFixed(2),
+                resp.data.data.mar.toFixed(2),
+                resp.data.data.apr.toFixed(2),
+                resp.data.data.may.toFixed(2),
+                resp.data.data.june.toFixed(2),
+                resp.data.data.july.toFixed(2),
+                resp.data.data.aug.toFixed(2),
+                resp.data.data.sept.toFixed(2),
+                resp.data.data.oct.toFixed(2),
+                resp.data.data.nov.toFixed(2),
+                resp.data.data.dec.toFixed(2),
+              ],
+            },
+          ],
+        }));
+        setLoading(false);
+        setChartName({ ...chartName, task: "" });
+      }
+    } catch (error) {
+      setLoading(false);
+      setChartName({ ...chartName, task: "" });
+    }
+  };
+  // const FundInvested = async () => {
+  //   setLoading(true);
+  
+  //   try {
+  //     const resp = await Get(
+  //       `mediahouse/AccountfundInvested?${taskState}=${taskState}`
+  //     );
+  //     if (resp) {
+  //       setFundInvested((prevTaskSummary) => ({
+  //         ...prevTaskSummary,
+  //         options: {
+  //           ...prevTaskSummary.options,
+  //           xaxis: {
+  //             categories: [
+  //               "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+  //               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  //             ],
+  //           },
+  //           tooltip: {
+  //             enabled: true,
+  //             x: {
+  //               formatter: function (val) {
+  //                 return `${val} sales`;  // Custom tooltip for X-axis (e.g., "July sales")
+  //               }
+  //             },
+  //             y: {
+  //               formatter: function (val) {
+  //                 return `$${val.toFixed(2)}`;  // Show "$" before the value
+  //               }
+  //             }
+  //           },
+  //           dataLabels: {
+  //             enabled: true, // Enables showing values on the bars
+  //             formatter: function (val) {
+  //               return `$${val.toFixed(2)}`; // Adds $ before value on top of the bars
+  //             },
+  //             style: {
+  //               colors: ['#000']  // Change color of the labels if necessary
+  //             }
+  //           }
+  //         },
+  //         series: [
+  //           {
+  //             name: "Funds invested",
+  //             data: [
+  //               resp.data.data.jan.toFixed(2),
+  //               resp.data.data.feb.toFixed(2),
+  //               resp.data.data.mar.toFixed(2),
+  //               resp.data.data.apr.toFixed(2),
+  //               resp.data.data.may.toFixed(2),
+  //               resp.data.data.june.toFixed(2),
+  //               resp.data.data.july.toFixed(2),
+  //               resp.data.data.aug.toFixed(2),
+  //               resp.data.data.sept.toFixed(2),
+  //               resp.data.data.oct.toFixed(2),
+  //               resp.data.data.nov.toFixed(2),
+  //               resp.data.data.dec.toFixed(2),
+  //             ]
+  //           }
+  //         ]
+  //       }));
+  //       setLoading(false);
+  //       setChartName({ ...chartName, task: "" });
+  //     }
+  //   } catch (error) {
+  //     setLoading(false);
+  //     setChartName({ ...chartName, task: "" });
+  //   }
+  // };
+  
+  
+  
+  
+  // const VatSummary = async () => {
+  //   setLoading(true);
+
+  //   try {
+  //     const resp = await Get(`mediahouse/AccountcontentPurchasedOnline?${taskState}=${taskState}`);
+  //     if (resp) {
+  //       setVatSummary((prevTaskSummary) => ({
+  //         ...prevTaskSummary,
+  //         options: {
+  //           ...prevTaskSummary.options,
+  //           xaxis: {
+  //             ...prevTaskSummary.options.xaxis,
+  //             categories: [
+  //               "Jan",
+  //               "Feb",
+  //               "Mar",
+  //               "Apr",
+  //               "May",
+  //               "Jun",
+  //               "Jul",
+  //               "Aug",
+  //               "Sep",
+  //               "Oct",
+  //               "Nov",
+  //               "Dec",
+  //             ],
+  //           },
+  //         },
+
+  //         tooltip: {
+  //           enabled: true,
+  //           x: {
+  //             // Customize tooltip to show "Month sales"
+  //             formatter: function (val, opts) {
+  //               return `${val} VAT paid`; // For example, "July sales"
+  //             },
+  //           },
+  //           y: {
+  //             formatter: function (val) {
+  //               return `$${val.toFixed(2)}`; // Formats the sales value, e.g., "$123.45"
+  //             },
+  //           },
+  //         },
+  //         series: [
+  //           {
+  //             ...prevTaskSummary.series[0],
+  //             data: [
+  //               resp.data.data.jan,
+  //               resp.data.data.feb,
+  //               resp.data.data.mar,
+  //               resp.data.data.apr,
+  //               resp.data.data.may,
+  //               resp.data.data.june,
+  //               resp.data.data.july ?? 0,
+  //               resp.data.data.aug,
+  //               resp.data.data.sept,
+  //               resp.data.data.oct,
+  //               resp.data.data.nov,
+  //               resp.data.dec,
+  //             ],
+  //           },
+  //         ],
+  //       }));
+  //       setLoading(false);
+  //     }
+  //   } catch (error) {
+  //     // console.log(error);
+  //     setLoading(false);
+  //   }
+  // };
+const VatSummary = async () => {
+  setLoading(true);
+
+  try {
+    const resp = await Get(`mediahouse/AccountcontentPurchasedOnline?${taskState}=${taskState}`);
+    
+    if (resp) {
+      setVatSummary((prevTaskSummary) => ({
+        ...prevTaskSummary,
+        options: {
+          ...prevTaskSummary.options,
+          xaxis: {
+            categories: [
+              "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ],
+          },
+          tooltip: {
+            enabled: true,
+            x: {
+              // Customize tooltip to show "Month VAT paid"
+              formatter: function (val, opts) {
+                return `${val} `;
+              },
+            },
+            y: {
+              formatter: function (val) {
+                return "£"+formatAmountInMillion(val); // e.g., "$123.45"
+              },
+            },
+          },
+          dataLabels: {
+            enabled: true, // Enables showing values on the bars
+            formatter: function (val) {
+              // return "£"+formatAmountInMillion(val);
+              return val ? "£"+formatAmountInMillion(val):""; // e.g., "$123.45"
+
+              // Adds $ before value on top of the bars
+            },
+            // style: {
+            //   colors: ['#000']  // Change color of the labels if necessary
+            // }
+          }
+          
+        },
+        series: [
+          {
+            name: "VAT Paid",
+            data: [
+              resp.data.data.jan || 0,
+              resp.data.data.feb || 0,
+              resp.data.data.mar || 0,
+              resp.data.data.apr || 0,
+              resp.data.data.may || 0,
+              resp.data.data.june || 0,
+              resp.data.data.july ?? 0, // Safeguard for missing value
+              resp.data.data.aug || 0,
+              resp.data.data.sept || 0,
+              resp.data.data.oct || 0,
+              resp.data.data.nov || 0,
+              resp.data.data.dec || 0,
+            ],
+          },
+        ],
+      }));
+      setLoading(false);
+    }
+  } catch (error) {
+    setLoading(false);
+  }
+};
+
+  const ContentSummary = async () => {
+    setLoading(true);
+
+    try {
+      let resp;
+      if (taskState) {
+        resp = await Get(`mediahouse/reportgraphofContentforPaid?${taskState}=${taskState}`)
+      }
+      else {
+        resp = await Get(`mediahouse/reportgraphofContentforPaid`)
+      }
+      if (resp) {
+        setContentSummary((prevTaskSummary) => ({
           ...prevTaskSummary,
           options: {
             ...prevTaskSummary.options,
@@ -302,10 +630,28 @@ const Accounts = () => {
                 "Dec",
               ],
             },
+
+            tooltip: {
+              enabled: true,
+              x: {
+                // Customize tooltip to show "Month VAT paid"
+                formatter: function (val, opts) {
+                  return `${val} `;
+                },
+              },
+              y: {
+                formatter: function (val) {
+                  return val; // e.g., "$123.45"
+                },
+              },
+            },
           },
           series: [
             {
               ...prevTaskSummary.series[0],
+              // name: "Funds invested",
+            name: "Content purchased",
+
               data: [
                 resp.data.data.jan,
                 resp.data.data.feb,
@@ -324,67 +670,8 @@ const Accounts = () => {
           ],
         }));
         setLoading(false);
-        setChartName({ ...chartName, task: "" });
       }
     } catch (error) {
-      // console.log(error);
-      setLoading(false);
-      setChartName({ ...chartName, task: "" });
-    }
-  };
-
-  const VatSummary = async () => {
-    setLoading(true);
-
-    try {
-      const resp = await Get("mediahouse/AccountcontentPurchasedOnline");
-      if (resp) {
-        setVatSummary((prevTaskSummary) => ({
-          ...prevTaskSummary,
-          options: {
-            ...prevTaskSummary.options,
-            xaxis: {
-              ...prevTaskSummary.options.xaxis,
-              categories: [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-              ],
-            },
-          },
-          series: [
-            {
-              ...prevTaskSummary.series[0],
-              data: [
-                resp.data.data.jan,
-                resp.data.data.feb,
-                resp.data.data.mar,
-                resp.data.data.apr,
-                resp.data.data.may,
-                resp.data.data.june,
-                resp.data.data.july ?? 0,
-                resp.data.data.aug,
-                resp.data.data.sept,
-                resp.data.data.oct,
-                resp.data.data.nov,
-                resp.data.dec,
-              ],
-            },
-          ],
-        }));
-        setLoading(false);
-      }
-    } catch (error) {
-      // console.log(error);
       setLoading(false);
     }
   };
@@ -394,14 +681,30 @@ const Accounts = () => {
     TransactionDetails();
     FundInvested();
     VatSummary();
-  }, [contentTimeValues, timeValues, parentTimeValues]);
-  const handleCloseFilterComponent = (values) => {
-    setOpenFilterComponent(values);
-  };
+    ContentSummary();
+    VatDetails();
+  }, []);
+
+  useEffect(() => {
+    FundInvested();
+    VatSummary();
+    ContentSummary();
+  }, [taskState]);
+
+  useEffect(() => {
+    if (accountSortFilter?.type === "account" || tranPage) {
+      TransactionDetails()
+    }
+  }, [accountSortFilter.active, tranPage])
+
+  useEffect(() => {
+    if (accountSortFilter?.type === "vat" || vatPage) {
+      VatDetails()
+    }
+  }, [accountSortFilter.active, vatPage])
 
   return (
     <>
-      {/* {console.log(transaction_details, `<---2222`)} */}
       {loading && <Loader />}
       <Header />
       <div className="page-wrap all-reports-wrap">
@@ -409,44 +712,19 @@ const Accounts = () => {
           <Row>
             <Col sm={12}>
               <div className="reportsConainter">
-                <div className="reportsFilter mb-4 d-flex justify-content-end align-items-center">
-                  <div className="relevanceSelecter me-4">
-                    <FormControl>
-                      {/* <Select value='option1' onChange={handleChange}>
-                        <MenuItem value="option1">Latest</MenuItem>
-                        <MenuItem value="option2">Oldest</MenuItem>
-                        <MenuItem value="option3">Option 3</MenuItem>
-                      </Select> */}
-                      {/* <div className="fltrs_prnt">
-                        <button className='sortTrigger' onClick={() => {handleOpen(); setOpenFilterComponent(true);}}>Filter <AiFillCaretDown /></button>
-                      <div className="fltrs_prnt top_fltr">
-                        <p className="lbl_fltr">Filter</p>
-                        <button className='sortTrigger' onClick={() => { handleOpen(); setOpenFilterComponent(true); }}>Filter <AiFillCaretDown /></button>
-                        {
-                          openFilterComponent && <TopFilterComn
-                            closeFilterComponent={handleCloseFilterComponent}
-                          />
-                        }
-                      </div> */}
-                    </FormControl>
-                  </div>
+                <div className="reportsFilter mb-4 d-flex justify-content align-items-center">
                   <div className="relevanceSelecter">
                     <FormControl>
-                      {/* <div className="fltrs_prnt top_fltr">
-                      <p className="lbl_fltr">
-                          Filter
-                        </p>
-                        <button className='sortTrigger' onClick={() => {handleOpen(); setOpenSortComponent(true);}}>Sort <AiFillCaretDown /></button>
-                      <div className="fltrs_prnt top_fltr">
-                        <p className="lbl_fltr">Sort</p>
-                        <button className='sortTrigger' onClick={() => { handleOpen(); setOpenSortComponent(true); }}>Sort <AiFillCaretDown /></button>
-                        {
-                          openSortComponent && <Fundsinvested
-                            rangeTimeValues={parentTimeValuesHandler}
-                            closeSortComponent={handleCloseSortComponent}
-                          />
-                        }
-                      </div> */}
+                      {
+                        localStorage.getItem("backBtnVisibility") && <Link onClick={() => history.back()}
+                          className='back_link mb-3'><BsArrowLeft className='text-pink' />
+                          Back
+                        </Link>
+                      }
+                    </FormControl>
+                  </div>
+                  {/* <div className="relevanceSelecter">
+                    <FormControl>
                       <div className="fltrs_prnt top_fltr">
                         <p className="lbl_fltr">Sort</p>
                         <button
@@ -467,7 +745,7 @@ const Accounts = () => {
                         )}
                       </div>
                     </FormControl>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="rprts_wrap allContent_report theme_card">
                   <div className="accnts_hdng">
@@ -603,7 +881,7 @@ const Accounts = () => {
                                     variant="body2"
                                     className="card-head-txt mb-2"
                                   >
-                                    £{accountCount?.total_fund_invested?.count}
+                                    £{formatAmountInMillion(accountCount?.total_fund_invested?.count) || 0}
                                   </Typography>
                                 </div>
                                 <Typography
@@ -694,7 +972,7 @@ const Accounts = () => {
                                   gutterBottom
                                   className="cardContent_head"
                                 >
-                                  Total content sourced from tasks
+                                  Total content purchased from tasks
                                 </Typography>
                                 <div className="content_stat">
                                   {accountCount?.sourced_content_from_tasks &&
@@ -766,12 +1044,7 @@ const Accounts = () => {
                                     variant="body2"
                                     className="card-head-txt mb-2"
                                   >
-                                    £
-                                    {
-                                      accountCount
-                                        ?.total_fund_invested_source_content
-                                        ?.count
-                                    }
+                                    £{formatAmountInMillion(accountCount?.total_fund_invested_source_content?.count)}
                                   </Typography>
                                 </div>
                                 <Typography
@@ -780,7 +1053,7 @@ const Accounts = () => {
                                   gutterBottom
                                   className="cardContent_head"
                                 >
-                                  Total funds invested for sourced content
+                                  Total funds invested for content purchased from task
                                 </Typography>
                                 <div className="content_stat">
                                   {accountCount?.total_fund_invested_source_content &&
@@ -854,7 +1127,7 @@ const Accounts = () => {
                                     variant="body2"
                                     className="card-head-txt mb-2"
                                   >
-                                    £ 700
+                                    £{formatAmountInMillion(accountCount?.pending_payment) || 0}
                                   </Typography>
                                 </div>
                                 <Typography
@@ -892,25 +1165,13 @@ const Accounts = () => {
                                       <Button
                                         className="sort_btn"
                                         onClick={() => {
-                                          setOpenTransactionDetail(true);
-                                          setChartName({
-                                            ...chartName,
-                                            transactionDetails:
-                                              "transactionDetails",
-                                          });
+                                          setAccountSortFilter({ ...accountSortFilter, type: "account" })
                                         }}
                                       >
                                         Sort
                                         <BsChevronDown />
                                       </Button>
-                                      {openTransactionDetail && (
-                                        <AccountsFilter
-                                          closeComponent={() =>
-                                            setOpenTransactionDetail(false)
-                                          }
-                                          rangeTimeValues={timeValuesHandler}
-                                        />
-                                      )}
+                                      {accountSortFilter?.type === "account" && <AccountsFilter setAccountSortFilter={setAccountSortFilter} accountSortFilter={accountSortFilter} />}
                                     </div>
                                   </div>
                                 </div>
@@ -923,10 +1184,8 @@ const Accounts = () => {
                                   >
                                     <thead>
                                       <tr>
-                                        <th className="cnt_prchsd_th">
-                                          Content purchased online
-                                        </th>
-                                        <th>Licence</th>
+                                        <th className="cnt_prchsd_th">Content purchased online</th>
+                                        <th>License</th>
                                         <th>Type</th>
                                         <th>Volume</th>
                                         <th>Category</th>
@@ -938,174 +1197,248 @@ const Accounts = () => {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {transaction_details &&
-                                        transaction_details.map((curr) => {
-                                          if (
-                                            curr?.content_id &&
-                                            curr?.content_id !== null
-                                          ) {
-                                            return (
-                                              <tr>
-                                                <td className="">
-                                                  <div className="cont_wrp d-flex flex-column">
-                                                    <div className="d-flex cnt_inn">
-                                                      {curr?.content_id?.content
-                                                        ?.slice(0, 3)
-                                                        .map((item) => {
-                                                          return (
-                                                            <img
-                                                              src={
-                                                                item?.media_type ===
-                                                                  "video"
-                                                                  ?
-                                                                  item?.thumbnail ||
-                                                                  process.env.REACT_APP_CONTENT_MEDIA +
-                                                                  item?.thumbnail
-                                                                  : item?.media_type ===
-                                                                    "audio"
-                                                                    ? audiosm
-                                                                    : item?.thumbnail || process.env.REACT_APP_CONTENT_MEDIA +
-                                                                    item?.media
-                                                              }
-                                                              className="content_img"
-                                                            />
-                                                          );
-                                                        })}
-                                                    </div>
-                                                    <Link
-                                                      to={`/purchased-content-detail/${curr?._id}`}
-                                                      className="link view_link d-flex align-items-center"
-                                                    >
-                                                      <BsEye />
-                                                      View content
-                                                    </Link>
-                                                  </div>
-                                                </td>
-                                                <td className="text-center">
-                                                  {/* tooptip Start */}
-                                                  <Tooltip title="Licence">
-                                                    <img
-                                                      src={
-                                                        curr?.content_id
-                                                          ?.type === "exclusive"
-                                                          ? exclusiveic
-                                                          : shared
-                                                      }
-                                                      className="tbl_ic"
-                                                      alt="Exclusive"
-                                                    />
-                                                  </Tooltip>
-                                                  {/* tooptip End */}
-                                                </td>
-                                                <td>
-                                                  <div className="d-flex cont_type_wrp flex-column align-items-center">
-                                                    <Tooltip title="Camera">
+                                      {transaction_details?.map((curr) => {
+                                        const image = curr?.content_id?.content?.filter(
+                                          (item) => item.media_type === "image"
+                                        );
+                                        const audio = curr?.content_id?.content?.filter(
+                                          (item) => item.media_type === "audio"
+                                        );
+                                        const video = curr?.content_id?.content?.filter(
+                                          (item) => item.media_type === "video"
+                                        );
+                                        const doc = curr?.content_id?.content?.filter(
+                                          (item) => item.media_type === "doc"
+                                        );
+                                        const pdf = curr?.content_id?.content?.filter(
+                                          (item) => item.media_type === "pdf"
+                                        );
+                                        {
+                                          return (
+                                            <tr className="clickable">
+                                              <td className="">
+                                                <div className="cont_wrp d-flex flex-column">
+                                                  {
+                                                    curr?.type == "task_content"
+                                                      ?
+                                                      <div className="d-flex cnt_inn">
+                                                        {<img
+                                                          src={
+                                                            curr?.task_content_id?.type ===
+                                                              "video"
+                                                              ?
+                                                              curr?.task_content_id?.videothubnail
+                                                              : curr?.task_content_id?.type ===
+                                                                "audio"
+                                                                ? audiosm
+                                                                : curr?.task_content_id?.videothubnail
+                                                          } />
+                                                        }
+                                                      </div>
+                                                      :
+                                                      <div className="d-flex cnt_inn">
+                                                        {curr?.content_id?.content
+                                                          ?.slice(0, 3)
+                                                          .map((item) => {
+                                                            return (
+                                                              <img
+                                                                src={
+                                                                  item?.media_type ===
+                                                                    "video"
+                                                                    ?
+                                                                    process.env.REACT_APP_CONTENT_MEDIA +
+                                                                    item?.thumbnail
+                                                                    : item?.media_type ===
+                                                                      "audio"
+                                                                      ? audiosm
+                                                                      : item?.thumbnail || process.env.REACT_APP_CONTENT_MEDIA +
+                                                                      item?.media
+                                                                }
+                                                                className="content_img"
+                                                              />
+                                                            );
+                                                          })}
+                                                      </div>
+                                                  }
+                                                  <Link
+                                                    to={curr?.type !== "task_content" ? `/purchased-content-detail/${curr?._id}` : `/sourced-content-detail/${curr?.task_content_id?._id}`}
+                                                    className="link view_link d-flex align-items-center"
+                                                  >
+                                                    <BsEye />
+                                                    View content
+                                                  </Link>
+                                                </div>
+                                              </td>
+                                              <td className="text-center">
+                                                {/* tooptip Start */}
+                                                <Tooltip title={curr?.content_id?.Vat?.find((el) => el?.purchased_mediahouse_id == JSON.parse(localStorage.getItem("user"))?._id)?.purchased_content_type == "exclusive"
+                                                  ? "Exclusive"
+                                                  : "Shared"}>
+                                                  <img
+                                                    src={
+                                                      curr?.content_id?.Vat?.find((el) => el?.purchased_mediahouse_id == JSON.parse(localStorage.getItem("user"))?._id)?.purchased_content_type == "exclusive"
+                                                        ? exclusiveic
+                                                        : shared
+                                                    }
+                                                    className="tbl_ic"
+                                                    alt="Exclusive"
+                                                  />
+                                                </Tooltip>
+                                                {/* tooptip End */}
+                                              </td>
+                                              <td className="text-center">
+                                                <div className="">
+                                                  {image && image.length > 0 && (
+                                                    <Tooltip title="Photo">
                                                       <img
                                                         src={cameraic}
-                                                        className="tbl_ic"
-                                                        alt="camera"
+                                                        alt="Photo"
+                                                        className="icn"
+                                                      />{" "}
+                                                    </Tooltip>
+                                                  )}
+                                                  <br />
+                                                  {video && video.length > 0 && (
+                                                    <Tooltip title="Video">
+                                                      {" "}
+                                                      <img
+                                                        src={videoic}
+                                                        alt="Video"
+                                                        className="icn"
                                                       />
                                                     </Tooltip>
-                                                  </div>
-                                                </td>
-                                                <td>
-                                                  <p className="d-flex flex-column align-items-center volum">
-                                                    <span>
-                                                      {
-                                                        curr?.content_id
-                                                          ?.content?.length
-                                                      }
-                                                    </span>
-                                                  </p>
-                                                </td>
-                                                <td className="text-center">
-                                                  <Tooltip title="Celebrity">
-                                                    <img
-                                                      src={celebrity}
-                                                      className="tbl_ic"
-                                                      alt="Content category"
-                                                    />
-                                                  </Tooltip>
-                                                </td>
-                                                <td className="timedate_wrap">
-                                                  <p className="timedate">
-                                                    <img
-                                                      src={watchic}
-                                                      className="icn_time"
-                                                    />
-                                                    {moment(
-                                                      curr?.content_id
-                                                        ?.updatedAt
-                                                    ).format("hh:mm A")}
-                                                  </p>
-                                                  <p className="timedate">
-                                                    <img
-                                                      src={calendar}
-                                                      className="icn_time"
-                                                    />
-                                                    {moment(
-                                                      curr?.content_id
-                                                        ?.updatedAt
-                                                    ).format("DD MMMM, YYYY")}
-                                                  </p>
-                                                </td>
-                                                <td>
-                                                  {curr?.content_id?.location}
-                                                </td>
-                                                <td className="timedate_wrap">
-                                                  <p className="timedate">
-                                                    <img
-                                                      src={idic}
-                                                      className="icn_time"
-                                                    />
-                                                    ID- {curr?._id}
-                                                  </p>
-                                                  <Link
-                                                    to={`/transactionDetail/${curr._id}`}
-                                                    className="link view_link"
-                                                  >
-                                                    <BsEye className="icn_time" />
-                                                    View transaction
-                                                  </Link>
-                                                </td>
-
-                                                <td className="timedate_wrap">
-                                                  <p className="timedate">
-                                                    <img
-                                                      src={invic}
-                                                      className="icn_time"
-                                                    />
-                                                    INV- {curr?.invoiceNumber}
-                                                  </p>
-
-                                                  <Link
-                                                    to={`/transactionDetail/${curr._id}`}
-                                                    className="link view_link"
-                                                  >
-                                                    <BsEye className="icn_time" />
-                                                    View transaction
-                                                  </Link>
-                                                </td>
-                                                <td>
-                                                  <p className="ttl_prc text-center">
-                                                    £
+                                                  )}
+                                                  <br />
+                                                  {audio && audio.length > 0 && (
+                                                    <Tooltip title="Audio">
+                                                      <img
+                                                        src={interviewic}
+                                                        alt="Audio"
+                                                        className="icn"
+                                                      />
+                                                    </Tooltip>
+                                                  )}
+                                                  {pdf && pdf.length > 0 && (
+                                                    <Tooltip title="Pdf">
+                                                      <img
+                                                        src={docsic}
+                                                        alt="Pdf"
+                                                        className="icn"
+                                                      />
+                                                    </Tooltip>
+                                                  )}
+                                                  {doc && doc.length > 0 && (
+                                                    <Tooltip title="Doc">
+                                                      <img
+                                                        src={docsic}
+                                                        alt="Doc"
+                                                        className="icn"
+                                                      />
+                                                    </Tooltip>
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td>
+                                                <p className="d-flex flex-column align-items-center volum">
+                                                  <span>
                                                     {
                                                       curr?.content_id
-                                                        ?.amount_paid
+                                                        ?.content?.length
                                                     }
-                                                  </p>
-                                                </td>
-                                              </tr>
-                                            );
-                                          }
-                                        })}
+                                                  </span>
+                                                </p>
+                                              </td>
+                                              <td className="text-center">
+                                                <Tooltip title={curr?.content_id?.category_id?.name}>
+                                                  <img
+                                                    src={curr?.content_id?.category_id?.icon}
+                                                    className="tbl_ic"
+                                                    alt="Content category"
+                                                  />
+                                                </Tooltip>
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={watchic}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.createdAt
+                                                  ).format("hh:mm A")}
+                                                </p>
+                                                <p className="timedate">
+                                                  <img
+                                                    src={calendar}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.createdAt
+                                                  ).format("DD MMM, YYYY")}
+                                                </p>
+                                              </td>
+                                              <td>
+                                                {curr?.type !== "task_content" ? curr?.content_id?.location : curr?.task_content_id?.task_id?.location}
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={idic}
+                                                    className="icn_time"
+                                                  />
+                                                  ID- {curr?._id}
+                                                </p>
+                                                <Link
+                                                  to={`/purchased-content-detail/${curr._id}`}
+                                                  className="link view_link"
+                                                >
+                                                  <BsEye className="icn_time" />
+                                                  View transaction
+                                                </Link>
+                                              </td>
+
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={invic}
+                                                    className="icn_time"
+                                                  />
+                                                  INV- {curr?.invoiceNumber}
+                                                </p>
+
+                                                <Link
+                                                  to={`/invoice/${curr._id}`}
+                                                  className="link view_link"
+                                                >
+                                                  <BsEye className="icn_time" />
+                                                  View invoice
+                                                </Link>
+                                              </td>
+                                              <td>
+                                                <p className="ttl_prc text-left">
+                                                  £
+                                                  {
+                                                    formatAmountInMillion(+(curr?.content_id?.Vat?.find((el) => el?.purchased_mediahouse_id == JSON.parse(localStorage.getItem("user"))?._id)?.amount)) || 0
+                                                  }
+                                                </p>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
+                                      })}
                                     </tbody>
                                   </table>
+                                  {/* {totalPage?
+
+<PaginationComp totalPage={totalPage} path="Favourited-Content" type="fav" setPage={setPage} page={page} />
+:""   
+} */}
+                                  <PaginationComp totalPage={totalPage} path="accounts" type="transaction" setPage={setTranPage} page={tranPage} />
                                 </div>
                               </div>
                             </Card>
                           </Col>
-                          <Col md={5}>
+                          {/* <Col md={5}>
                             <div className="transactionList">
                               <div className="allBanks">
                                 <div className="statChartHead align-items-center">
@@ -1183,141 +1516,222 @@ const Accounts = () => {
                                 </div>
                               </div>
                             </div>
-                          </Col>
-                          <Col md={7}>
-                            <Link to="/accounts-table/vat-data">
-                              <Card className="tbl_crd bg_grey vt_dtl_wrp">
-                                <div className="">
-                                  <div
-                                    className="d-flex justify-content-between align-items-center tbl_hdr"
-                                    px="20px"
-                                    mb="10px"
-                                  >
-                                    <Typography className="tbl_hdng">
-                                      VAT details
-                                    </Typography>
-                                    <div className="tbl_rt">
-                                      {/* <div className="fltrs_prnt">
-                                        <Button
-                                          className="sort_btn"
-                                          onClick={() => {
-                                            setOpenVatDetails(true);
-                                            setChartName({
-                                              ...chartName,
-                                              vatDetails: "vatDetails",
-                                            });
-                                          }}
-                                        >
-                                          Sort
-                                          <BsChevronDown />
-                                        </Button>
-                                        {openVatDetails && (
-                                          <AccountsFilter
-                                            closeComponent={() =>
-                                              setOpenVatDetails(false)
-                                            }
-                                            rangeTimeValues={timeValuesHandler}
-                                          />
-                                        )}
-                                      </div> */}
+                          </Col> */}
+                          <Col md={12}>
+                            <Card className="tbl_crd bg_grey vt_dtl_wrp">
+                              <div className="">
+                                <div
+                                  className="d-flex justify-content-between align-items-center tbl_hdr"
+                                  px="20px"
+                                  mb="10px"
+                                >
+                                  <Typography className="tbl_hdng">
+                                    VAT details
+                                  </Typography>
+                                  <div className="tbl_rt">
+                                    <div className="fltrs_prnt">
+                                      <Button
+                                        className="sort_btn"
+                                        onClick={() => {
+                                          setAccountSortFilter({ ...accountSortFilter, type: "vat" })
+                                        }}
+                                      >
+                                        Sort
+                                        <BsChevronDown />
+                                      </Button>
+                                      {accountSortFilter?.type === "vat" && <AccountsFilter setAccountSortFilter={setAccountSortFilter} accountSortFilter={accountSortFilter} />}
                                     </div>
                                   </div>
-                                  <div className="fix_ht_table">
-                                    <table
-                                      width="100%"
-                                      mx="20px"
-                                      variant="simple"
-                                      className="common_table vat_dtls"
-                                    >
-                                      <thead>
-                                        <tr>
-                                          <th>Invoice date</th>
-                                          <th className="inv_th">Invoice</th>
-                                          <th className="pmnt_dt_th">
-                                            Payment date
-                                          </th>
-                                          <th>Nett paid</th>
-                                          <th>20% VAT paid</th>
-                                          <th>Total paid</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {transaction_details &&
-                                          transaction_details.map((curr) => {
-                                            const amount = curr?.amount ?? 0; // Default to 0 if curr?.amount is undefined or null
-                                            const vat = curr?.Vat ?? 0; // Default to 0 if curr?.Vat is undefined or null
-                                            const result = amount - vat;
-                                            if (
-                                              curr?.content_id &&
-                                              curr?.content_id !== null
-                                            ) {
-                                              return (
-                                                <tr>
-                                                  <td className="timedate_wrap">
-                                                    <p className="timedate">
-                                                      <img
-                                                        src={calendar}
-                                                        className="icn_time"
-                                                      />
-                                                      {moment(
-                                                        curr?.content_id
-                                                          ?.updatedAt
-                                                      ).format("DD MMMM, YYYY")}
-                                                    </p>
-                                                  </td>
-                                                  <td className="timedate_wrap">
-                                                    <p className="timedate">
-                                                      <img
-                                                        src={invic}
-                                                        className="icn_time"
-                                                      />
-                                                      INV- 628192
-                                                    </p>
-                                                    <Link
-                                                      className="link view_link"
-                                                      to={`/transactionDetail/${curr._id}`}
-                                                    >
-                                                      <BsEye className="icn_time" />
-                                                      View transaction
-                                                    </Link>
-                                                  </td>
-                                                  <td className="timedate_wrap">
-                                                    <p className="timedate">
-                                                      <img
-                                                        src={calendar}
-                                                        className="icn_time"
-                                                      />
-                                                      {moment(
-                                                        curr?.content_id
-                                                          ?.updatedAt
-                                                      ).format("DD MMMM, YYYY")}
-                                                    </p>
-                                                  </td>
-                                                  <td>
-                                                    <p className="ttl_prc text-center">
-                                                      £{result}
-                                                    </p>
-                                                  </td>
-                                                  <td>
-                                                    <p className="ttl_prc text-center">
-                                                      £{curr?.Vat ?? "0"}
-                                                    </p>
-                                                  </td>
-                                                  <td>
-                                                    <p className="ttl_prc text-center">
-                                                      £{curr?.amount ?? "0"}
-                                                    </p>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            }
-                                          })}
-                                      </tbody>
-                                    </table>
-                                  </div>
                                 </div>
-                              </Card>
-                            </Link>
+                                <div className="fix_ht_table">
+                                  <table
+                                    width="100%"
+                                    mx="20px"
+                                    variant="simple"
+                                    className="common_table vat_dtls"
+                                  >
+                                    <thead>
+                                      <tr>
+                                        <th className="cnt_prchsd_th">Content purchased online</th>
+                                        <th>Time & date</th>
+                                        <th>Location</th>
+                                        <th>Transaction</th>
+                                        <th>Invoice date</th>
+                                        <th className="inv_th">Invoice</th>
+                                        <th className="pmnt_dt_th">Payment date</th>
+                                        <th>Nett paid</th>
+                                        <th>20% VAT paid</th>
+                                        <th>Total paid</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {transaction_details?.map((curr) => {
+                                        const amount = curr?.amount ?? 0; // Default to 0 if curr?.amount is undefined or null
+                                        const vat = (curr?.Vat || curr?.original_Vatamount) ?? 0; // Default to 0 if curr?.Vat is undefined or null
+                                        const result = amount - vat;
+                                        {
+                                          return (
+                                            <tr>
+                                              <td className="">
+                                                <div className="cont_wrp d-flex flex-column">
+                                                  {
+                                                    curr?.type == "task_content"
+                                                      ?
+                                                      <div className="d-flex cnt_inn">
+                                                        {<img
+                                                          src={
+                                                            curr?.task_content_id?.type ===
+                                                              "video"
+                                                              ?
+                                                              curr?.task_content_id?.videothubnail
+                                                              : curr?.task_content_id?.type ===
+                                                                "audio"
+                                                                ? audiosm
+                                                                : curr?.task_content_id?.videothubnail
+                                                          } />
+                                                        }
+                                                      </div>
+                                                      :
+                                                      <div className="d-flex cnt_inn">
+                                                        {curr?.content_id?.content
+                                                          ?.slice(0, 3)
+                                                          .map((item) => {
+                                                            return (
+                                                              <img
+                                                                src={
+                                                                  item?.media_type ===
+                                                                    "video"
+                                                                    ?
+                                                                    process.env.REACT_APP_CONTENT_MEDIA +
+                                                                    item?.thumbnail
+                                                                    : item?.media_type ===
+                                                                      "audio"
+                                                                      ? audiosm
+                                                                      : item?.thumbnail || process.env.REACT_APP_CONTENT_MEDIA +
+                                                                      item?.media
+                                                                }
+                                                                className="content_img"
+                                                              />
+                                                            );
+                                                          })}
+                                                      </div>
+                                                  }
+                                                  <Link
+                                                    to={curr?.type !== "task_content" ? `/purchased-content-detail/${curr?._id}` : `/sourced-content-detail/${curr?.task_content_id?._id}`}
+                                                    className="link view_link d-flex align-items-center"
+                                                  >
+                                                    <BsEye />
+                                                    View content
+                                                  </Link>
+                                                </div>
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={watchic}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.createdAt
+                                                  ).format("hh:mm A")}
+                                                </p>
+                                                <p className="timedate">
+                                                  <img
+                                                    src={calendar}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.createdAt
+                                                  ).format("DD MMM, YYYY")}
+                                                </p>
+                                              </td>
+                                              <td>
+                                                {curr?.type !== "task_content" ? curr?.content_id?.location : curr?.task_content_id?.task_id?.location}
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={idic}
+                                                    className="icn_time"
+                                                  />
+                                                  ID- {curr?._id}
+                                                </p>
+                                                <Link
+                                                  to={`/purchased-content-detail/${curr._id}`}
+                                                  className="link view_link"
+                                                >
+                                                  <BsEye className="icn_time" />
+                                                  View transaction
+                                                </Link>
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={calendar}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.createdAt
+                                                  ).format("DD MMM, YYYY")}
+                                                </p>
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={invic}
+                                                    className="icn_time"
+                                                  />
+                                                  {curr?.invoiceNumber}
+                                                </p>
+                                                <Link
+                                                  className="link view_link"
+                                                  to={`/invoice/${curr._id}`}
+                                                >
+                                                  <BsEye className="icn_time" />
+                                                  View invoice
+                                                </Link>
+                                              </td>
+                                              <td className="timedate_wrap">
+                                                <p className="timedate">
+                                                  <img
+                                                    src={calendar}
+                                                    className="icn_time"
+                                                  />
+                                                  {moment(
+                                                    curr?.updatedAt
+                                                  ).format("DD MMM, YYYY")}
+                                                </p>
+                                              </td>
+                                              <td>
+                                                <p className="ttl_prc text-left">
+                                                  £{formatAmountInMillion(result)}
+                                                </p>
+                                              </td>
+                                              <td>
+                                                <p className="ttl_prc text-left">
+                                                  £{formatAmountInMillion(curr?.Vat || curr?.original_Vatamount) ?? "0"}
+                                                </p>
+                                              </td>
+                                              <td>
+                                                <p className="ttl_prc text-left">
+                                                  £{formatAmountInMillion(curr?.amount) ?? "0"}
+                                                </p>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
+                                      })}
+                                    </tbody>
+                                  </table>
+                                  {/* {totalPage?
+
+<PaginationComp totalPage={totalPage} path="Favourited-Content" type="fav" setPage={setPage} page={page} />
+:""   
+} */}
+                                  <PaginationComp totalPage={totalPage} path="accounts" type="vat" setPage={setVatPage} page={vatPage} />
+                                </div>
+                              </div>
+                            </Card>
                           </Col>
                         </Row>
                       </div>
@@ -1356,6 +1770,8 @@ const Accounts = () => {
                             </button>
                             {openSortTask && (
                               <ChartsSort
+                                active={taskState}
+                                setActive={setTaskState}
                                 rangeTimeValues={timeValuesHandler}
                                 closeSortComponent={() =>
                                   setOpenSortTask(false)
@@ -1384,8 +1800,8 @@ const Accounts = () => {
                               title="Content purchased online summary"
                             >
                               <ReactApexChart
-                                options={fundInvested.options}
-                                series={fundInvested.series}
+                                options={contentSummary.options}
+                                series={contentSummary.series}
                                 type="bar"
                                 height={350}
                               />

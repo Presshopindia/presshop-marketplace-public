@@ -30,7 +30,7 @@ const SortFilter = () => {
                 <NavLink to={'/'} className="nav-link">
                   Features
                 </NavLink>
-                <NavLink to={'/reports'} className="nav-link">
+                <NavLink to={'/reports/content'} className="nav-link">
                   Reports
                 </NavLink>
                 <NavLink to={'/'} className="nav-link">

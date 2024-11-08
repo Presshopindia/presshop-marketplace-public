@@ -36,7 +36,7 @@ export default function Navbar() {
             </li>
 
                 <li className="">
-                  <Link to={"/dashboard"}>
+                  <Link to={"/dashboard/exclusive"}>
                     {FaIcons.FaAccessibleIcon}
                     <span>Abc</span>
                   </Link>

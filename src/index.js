@@ -14,12 +14,15 @@ import { requestForToken } from './component/firebase/NotificationToken';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { DarkModeProvider } from './context/DarkModeContext';
-const root = ReactDOM.createRoot(document.getElementById('root'));
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+
 
 axios_interceptor()
 requestForToken()
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
 
 document.addEventListener('DOMContentLoaded', async () => {
   // const { publishableKey } = await fetch('/config').then((r) => r.json());

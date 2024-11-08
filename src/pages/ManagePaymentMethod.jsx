@@ -15,7 +15,7 @@ import Footerlandingpage from "../component/Footerlandingpage";
 import { BsEyeSlash, BsEye, BsArrowLeft } from "react-icons/bs";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { MdAdd } from 'react-icons/md';
-import barclays from '../assets/images/bankLogos/Barclays.svg';
+import barclays from '../assets/images/bankLogos/Barclays.png';
 import lloyds from '../assets/images/bankLogos/lloyds.svg';
 import { FiEdit, FiX } from "react-icons/fi";
 import debitL from '../assets/images/bankLogos/debitL.png';

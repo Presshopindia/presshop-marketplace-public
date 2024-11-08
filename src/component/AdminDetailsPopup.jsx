@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { BsEyeSlash, BsEye } from "react-icons/bs";
 import { Get } from "../services/user.services";
 import { toast } from "react-toastify";
+import { successToasterFun } from "./commonFunction";
 
 const AdminDetailsPopup = (props) => {
   const navigate = useNavigate();
@@ -44,8 +45,40 @@ const AdminDetailsPopup = (props) => {
     check4: false,
   });
 
+  const [validations, setValidations] = useState({
+    length: false,
+    special: false,
+    number: false,
+    uppercase: false,
+    lowercase: false,
+    isequal: false,
+  });
+
   const handleChange = (e) => {
     setDetails({ ...details, [e.target.name]: e.target.value });
+
+    if (e.target.name == "password") {
+      const length = e.target.value.length >= 8;
+      const special = /[!@#$%^&*(),.?":{}|<>]/.test(e.target.value);
+      const number = /\d/.test(e.target.value);
+      const uppercase = /[A-Z]/.test(e.target.value);
+      const lowercase = /[a-z]/.test(e.target.value);
+
+      setValidations({ length, special, number, uppercase, lowercase });
+    }
+    if(e.target.name == "cnfm_password"){
+      console.log("testing")
+      if(details.password===e.target.value){
+      setValidations(old=>({...old,isequal:true}));
+      }
+    }
+    if(e.target.name === "cnfm_password"){
+      console.log("miketesting")
+      if(details.password != e.target.value){
+      setValidations(old=>({...old,isequal:false}));
+      // setValidations({...validations, isequal: false})
+      }
+    }
   };
 
   const handleCheck = (e) => {
@@ -74,14 +107,24 @@ const AdminDetailsPopup = (props) => {
 
     setSubmit(true);
     if (details.designation_id === "") {
-      // toast.error("Please Select Designation")
-    } else if (details.password !== details.cnfm_password) {
-      // toast.error("Password Doesn't Match")
-    } else {
+      // I have to write something that I will write later.
+      return;
+    } 
+    if (details.password !== details.cnfm_password) {
+      setValidations(old=>({...old,isequal:false}));
+      toast.error("Password does not match");
+    return
+      // I have to write something that I will write later.
+      // return successToasterFun("Password does not match");
+    }
+     else if (!validations.length || !validations.lowercase || !validations.number || !validations.uppercase || !validations.lowercase){
+      return;
+    } 
+    else {
       Navigate();
     }
   };
-
+console.log("validations",validations)
   useEffect(() => {
     getDesignation();
   }, []);
@@ -107,7 +150,7 @@ const AdminDetailsPopup = (props) => {
             <Container>
               <Row>
                 <Col xs={12} md={6}>
-                  <Form.Group className="mb-4 form-group">
+                  <Form.Group className="mb-3 form-group">
                     <img src={user} alt="" />
                     <Form.Control
                       type="text"
@@ -123,7 +166,7 @@ const AdminDetailsPopup = (props) => {
                   </Form.Group>
                 </Col>
                 <Col xs={12} md={6}>
-                  <Form.Group className="mb-4 form-group">
+                  <Form.Group className="mb-3 form-group">
                     <img src={user} alt="" />
                     <Form.Control
                       type="text"
@@ -153,36 +196,39 @@ const AdminDetailsPopup = (props) => {
                       placeholder="Choose password * "
                       name="password"
                       onChange={handleChange}
+                      value={details?.password}
                     />
-                    {/* <img className='view_pass' src={eye} alt="" /> */}
-                    {/* <FaRegEyeSlash  className='view_pass'/> */}
-                    {/* <BsEye
-                                        color='#000'
-                                        className='view_pass' /> */}
-                    {/* <BsEyeSlash color='#000' className='view_pass' /> */}
-                    {!visibility1 && (
+                    {!visibility1 ? (
                       <div
                         color="#000"
                         className="pass_ic_wrap"
-                        onClick={() => {
-                          setVisibility1(true);
-                        }}
+                        onClick={() => setVisibility1(true)}
                       >
                         <BsEyeSlash />
                       </div>
-                    )}
-                    {visibility1 && (
+                    ) : (
                       <div
                         color="#000"
                         className="pass_ic_wrap"
-                        onClick={() => {
-                          setVisibility1(false);
-                        }}
+                        onClick={() => setVisibility1(false)}
                       >
                         <BsEye />
                       </div>
                     )}
+                    <div className="validation-messages">
+                      <p style={{ color: validations.length ? 'green' : 'red' }}>
+                        {validations.length ? '✔' : '✘'} Must be at least 08 characters
+                      </p>
+                      <p style={{ color: validations.special ? 'green' : 'red' }}>
+                        {validations.special ? '✔' : '✘'} Contains at least 01 special character
+                      </p>
+                      <p style={{ color: validations.number ? 'green' : 'red' }}>
+                        {validations.number ? '✔' : '✘'} Contains at least 01 number
+                      </p>
+                    </div>
+
                   </Form.Group>
+
                 </Col>
                 <Col xs={12} md={6}>
                   <Form.Group className="mb-4 form-group position-relative">
@@ -193,12 +239,12 @@ const AdminDetailsPopup = (props) => {
                       className=""
                       placeholder="Confirm password * "
                       name="cnfm_password"
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        // setValidations({...validations, isequal: false})
+                      }}
+                      value={details?.cnfm_password}
                     />
-                    {/* <BsEye
-                                        color='#000'
-                                        className='view_pass' /> */}
-                    {/* <BsEyeSlash color='#000' className='view_pass' /> */}
                     {!visibility2 && (
                       <div
                         color="#000"
@@ -221,6 +267,18 @@ const AdminDetailsPopup = (props) => {
                         <BsEye />
                       </div>
                     )}
+                    <div className="validation-messages">
+                      <p style={{ color: validations.uppercase ? 'green' : 'red' }}>
+                        {validations.uppercase ? '✔' : '✘'} Contains at least 01 uppercase character
+                      </p>
+                      <p style={{ color: validations.lowercase ? 'green' : 'red' }}>
+                        {validations.lowercase ? '✔' : '✘'} Contains at least 01 lowercase character
+                      </p>
+                    {!validations?.isequal && details?.cnfm_password ?
+                      <p style={{ color: validations.isequal ? 'green' : 'red' }}>
+                        {validations.isequal ? '✔' : '✘'} Password does not match
+                      </p> : null}
+                    </div> 
                   </Form.Group>
                 </Col>
               </Row>

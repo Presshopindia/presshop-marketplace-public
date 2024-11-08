@@ -1,6 +1,5 @@
 import React, { memo, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { usePosition } from 'use-position';
 import img1 from "../assets/images/img1.png";
 import img2 from "../assets/images/img2.png";
 import img3 from "../assets/images/img4.png";
@@ -25,7 +24,10 @@ import timeic from "../assets/images/watch.svg";
 
 const Chatbroadcasttask = (props) => {
 
-  const { latitude, longitude } = usePosition()
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [error, setError] = useState(null);
+
   const [liveTasks, setLiveTasks] = useState()
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState("map")
@@ -39,6 +41,28 @@ const Chatbroadcasttask = (props) => {
   const [location, setLocation] = useState([])
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Function to handle geolocation retrieval
+    async () => {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            setLatitude(position.coords.latitude);
+            setLongitude(position.coords.longitude);
+            setError(null); // Clear any previous errors
+          },
+          function (error) {
+            setError(error.message);
+            console.error('Error getting geolocation:', error.message);
+          }
+        );
+      } else {
+        setError('Geolocation is not supported by this browser.');
+      }
+    }
+  }, [])
+
+  
   const LiveTasks = async () => {
 
     setLoading(true)
@@ -129,8 +153,8 @@ const Chatbroadcasttask = (props) => {
                   <div className="hopper_content">
                     <span className='me-4'><MdMyLocation /> {taskDetails.hasOwnProperty("accepted_by") ? taskDetails?.accepted_by?.length === 0 ||
                       taskDetails?.accepted_by?.length === 1
-                        ? `${taskDetails?.accepted_by?.length} Hopper tasked`
-                        : `${taskDetails?.accepted_by?.length} Hoppers tasked` : `${0} Hopper tasked`}{" "}</span>
+                      ? `${taskDetails?.accepted_by?.length} Hopper tasked`
+                      : `${taskDetails?.accepted_by?.length} Hoppers tasked` : `${0} Hopper tasked`}{" "}</span>
                     <span><BiPlay /> {taskDetails?.content?.length || 0} Content uploaded</span>
                   </div>
                 </div>
@@ -178,15 +202,15 @@ const Chatbroadcasttask = (props) => {
                       <div className="priceOffer_wrap">
                         <div className="type_price justify-content-between">
                           <label className='txt_lt'>Photo</label>
-                          <span className='sm-tiles'>{taskDetails?.need_photos === true ? "£ " + taskDetails?.photo_price : "-"}</span>
+                          <span className={taskDetails?.need_photos ? 'sm-tiles prc_cstm' : 'sm-tiles'}>{taskDetails?.need_photos === true ? "£ " + taskDetails?.photo_price : "-"}</span>
                         </div>
                         <div className="type_price justify-content-between">
                           <label className='txt_lt'>Interview</label>
-                          <span className='sm-tiles'>{taskDetails?.need_interview === true ? "£ " + taskDetails?.interview_price : "-"}</span>
+                          <span className={taskDetails?.need_interview ? 'sm-tiles prc_cstm' : 'sm-tiles'}>{taskDetails?.need_interview === true ? "£ " + taskDetails?.interview_price : "-"}</span>
                         </div>
                         <div className="type_price justify-content-between">
                           <label className='txt_lt'>Video</label>
-                          <span className='sm-tiles'>{taskDetails?.need_videos === true ? "£ " + taskDetails?.videos_price : "-"}</span>
+                          <span className={taskDetails?.need_videos ? 'sm-tiles prc_cstm' : 'sm-tiles'}>{taskDetails?.need_videos === true ? "£ " + taskDetails?.videos_price : "-"}</span>
                         </div>
                       </div>
                     </Col>

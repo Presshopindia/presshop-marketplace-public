@@ -37,6 +37,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import audiosm from "../assets/images/audimgsmall.svg";
 import "swiper/css";
 import { Pagination } from "swiper";
+import { formatAmountInMillion } from "../component/commonFunction";
 const TransactionDetail = () => {
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
@@ -210,16 +211,23 @@ const TransactionDetail = () => {
                             <h1 className="feedTitle">
                               {transactionDetails?.content_id?.heading}
                             </h1>
-                            <p className="feed_descrptn">
+                            {/* <p className="feed_descrptn">
                               {transactionDetails?.content_id?.description}
-                            </p>
+                            </p> */}
+                            <textarea
+                              className="form-control custom_textarea"
+                              readOnly
+                              value={
+                                transactionDetails?.content_id?.description
+                              }
+                            ></textarea>
                           </div>
-                          <div className="text-end my-3 mx-4">
+                          {/* <div className="text-end my-3 mx-4">
                             <Link className="txt_bold text-dark">
                               View more{" "}
                               <BsArrowRight className="text-pink ms-1" />
                             </Link>
-                          </div>
+                          </div> */}
                         </CardContent>
                       </Card>
 
@@ -351,7 +359,7 @@ const TransactionDetail = () => {
                             </div>
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Licence Type</span>
+                                <span className="fnt-bold">License</span>
 
                                 {transactionDetails?.type === "content" &&
                                   transactionDetails?.content_id?.type ===
@@ -405,7 +413,7 @@ const TransactionDetail = () => {
                         </div>
                         <div className="transactional_detail">
                           <div className="single_tranInfo">
-                            <h6>Invoice no.</h6>
+                            <h6>Invoice number</h6>
                             <h6>{transactionDetails?.invoiceNumber}</h6>
                           </div>
                         </div>
@@ -508,7 +516,7 @@ const TransactionDetail = () => {
                               <hr />
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>Company no.</h6>
+                                  <h6>Company number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.payment_admin_id
@@ -519,7 +527,7 @@ const TransactionDetail = () => {
                               </div>
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>VAT no.</h6>
+                                  <h6>VAT number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.payment_admin_id
@@ -574,7 +582,7 @@ const TransactionDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {
@@ -624,7 +632,7 @@ const TransactionDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {
@@ -726,7 +734,7 @@ const TransactionDetail = () => {
                               feedHead={curr?.description}
                               feedTime={curr?.type == "content" ? moment(curr?.content_id?.published_time_date).format(`hh:mm A, DD MMMM YYYY`) : moment(curr?.timestamp).format(`hh:mm A, DD MMMM YYYY`)}
                               feedLocation={curr?.location}
-                              contentPrice={`${curr?.ask_price}`}
+                              contentPrice={`${formatAmountInMillion(curr?.ask_price)}`}
                               postcount={2}
                               feedTypeImg2={interviewic}
                               postcount2={3}
@@ -781,7 +789,7 @@ const TransactionDetail = () => {
                           />
                         )}
                       </div>
-                      <Link to="/more-content" className="next_link">
+                      <Link to="/more-content/hopper_id" className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>

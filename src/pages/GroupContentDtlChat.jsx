@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { usePosition } from "use-position";
 import { Form, Row, Col } from "react-bootstrap";
 import {
   Avatar,
@@ -32,6 +31,8 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import Chatinternal from "../component/Chatinternal";
 import NoProfile from "../assets/images/blank-profile-picture.png";
+import usric from "../assets/images/menu-icons/user.svg";
+import audioic from "../assets/images/audimg.svg";
 import socketInternal from "../InternalSocket";
 
 const GroupContentDtlChat = (props) => {
@@ -50,31 +51,34 @@ const GroupContentDtlChat = (props) => {
         // console.log(res, '<<< Why the profile is here');
         setUserProfile(res?.data?.profile?._id);
       }
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const GetUserList = async () => {
-    const resp = await Get(
-      `mediaHouse/getdesignatedUSer?allow_to_chat_externally=true`
+    const resp = await Post(
+      `mediaHouse/getMediahouseUser`
     );
     if (resp) {
-      setUserList(
-        resp.data.response.sort((a, b) =>
-          a.first_name.toLowerCase().localeCompare(b.first_name.toLowerCase())
-        )
-      );
+      setUserList(resp.data.response);
     }
   };
 
   const getDetailContent = async () => {
     try {
-      const resp = await Get(
-        `mediaHouse/openContentMH?content_id=${props?.params?.contentId}`
-      );
-      if (resp) {
+      let resp;
+      if (props?.params?.type === "task") {
+        resp = await Get(
+          `mediaHouse/getuploadedContentbyHoppers?_id=${props?.params?.contentId}`
+        );
+        setDetailContent(resp?.data?.data?.[0]);
+      }
+      else {
+        resp = await Get(
+          `mediaHouse/openContentMH?content_id=${props?.params?.contentId}`
+        );
         setDetailContent(resp?.data?.response[0]);
       }
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const ChatList = async () => {
@@ -90,8 +94,6 @@ const GroupContentDtlChat = (props) => {
     }
   };
 
-  console.log('message ----->', message)
-
   useEffect(() => {
     getDetailContent();
     getUserProfile();
@@ -100,7 +102,7 @@ const GroupContentDtlChat = (props) => {
   }, [props?.params?.contentId]);
 
 
-//   Participants-
+  //   Participants-
   const handleCheckboxChange = (itemId) => {
     if (selectedIds.includes(itemId)) {
       setSelectedIds(selectedIds.filter((id) => id !== itemId));
@@ -111,7 +113,7 @@ const GroupContentDtlChat = (props) => {
 
   const AddParticipents = async () => {
     try {
-      if(!JSON.parse(localStorage.getItem("roomId")) && !JSON.parse(localStorage.getItem("contentId"))){
+      if (!JSON.parse(localStorage.getItem("roomId")) && !JSON.parse(localStorage.getItem("contentId"))) {
         return
       }
       let obj = {
@@ -136,6 +138,18 @@ const GroupContentDtlChat = (props) => {
     }
   };
 
+  const audioRef = useRef(null);
+  const toggleAudio = () => {
+    const audio = audioRef.current;
+    if (audio.paused) {
+      audio.play().catch((error) => {
+        console.error("Error playing audio:", error);
+      });
+    } else {
+      audio.pause();
+    }
+  };
+
   return (
     <>
       {loading && <Loader />}
@@ -146,20 +160,19 @@ const GroupContentDtlChat = (props) => {
           <div className="feedsContainer mb-0">
             <div className="cht_tsk_rw d-flex">
               <div className="ps-0 pe-01 chat_loc_wp">
-                <Card className="feeddetail-card left-card h-100">
-                  <CardContent className="card-content">
-                    {detailContent?.content?.length === 1 &&
+                <Card className="feeddetail-card left-card h-100 ">
+                  <CardContent className="card-content ">
+                    {/* {detailContent?.content?.length === 1 &&
                       data?.content[0]?.media_type === "audio" && (
                         <div className="content_audio_img cont_swipe_aud">
-                          {/* <img src={audioic} alt="" height="100px" width="auto" /> */}
                           <AudioPlayer
                             // autoPlay
                             src={
                               process.env.REACT_APP_CONTENT_MEDIA +
                               detailContent?.content[0]?.media
                             }
-                            // onPlay={e => console.log("onPlay")}
-                            // other props here
+                          // onPlay={e => console.log("onPlay")}
+                          // other props here
                           />
                         </div>
                       )}
@@ -177,30 +190,79 @@ const GroupContentDtlChat = (props) => {
                       detailContent?.content[0]?.media_type === "image" && (
                         <img
                           src={
-                            detailContent.paid_status === "paid"
+                            detailContent?.paid_status === "paid"
                               ? process.env.REACT_APP_CONTENT_MEDIA +
-                                detailContent?.content[0]?.media
+                              detailContent?.content[0]?.media
                               : detailContent?.content[0]?.watermark
                           }
                           alt={null}
                         />
-                      )}
-                    {detailContent?.content?.length > 1 && (
-                      <Swiper
-                        spaceBetween={50}
-                        slidesPerView={1}
-                        pagination={{ clickable: true }}
-                        // onSwiper={(swiper) => console.log(swiper)}
-                      >
-                        {detailContent &&
-                          detailContent.content.map((item) => {
+                      )} */}
+                    <Swiper
+                      spaceBetween={50}
+                      slidesPerView={1}
+                      pagination={{ clickable: true }}
+                    // onSwiper={(swiper) => console.log(swiper)}
+                    >
+                      {
+                        props?.params?.type == "content" ?
+                          detailContent?.content?.map((item) => {
+                            return (
+                              <SwiperSlide>
+                                {item.media_type === "audio" ? (
+                                  <div>
+                                    <img
+                                      src={audioic}
+                                      alt={`Audio ${item._id}`}
+                                      className="slider-img"
+                                      onClick={toggleAudio}
+                                    />
+                                    <audio
+                                      controls
+                                      src={
+                                        item.hasOwnProperty("watermark")
+                                          ? item.watermark
+                                          : process.env
+                                            .REACT_APP_CONTENT_MEDIA +
+                                          item?.media
+                                      }
+                                      type="audio/mpeg"
+                                      className="slider-audio"
+                                      ref={audioRef}
+                                    />
+                                  </div>
+                                ) : item.media_type === "video" ? (
+                                  <video
+                                    controls
+                                    className="slider-vddo"
+                                    src={
+                                      item?.media
+                                    }
+                                  />
+                                ) : item.media_type === "image" ? (
+                                  <img
+                                    src={
+                                      detailContent?.paid_status === "paid"
+                                        ? process.env.REACT_APP_CONTENT_MEDIA +
+                                        item.media
+                                        : item.watermark
+                                    }
+                                    alt={null}
+                                  />
+                                ) : item.media_type === "pdf" ?
+                                  <embed src={`${process.env.REACT_APP_CONTENT_MEDIA + item.media}`} type="application/pdf" width="100%" height="500" />
+                                  : null
+                                }
+                              </SwiperSlide>
+                            );
+                          }) :
+                          detailContent?.task_id?.content?.map((item) => {
                             return (
                               <SwiperSlide>
                                 {item.media_type === "audio" ? (
                                   <div className="content_audio_img cont_swipe_aud">
                                     <AudioPlayer
                                       src={
-                                        process.env.REACT_APP_CONTENT_MEDIA +
                                         item.media
                                       }
                                     />
@@ -208,7 +270,6 @@ const GroupContentDtlChat = (props) => {
                                 ) : item.media_type === "video" ? (
                                   <img
                                     src={
-                                      process.env.REACT_APP_CONTENT_MEDIA +
                                       item.thumbnail
                                     }
                                     alt={null}
@@ -216,27 +277,24 @@ const GroupContentDtlChat = (props) => {
                                 ) : item.media_type === "image" ? (
                                   <img
                                     src={
-                                      detailContent.paid_status === "paid"
-                                        ? process.env.REACT_APP_CONTENT_MEDIA +
-                                          item.media
-                                        : item.watermark
+                                      item.media
                                     }
                                     alt={null}
                                   />
                                 ) : item.media_type === "pdf" ?
-                                <embed src={`${process.env.REACT_APP_CONTENT_MEDIA + item.media}`} type="application/pdf" width="100%" height="500" />
-                                : null
+                                  <embed src={`${item.media}`} type="application/pdf" width="100%" height="500" />
+                                  : null
                                 }
                               </SwiperSlide>
                             );
-                          })}
-                      </Swiper>
-                    )}
+                          })
+                      }
+                    </Swiper>
 
                     <div className="feedTitle_content">
-                      <h1 className="feedTitle">{detailContent?.heading}</h1>
+                      <h1 className="feedTitle">{props?.params?.type == "content" ? detailContent?.heading : detailContent?.task_id?.heading}</h1>
                       <p className="feed_descrptn">
-                        {detailContent?.description}
+                        {props?.params?.type == "content" ? detailContent?.description : detailContent?.task_id?.task_description}
                       </p>
                     </div>
                   </CardContent>
@@ -259,18 +317,15 @@ const GroupContentDtlChat = (props) => {
                     <div className="content">
                       <div className="sub-content">
                         <div className="item d-flex justify-content-between align-items-center">
-                          <span className="fnt-bold">Author</span>
+                          <span className="fnt-bold">Hopper</span>
                           <div className="item-in-right">
                             <img
                               src={
-                                process.env.REACT_APP_AVATAR_IMAGE +
-                                detailContent?.hopper_details[0]
-                                  ?.avatar_details[0]?.avatar
-                              }
+                                props?.params?.type === "content" ? process.env.REACT_APP_AVATAR_IMAGE + detailContent?.hopper_details?.[0]?.avatar_details[0]?.avatar : process.env.REACT_APP_AVATAR_IMAGE + detailContent?.avatar_detals[0]?.avatar}
                               alt=""
                             />
                             <span>
-                              {detailContent?.hopper_details[0]?.user_name}
+                              {props?.params?.type === "content" ? detailContent?.hopper_details[0]?.user_name : detailContent?.hopper_id?.user_name}
                             </span>
                           </div>
                         </div>
@@ -281,7 +336,7 @@ const GroupContentDtlChat = (props) => {
                           <div className="item-in-right loc">
                             <span>
                               <SlLocationPin />{" "}
-                              <div>{detailContent?.location}</div>
+                              <div>{props?.params?.type === "content" ? detailContent?.location : detailContent?.task_id?.location}</div>
                             </span>
                           </div>
                         </div>
@@ -292,67 +347,83 @@ const GroupContentDtlChat = (props) => {
                           <div className="item-in-right loc">
                             <span>
                               <MdOutlineWatchLater />
-                              {moment(detailContent?.published_time_date).format(
-                                "h:mm A, DD MMMM YY"
-                              )}
+                              {props?.params?.type === "content" ? moment(detailContent?.published_time_date).format( "h:mm A, D MMM YYYY" ) : moment(detailContent?.task_id?.createdAt).format( "h:mm A, D MMM YYYY" )}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="sub-content tags_wrp">
-                        <div className="item d-flex justify-content-between align-items-center">
-                          <span className="fnt-bold">Hashtags</span>
-                          <div>
-                            <div className="item-in-right hashtag-wrap">
-                              {detailContent &&
-                                detailContent?.tag_ids?.map((tag) => {
-                                  return (
-                                    <span className="mr">#{tag.name}</span>
-                                  );
-                                })}
+                      {
+                        props?.params?.type === "content" && <div className="sub-content tags_wrp">
+                          <div className="item d-flex justify-content-between align-items-center">
+                            <span className="fnt-bold">Hashtags</span>
+                            <div>
+                              <div className="item-in-right hashtag-wrap">
+                                {detailContent &&
+                                  detailContent?.tag_ids?.map((tag) => {
+                                    return (
+                                      <span className="mr">#{tag.name}</span>
+                                    );
+                                  })}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      }
                       <div className="sub-content">
                         <div className="item d-flex justify-content-between align-items-center">
                           <span className="fnt-bold">Category</span>
                           <div className="">
                             <img
                               src={
-                                detailContent?.category_id[0]?.icon
+                                props?.params?.type === "content" ? detailContent?.category_id?.[0]?.icon : detailContent?.category_details[0]?.icon
                               }
                               className="exclusive-img"
                               alt=""
                             />
                             <span>
                               {capitalizeFirstLetter(
-                                detailContent?.category_id[0]?.name
+                                props?.params?.type === "content" ? detailContent?.category_id?.[0]?.name : detailContent?.category_details[0]?.name
                               )}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="sub-content">
-                        <div className="item d-flex justify-content-between align-items-center">
-                          <span className="fnt-bold">Licence Type</span>
-                          <div className="">
-                            <img
-                              src={
-                                detailContent?.type === "exclusive"
-                                  ? exclusive
-                                  : shared
-                              }
-                              className="exclusive-img"
-                              alt=""
-                            />
-                            <span>
-                              {capitalizeFirstLetter(detailContent?.type)}
-                            </span>
+                      {
+                        props?.params?.type === "content" && <div className="sub-content">
+                          <div className="item d-flex justify-content-between align-items-center">
+                            <span className="fnt-bold">License</span>
+                            <div className="">
+                              <img
+                                src={
+                                  detailContent?.type === "exclusive"
+                                    ? exclusive
+                                    : shared
+                                }
+                                className="exclusive-img"
+                                alt=""
+                              />
+                              <span>
+                                {capitalizeFirstLetter(detailContent?.type)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      }
+
+                      {
+                        props?.params?.type === "content" && detailContent?.ask_price && <div className="foot" style={{ marginTop: "2rem", width: "100%", display: "flex", justifyContent: "flex-end" }}>
+                          <Button variant="primary" style={{ width: "100%" }}>
+                            £
+                            {
+                              detailContent?.ask_price?.toLocaleString(
+                                "en-US",
+                                { maximumFractionDigits: 2 }
+                              )
+                            }
+                          </Button>
+                        </div>
+                      }
                     </div>
                   </CardContent>
                 </Card>
@@ -371,68 +442,47 @@ const GroupContentDtlChat = (props) => {
                   </div>
                   <div className="chat_content_list chatParticipantList">
                     <div className="scrollHtPnts chatCustomParticipant">
-                      {userList &&
-                        userList.map((curr) => {
-                          return (
-                            <div className="tab_in_card_items">
-                              <div className="checkWrap">
+                      {userList?.map((curr) => {
+                        return (
+                          <div className="tab_in_card_items">
+                            <div className="checkWrap">
                               <FormControlLabel
-                                className={`me-0 ${
-                                  !selectedIds.includes(curr._id) &&
+                                className={`me-0 ${!selectedIds.includes(curr._id) &&
                                   "afterCheck"
-                                }`}
+                                  }`}
                                 checked={
                                   selectedIds.includes(curr._id) ||
-                                  message?.some(
-                                    (item) =>
-                                      curr?.first_name ===
-                                        item?.addedMsg?.split(" ")?.[0] &&
-                                      curr?.last_name ===
-                                        item?.addedMsg?.split(" ")?.[1]
-                                  )
+                                  message?.some((item => (`${curr?.first_name} ${curr?.last_name}` == (item?.addedMsg))))
                                 }
                                 onChange={() => handleCheckboxChange(curr._id)}
                                 control={<Checkbox defaultChecked />}
-                                disabled={message?.some(
-                                  (item) =>
-                                    curr?.first_name ===
-                                      item?.addedMsg?.split(" ")?.[0] &&
-                                    curr?.last_name ===
-                                      item?.addedMsg?.split(" ")?.[1]
-                                )}
+                                disabled={message?.some((item => (`${curr?.first_name} ${curr?.last_name}` == (item?.addedMsg))))}
                               />
-                              </div>
-                              <div
-                                className="img"
-                                onClick={() => {
-                                  setSenderId(curr._id);
-                                  setShow({
-                                    content: false,
-                                    task: false,
-                                    presshop: false,
-                                    internal: true,
-                                  });
-                                }}
-                              >
-                                <img
-                                  src={
-                                    curr?.profile_image?.includes(".mp4")
-                                      ? NoProfile
-                                      : !curr?.profile_image?.includes("https")
-                                      ? process.env.REACT_APP_EMPLOYEE_IMAGE +
-                                        curr?.profile_image
-                                      : curr?.profile_image
-                                  }
-                                  alt="user"
-                                />
-                                <span>
-                                  {" "}
-                                  {curr.first_name + " " + curr.last_name}
-                                </span>
-                              </div>
                             </div>
-                          );
-                        })}
+                            <div
+                              className="img"
+                              onClick={() => {
+                                setSenderId(curr._id);
+                                setShow({
+                                  content: false,
+                                  task: false,
+                                  presshop: false,
+                                  internal: true,
+                                });
+                              }}
+                            >
+                              <img
+                                src={usric}
+                                alt="user"
+                              />
+                              <span>
+                                {" "}
+                                {curr.first_name + " " + curr.last_name}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                   <button

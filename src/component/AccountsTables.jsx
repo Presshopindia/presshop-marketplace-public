@@ -28,7 +28,6 @@ import interviewic from "../assets/images/interview.svg";
 import videoic from "../assets/images/video.svg";
 import { Get } from "../services/user.services";
 import moment from "moment/moment";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import contimg1 from "../assets/images/Contentdetail/contentimg2.png";
 import contimg2 from "../assets/images/Contentdetail/content3.png";
 import contimg3 from "../assets/images/Contentdetail/contentbg.png";
@@ -40,6 +39,7 @@ import hprimg1 from "../assets/images/avatars/usrimg1.svg";
 import hprimg2 from "../assets/images/avatars/usrimg2.svg";
 import hprimg3 from "../assets/images/avatars/usrimg3.svg";
 import Loader from "./Loader";
+import { accountTotalFundInvestedContentPurchase, formatAmountInMillion } from "./commonFunction";
 
 const AccountsTables = () => {
   const [detail, setDetails] = useState()
@@ -55,8 +55,7 @@ const AccountsTables = () => {
     try {
       const res = await Get(`mediahouse/paymenttobemade`);
       if (res) {
-        console.log('res.data---------->', res.data)
-        setVat(res?.data?.data)
+        setVat(res?.data)
       }
     } catch (error) {
     }
@@ -65,20 +64,11 @@ const AccountsTables = () => {
   const getContentPurchaseSummary = async () => {
     try {
       const res = await Get(`mediahouse/contentPurchasedOnlinesummary`)
+      const totalFundInvested = await Get(`mediahouse/taskPurchasedOnlinesummary`);
       if (res) {
-        setPurchaseContent(res?.data?.response)
-      }
-
-    } catch (error) {
-
-    }
-  }
-
-  const getTaskPurchaseSummary = async () => {
-    try {
-      const res = await Get(`mediahouse/contentPurchasedOnlinesummary`)
-      if (res) {
-        setTask_PurchaseContent(res?.data?.response)
+        setTask_PurchaseContent(totalFundInvested?.data?.response)
+        const newData = accountTotalFundInvestedContentPurchase(res?.data?.response)
+        setPurchaseContent(newData)
       }
 
     } catch (error) {
@@ -91,7 +81,6 @@ const AccountsTables = () => {
     try {
       setLoading(true)
       const resp = await Get(`mediahouse/Account/count`);
-      setDetails(resp.data);                
       if (resp) {
         setDetails(resp.data);
         setLoading(false);
@@ -101,18 +90,30 @@ const AccountsTables = () => {
     }
   };
 
+  const [totalDetail, setTotalDetail] = useState([]);
+  const totalData = async (param) => {
+    const paramName = param;
+    setLoading(true);
+    try {
+      const resp = await Get(`mediahouse/taskPurchasedOnlinesummary?${paramName}=${param}`);
+      setTotalDetail(accountTotalFundInvestedContentPurchase(resp?.data?.response));
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     ReportCount()
     getVatSummary()
     getContentPurchaseSummary()
-    getTaskPurchaseSummary()
-
+    totalData()
   }, [])
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
   return (
     <>
-    {loading && <Loader />}
+      {loading && <Loader />}
       <Header />
       <div className="page-wrap feed-detail tasktables_wrap">
         <Container fluid className="p-0">
@@ -125,7 +126,6 @@ const AccountsTables = () => {
               </div>
 
               <div className="tbl_wrap_cmn">
-                {/* Total content purchased online start */}
                 {param.type === "total_content_purchase" ?
                   <Card className="tbl_crd">
                     <div className="">
@@ -137,9 +137,6 @@ const AccountsTables = () => {
                         <Typography className="tbl_hdng">
                           Total contents purchased online
                         </Typography>
-                        {/* <div className="tbl_rt">
-                          <span className="tbl_rt_txt">Monthly</span>
-                        </div> */}
                       </div>
                       <div className="fix_ht_table">
                         <table
@@ -151,22 +148,30 @@ const AccountsTables = () => {
                           <thead>
                             <tr>
                               <th className="">Content purchased online</th>
-                              <th>Period</th>
+                              <th>Purchased date</th>
+                              <th>Net price paid</th>
+                              <th>VAT paid</th>
                               <th>Total funds invested</th>
-                              <th>Trend</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {detail && detail?.content_online?.task?.map((curr) => {
+                            {detail && detail?.content_online?.task?.sort((a, b) => {
+                              const timeA = new Date(
+                                a?.content_id?.Vat?.find((el) => el.purchased_mediahouse_id === JSON.parse(localStorage.getItem("user"))?._id)?.purchased_time
+                              );
+                              const timeB = new Date(
+                                b?.content_id?.Vat?.find((el) => el.purchased_mediahouse_id === JSON.parse(localStorage.getItem("user"))?._id)?.purchased_time
+                              );
+                              return timeB - timeA;
+                            })?.map((curr) => {
                               return (
-                                <tr>
+                                <tr className="clickable" onClick={() => navigate(`/purchased-content-detail/${curr?._id}`)} >
                                   <td className="content_wrap more_contnt_wrap">
-                                    <Link to={`/${curr._id}`}>
                                     <div className="content_imgs_wrap">
                                       <div className="content_imgs">
-                                        {curr?.content && curr?.content?.map((curr) => {
+                                        {curr?.content_id?.content && curr?.content_id?.content?.map((curr) => {
                                           return (
-                                            curr?.media_type === "image" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.media} className="content_img" />
+                                            curr?.media_type === "image" ? <img src={curr?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.media} className="content_img" />
                                               : curr?.media_type === "video" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.thumbnail} className="content_img" />
                                                 : curr?.media_type === "audio" ? <img src={audioic} className="content_img" />
                                                   : null
@@ -191,26 +196,19 @@ const AccountsTables = () => {
                                         </span>
                                       </div>
                                     </div>
-                                    </Link>
                                   </td>
                                   <td className="timedate_wrap">
                                     <p className="timedate">
                                       <img src={calendar} className="icn_time" />
-                                      {new Date(curr?.createdAt)?.toLocaleDateString()} - {new Date(curr?.latestAdminUpdated)?.toLocaleDateString() === "Invalid Date" ? "" : new Date(curr?.latestAdminUpdated)?.toLocaleDateString()}
+                                      {moment(curr?.content_id?.Vat?.find((el) => el.purchased_mediahouse_id == JSON.parse(localStorage.getItem("user"))?._id)?.purchased_time)?.format("DD MMM YYYY")}
                                     </p>
                                   </td>
-                                  <td>£ {curr?.amount_paid}</td>
-                                  <td className="">
-                                    <p className="trend_success">
-                                      <BsArrowUp /> 
-                                      {(Number(curr?.amount_paid)*1.5).toFixed(2)}%
-                                    </p>
-                                  </td>
+                                  <td>£{formatAmountInMillion(curr?.amount - (curr?.Vat || curr?.original_Vatamount))}</td>
+                                  <td>£{formatAmountInMillion((curr?.Vat || curr?.original_Vatamount))}</td>
+                                  <td>£{formatAmountInMillion(curr?.amount)}</td>
                                 </tr>
-
                               )
                             })
-
                             }
                           </tbody>
                         </table>
@@ -229,9 +227,6 @@ const AccountsTables = () => {
                           <Typography className="tbl_hdng">
                             Total Funds invested for content purchased online
                           </Typography>
-                          {/* <div className="tbl_rt">
-                            <span className="tbl_rt_txt">Monthly</span>
-                          </div> */}
                         </div>
                         <div className="fix_ht_table">
                           <table
@@ -250,9 +245,9 @@ const AccountsTables = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {purchaseContent && purchaseContent.map((curr) => {
+                              {purchaseContent?.map((curr) => {
                                 return (
-                                  <tr>
+                                  <tr className="clickable">
                                     <td className="content_wrap more_contnt_wrap">
                                       <div className="content_imgs_wrap">
                                         <div className="content_imgs">
@@ -290,9 +285,9 @@ const AccountsTables = () => {
                                         {months[curr?._id?.month - 1]}  {curr?._id?.year}
                                       </p>
                                     </td>
-                                    <td>£ {(curr?.total_price - curr?.total_vat || 0)?.toFixed(2)}</td>
-                                    <td>£ {(curr?.total_vat || 0)?.toFixed(2)}</td>
-                                    <td>£ {(curr?.total_price || 0)?.toFixed(2)}</td>
+                                    <td>£{formatAmountInMillion(curr?.total_price - curr?.total_vat || 0)}</td>
+                                    <td>£{formatAmountInMillion(curr?.total_vat || 0)}</td>
+                                    <td>£{formatAmountInMillion(curr?.total_price || 0)}</td>
                                   </tr>
 
                                 )
@@ -313,11 +308,8 @@ const AccountsTables = () => {
                             mb="10px"
                           >
                             <Typography className="tbl_hdng">
-                              Total content sourced from tasks
+                              Total content purchased from tasks
                             </Typography>
-                            {/* <div className="tbl_rt">
-                              <span className="tbl_rt_txt">Monthly</span>
-                            </div> */}
                           </div>
                           <div className="fix_ht_table">
                             <table
@@ -328,66 +320,77 @@ const AccountsTables = () => {
                             >
                               <thead>
                                 <tr>
-                                  <th className="">Content sourced from tasks</th>
+                                  <th className="">Content uploaded from tasks</th>
                                   <th>Period</th>
                                   <th>Total funds invested</th>
-                                  <th>Trend</th>
                                 </tr>
                               </thead>
                               <tbody>
 
-                                {detail?.sourced_content_from_tasks?.task?.map((curr) => {
+                                {totalDetail?.map((curr, index) => {
                                   return (
-                                    <tr>
+                                    <tr className="clickable" >
                                       <td className="content_wrap more_contnt_wrap">
-                                      <div className="content_imgs_wrap">
-                                      <Link to={`/${curr._id}`} >
-                                      <div className="content_imgs">
-                                        {curr?.content && curr?.content?.map((curr) => {
-                                          return (
-                                            curr?.media_type === "image" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.media} className="content_img" />
-                                              : curr?.media_type === "video" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.thumbnail} className="content_img" />
-                                                : curr?.media_type === "audio" ? <img src={audioic} className="content_img" />
-                                                  : null
-                                          )
-                                        })}
-
-                                        <span className="arrow_span">
-                                          <svg
-                                            stroke="currentColor"
-                                            fill="currentColor"
-                                            stroke-width="0"
-                                            viewBox="0 0 16 16"
-                                            height="1em"
-                                            width="1em"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                          >
-                                            <path
-                                              fill-rule="evenodd"
-                                              d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
-                                            ></path>
-                                          </svg>
-                                        </span>
-                                      </div>
-                                      </Link>
-                                    </div>
+                                        <div className="content_imgs_wrap">
+                                          <div className="content_imgs">
+                                            {curr?.content_id.map((curr) => {
+                                              return curr?.type === "image" ? (
+                                                <img
+                                                  src={
+                                                    process.env
+                                                      .REACT_APP_UPLOADED_CONTENT +
+                                                    curr?.imageAndVideo
+                                                  }
+                                                  className="content_img"
+                                                />
+                                              ) : curr?.type === "audio" ? (
+                                                <img
+                                                  src={interviewic}
+                                                  className="content_img"
+                                                />
+                                              ) : curr?.type === "video" ? (
+                                                <img
+                                                  src={
+                                                    process.env
+                                                      .REACT_APP_UPLOADED_CONTENT +
+                                                    curr?.videothubnail
+                                                  }
+                                                  className="content_img"
+                                                />
+                                              ) : null;
+                                            })}
+                                            <span className="arrow_span">
+                                              <svg
+                                                stroke="currentColor"
+                                                fill="currentColor"
+                                                stroke-width="0"
+                                                viewBox="0 0 16 16"
+                                                height="1em"
+                                                width="1em"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                              >
+                                                <path
+                                                  fill-rule="evenodd"
+                                                  d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
+                                                ></path>
+                                              </svg>
+                                            </span>
+                                          </div>
+                                        </div>
                                       </td>
                                       <td className="timedate_wrap">
                                         <p className="timedate">
-                                          <img src={calendar} className="icn_time" />
-                                          {new Date(curr?.createdAt)?.toLocaleDateString()} - {new Date(curr?.updatedAt)?.toLocaleDateString() === "Invalid Date" ? "" : new Date(curr?.updatedAt)?.toLocaleDateString()}
+                                          <img
+                                            src={calendar}
+                                            className="icn_time"
+                                          />
+                                          {months[curr?._id?.month - 1]}{" "}
+                                          {curr?._id?.year}
                                         </p>
                                       </td>
-                                      <td>£ {curr?.amount_paid}</td>
-                                      <td className="">
-                                        <p className="trend_success">
-                                          <BsArrowUp />
-                                          {(Number(curr?.amount_paid)*1.5).toFixed(2)}%
-                                        </p>
-                                      </td>
+                                      <td>£{formatAmountInMillion(+(curr?.total_price))}</td>
                                     </tr>
-
-                                  )
+                                  );
                                 })}
                               </tbody>
                             </table>
@@ -403,7 +406,7 @@ const AccountsTables = () => {
                               mb="10px"
                             >
                               <Typography className="tbl_hdng">
-                                Total Funds Invested for content sourced from tasks
+                                Total funds invested for content purchased from task
                               </Typography>
                             </div>
                             <div className="fix_ht_table">
@@ -415,7 +418,7 @@ const AccountsTables = () => {
                               >
                                 <thead>
                                   <tr>
-                                    <th className="">Content sourced from tasks</th>
+                                    <th className="">Content uploaded from tasks</th>
                                     <th>Period</th>
                                     <th>Nett price paid</th>
                                     <th>VAT paid</th>
@@ -424,21 +427,38 @@ const AccountsTables = () => {
                                 </thead>
                                 <tbody>
 
-                                  {task_purchaseContent && task_purchaseContent.map((curr) => {
+                                  {task_purchaseContent?.map((curr) => {
                                     return (
-                                      <tr>
+                                      <tr className="clickable">
                                         <td className="content_wrap more_contnt_wrap">
                                           <div className="content_imgs_wrap">
                                             <div className="content_imgs">
-                                              {curr?.content_id && curr?.content_id?.map((curr) => {
-                                                return (
-                                                  curr?.type === "image" ? <img src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.imageAndVideo} className="content_img" />
-                                                    : curr?.type === "video" ? <img src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.videothubnail} className="content_img" />
-                                                      : curr?.type === "audio" ? <img src={audioic} className="content_img" />
-                                                        : null
-                                                )
+                                              {curr?.content_id.map((curr) => {
+                                                return curr?.type === "image" ? (
+                                                  <img
+                                                    src={
+                                                      process.env
+                                                        .REACT_APP_UPLOADED_CONTENT +
+                                                      curr?.imageAndVideo
+                                                    }
+                                                    className="content_img"
+                                                  />
+                                                ) : curr?.type === "audio" ? (
+                                                  <img
+                                                    src={interviewic}
+                                                    className="content_img"
+                                                  />
+                                                ) : curr?.type === "video" ? (
+                                                  <img
+                                                    src={
+                                                      process.env
+                                                        .REACT_APP_UPLOADED_CONTENT +
+                                                      curr?.videothubnail
+                                                    }
+                                                    className="content_img"
+                                                  />
+                                                ) : null;
                                               })}
-
                                               <span className="arrow_span">
                                                 <svg
                                                   stroke="currentColor"
@@ -464,9 +484,9 @@ const AccountsTables = () => {
                                             {months[curr?._id?.month - 1]}  {curr?._id?.year}
                                           </p>
                                         </td>
-                                        <td>£ {((curr?.total_price - curr?.total_vat) || 0).toFixed(2)}</td>
-                                        <td>£ {((curr?.total_vat) || 0).toFixed(2)}</td>
-                                        <td>£ {((curr?.total_price) || 0).toFixed(2)}</td>
+                                        <td>£{formatAmountInMillion((curr?.total_price - curr?.total_vat) || 0)}</td>
+                                        <td>£{formatAmountInMillion((curr?.total_vat) || 0)}</td>
+                                        <td>£{formatAmountInMillion((curr?.total_price) || 0)}</td>
                                       </tr>
 
                                     )
@@ -488,15 +508,6 @@ const AccountsTables = () => {
                                 <Typography className="tbl_hdng">
                                   Pending Payments
                                 </Typography>
-                                {/* <div className="tbl_rt">
-                                  <Form.Group className="globalSort">
-                                    <Form.Select>
-                                      <option>Daily</option>
-                                      <option selected>Monthly</option>
-                                      <option>Yearly</option>
-                                    </Form.Select>
-                                  </Form.Group>
-                                </div> */}
                               </div>
                               <div className="fix_ht_table">
                                 <table
@@ -510,57 +521,59 @@ const AccountsTables = () => {
                                       <th>Time & date</th>
                                       <th>Net price payable</th>
                                       <th>VAT payable</th>
-                                      {/* <th>Total funds payable</th> */}
+                                      <th>Total funds payable</th>
                                       <th>CTA</th>
                                     </tr>
                                   </thead>
                                   <tbody>
 
                                     {
-                                      vatData && vatData?.map((curr) => {
+                                      vatData && vatData?.data?.map((curr) => {
+                                        const contentSource =
+                                          curr && curr.content[0]
+                                            ? curr.content[0].media_type ===
+                                              "video"
+                                              ? curr.content[0].watermark ||
+                                              process.env.REACT_APP_CONTENT_MEDIA +
+                                              curr.content[0].thumbnail
+                                              : curr.content[0]
+                                                .media_type === "audio"
+                                                ? audioic
+                                                : curr.content[0]
+                                                  .media_type === "image"
+                                                  ? curr.content[0].watermark ||
+                                                  process.env.REACT_APP_CONTENT_MEDIA +
+                                                  curr.content[0].media
+                                                  : curr.content[0]
+                                                    .media_type === "doc"
+                                                    ? docsic
+                                                    : null
+                                            : null;
+
                                         return (
-                                          <tr>
-                                            <td className="content_wrap more_contnt_wrap">
-                                              <div className="content_imgs_wrap">
-                                                <div className="content_imgs" >
-                                                  {curr?.content && curr?.content?.map((curr) => {
-                                                    return (
-                                                      curr?.media_type === "image" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.media} className="content_img" />
-                                                        : curr?.media_type === "video" ? <img src={process.env.REACT_APP_CONTENT_MEDIA + curr?.thumbnail} className="content_img" />
-                                                          : curr?.media_type === "audio" ? <img src={audioic} className="content_img" />
-                                                            : null
-                                                    )
-                                                  })}
-                                                  {/* <span className="arrow_span">
-                                                    <svg
-                                                      stroke="currentColor"
-                                                      fill="currentColor"
-                                                      stroke-width="0"
-                                                      viewBox="0 0 16 16"
-                                                      height="1em"
-                                                      width="1em"
-                                                      xmlns="http://www.w3.org/2000/svg">
-                                                      <path
-                                                        fill-rule="evenodd"
-                                                        d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
-                                                      ></path>
-                                                    </svg>
-                                                  </span> */}
-                                                </div>
+                                          <tr className="clickable" onClick={() => navigate(`/auto-invoice/${curr?._id}`)}>
+                                            <td className="content_img_td">
+                                              <div className="tbl_cont_wrp">
+                                                <img
+                                                  src={contentSource}
+                                                  className="content_img"
+                                                />
+                                                <span className="cont_count">
+                                                  {curr?.content?.length || 0}
+                                                </span>
                                               </div>
                                             </td>
                                             <td className="timedate_wrap">
                                               <p className="timedate">
                                                 <img src={calendar} className="icn_time" />
-                                                {`${moment(curr?.createdAt).format("DD MM YYYY")}`}
+                                                {`${moment(curr?.createdAt).format("DD MMM YYYY")}`}
                                                 <br />
                                                 {moment(curr?.createdAt).format("hh:mm A")}
                                               </p>
                                             </td>
-                                            <td>£{(+(curr?.ask_price) + (+(20 * curr?.ask_price) / 100)).toFixed(2) || 0}</td>
-                                            <td>£{((20 * curr?.ask_price) / 100).toFixed(2)}</td>
-                                            {/* <td>£{((curr?.total_vat) || 0).toFixed(2)}</td> */}
-                                            {/* <td>£ {((curr?.total_price) || 0).toFixed(2)}</td> */}
+                                            <td>£{formatAmountInMillion(+(vatData?.chatdata?.find((el) => el?.image_id == curr?._id)?.amount || 0))}</td>
+                                            <td>£{formatAmountInMillion((20 * (+(vatData?.chatdata?.find((el) => el?.image_id == curr?._id)?.amount))) / 100)}</td>
+                                            <td>£{formatAmountInMillion((+(vatData?.chatdata?.find((el) => el?.image_id == curr?._id)?.amount || 0)) + (+(20 * (+(vatData?.chatdata?.find((el) => el?.image_id == curr?._id)?.amount))) / 100))}</td>
                                             <td><span className="payPending" onClick={() => navigate(`/auto-invoice/${curr?.id}`)}>Pay</span></td>
                                           </tr>
                                         )
@@ -583,13 +596,6 @@ const AccountsTables = () => {
                                     Content purchased online summary
                                   </Typography>
                                   <div className="tbl_rt">
-                                    {/* <Form.Group className="globalSort">
-                                      <Form.Select>
-                                        <option>Daily</option>
-                                        <option selected>Monthly</option>
-                                        <option>Yearly</option>
-                                      </Form.Select>
-                                    </Form.Group> */}
                                   </div>
                                 </div>
                                 <div className="fix_ht_table">
@@ -610,7 +616,7 @@ const AccountsTables = () => {
 
                                       {purchaseContent && purchaseContent.map((curr) => {
                                         return (
-                                          <tr>
+                                          <tr className="clickable">
                                             <td className="content_wrap more_contnt_wrap">
                                               <div className="content_imgs_wrap">
                                                 <div className="content_imgs">
@@ -669,13 +675,6 @@ const AccountsTables = () => {
                                   >
                                     <Typography className="tbl_hdng">VAT summary</Typography>
                                     <div className="tbl_rt">
-                                      {/* <Form.Group className="globalSort">
-                                        <Form.Select>
-                                          <option>Daily</option>
-                                          <option selected>Monthly</option>
-                                          <option>Yearly</option>
-                                        </Form.Select>
-                                      </Form.Group> */}
                                     </div>
                                   </div>
                                   <div className="fix_ht_table">
@@ -696,9 +695,9 @@ const AccountsTables = () => {
                                       </thead>
                                       <tbody>
 
-                                        {vatData && vatData.map((curr) => {
+                                        {vatData && vatData?.data?.map((curr) => {
                                           return (
-                                            <tr>
+                                            <tr className="clickable">
                                               <td className="content_wrap more_contnt_wrap">
                                                 <div className="content_imgs_wrap">
                                                   <div className="content_imgs">
@@ -733,14 +732,12 @@ const AccountsTables = () => {
                                               <td className="timedate_wrap">
                                                 <p className="timedate">
                                                   <img src={calendar} className="icn_time" />
-                                                  {/* {moment(vatData?.response[0]?.content_id[0]?.updatedAt).format(`MMM YYYY`)} */}
                                                   {months[curr?._id?.month - 1]}  {curr?._id?.year}
-
                                                 </p>
                                               </td>
-                                              <td>£ {((curr?.total_price - curr?.total_vat) || 0).toFixed(2)}</td>
-                                              <td>£ {((curr?.total_vat) || 0).toFixed(2)}</td>
-                                              <td>£ {((curr?.total_price) || 0).toFixed(2)}</td>
+                                              <td>£{((curr?.total_price - curr?.total_vat) || 0).toFixed(2)}</td>
+                                              <td>£{((curr?.total_vat) || 0).toFixed(2)}</td>
+                                              <td>£{((curr?.total_price) || 0).toFixed(2)}</td>
 
                                             </tr>
 

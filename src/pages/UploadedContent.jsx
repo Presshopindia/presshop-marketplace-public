@@ -41,31 +41,18 @@ import TopFilterComn from "../component/Sortfilters/Content/TopFilterComn";
 import { AiFillCaretDown } from "react-icons/ai";
 import Fundsinvested from "../component/Sortfilters/Dashboard/Fundsinvested";
 import cameraic from "../assets/images/camera.svg";
+import { formatAmountInMillion } from "../component/commonFunction";
+import { PaginationComp } from "../component/Pagination";
 const UploadedContent = () => {
   const type = useParams();
   const [pub_content, setPub_Content] = useState([]);
   const [upld_content, setUpld_Content] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const [fav, setFav] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(0);
+  const [limit, setLimit] = useState(8)
 
   // Sort and filter-
-  const [timeValues, setTimeValues] = useState("");
-  const [priceSortingValue, setPriceSortingValue] = useState({
-    field: "",
-    value: "",
-  });
-  const [openFilterComponent, setOpenFilterComponent] = useState(false);
-  const [openSortComponent, setOpenSortComponent] = useState(false);
-
-  const handleCloseFilterComponent = (values) => {
-    setOpenFilterComponent(values);
-  };
-
-  const handleCloseSortComponent = (values) => {
-    setOpenSortComponent(values);
-  };
-
   const [filterSortField, setFilterSortField] = useState("");
   const [filterSortValue, setFilterSortValue] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -76,42 +63,52 @@ const UploadedContent = () => {
     setFilterType(value.type);
   };
 
-  // console.log("timeValues 61", timeValues);
-  const handleFavourite = () => {
-    setFav(!fav);
-    PublishedContent();
-  };
-
   const PublishedContent = async () => {
     setLoading(true);
     try {
-      const resp = await Post(`mediaHouse/view/published/content`, { [filterSortField]: filterSortValue, });
-      setPub_Content(resp.data.content);
-      if (resp) {
-        setLoading(false);
+      let field = type.type == "shared" || type.type == "exclusive" ? "type" : ""
+      let value = type.type == "shared" ? "shared" : type.type == "exclusive" ? "exclusive" : ""
+
+      const category = await Get("mediaHouse/getCategoryType?type=content");
+      const matchCategory = category?.data?.data?.find((el) => el.name == type.type)
+      if (matchCategory) {
+        field = "category_id";
+        value = [matchCategory?._id]
       }
+
+      if (type.type == "Special") {
+        field = "isDiscount";
+        value = true
+      }
+
+      const resp = await Post(`mediaHouse/view/published/content`, { [filterSortField || field]: filterSortValue || value, limit: limit, offset: (+(page - 1)) * limit });
+      setPub_Content(resp.data.content);
+      setTotalPage(Math.ceil(resp.data?.count / limit))
+      setLoading(false);
     } catch (error) {
+      console.log(error)
       setLoading(false);
     }
   };
 
-  const UploadedContent = async () => {
+  const UploadedContents = async () => {
     setLoading(true);
 
     let hopper_id;
-    if(type.type.includes('hopper')){
+    if (type.type.includes('hopper')) {
       hopper_id = type.type.split("_")[1]
     }
 
     try {
       let resp;
-      if(hopper_id){
-        resp = await Get(`mediaHouse/getuploadedContentbyHoppers?hopper_id=${hopper_id}`);
+      if (hopper_id) {
+        resp = await Get(`mediaHouse/getuploadedContentbyHoppers?hopper_id=${hopper_id}&limit=${limit}&offet=${(+(page - 1) * limit)}`);
       }
-      else{
-        resp = await Get("mediaHouse/getuploadedContentbyHoppers?limit=50");
+      else {
+        resp = await Get(`mediaHouse/getuploadedContentbyHoppers?limit=${limit}&offet=${(+(page - 1) * limit)}`);
       }
       setUpld_Content(resp.data.data);
+      setTotalPage(Math.ceil(resp.data?.count / limit))
       if (resp) {
         setLoading(false);
       }
@@ -123,33 +120,78 @@ const UploadedContent = () => {
 
   useEffect(() => {
     PublishedContent();
-    setTimeValues("");
-  }, [fav, filterSortValue]);
+  }, [page]);
 
   useEffect(() => {
-    UploadedContent();
+    UploadedContents();
     TaskDetails();
-  }, []);
+  }, [page]);
 
   const [taskDetails, setTaskDetails] = useState();
   const TaskDetails = async (id) => {
-    if(type.type.length < 20){
+    if (type.type.length < 20) {
       return;
     }
     setLoading(true);
     try {
-      const resp = await Get(`mediaHouse/live/expired/tasks?status=live&id=${type.type}`);
-      setTaskDetails(resp.data.tasks);
+      // const resp = await Get(`mediaHouse/live/expired/tasks?status=live&id=${type.type}`);
+      const resp = await Get(`mediaHouse/getuploadedContentbyHoppers?task_id=${type.type}&limit=${limit}&offet=${(+(page - 1) * limit)}`);
+      setTaskDetails(resp.data.data);
       setLoading(false);
+      setTotalPage(Math.ceil(resp.data?.count / limit))
     } catch (error) {
       setLoading(false);
     }
   };
 
-  const formatAmountInMillion = (amount) =>
-    amount?.toLocaleString('en-US', {
-      maximumFractionDigits: 0,
-    });
+  const handleFavourite = (i, type) => {
+    if (type == "publish") {
+      setPub_Content((prev) => {
+        const allContent = [...prev];
+        allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+    else if (type == "upload") {
+      setUpld_Content((prev) => {
+        const allContent = [...prev];
+        allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+    else if (type == "task") {
+      setTaskDetails((prev) => {
+        const allContent = [...prev];
+        allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+  };
+
+  const handleBasket = (i, type) => {
+    if (type == "publish") {
+      setPub_Content((prev) => {
+        const allContent = [...prev];
+        allContent[i]["basket_status"] = allContent[i]["basket_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+    else if (type == "upload") {
+      setUpld_Content((prev) => {
+        const allContent = [...prev];
+        allContent[i]["basket_status"] = allContent[i]["basket_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+    else if (type == "task") {
+      setTaskDetails((prev) => {
+        const allContent = [...prev];
+        allContent[i]["basket_status"] = allContent[i]["basket_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+  };
+
 
   return (
     <>
@@ -165,7 +207,7 @@ const UploadedContent = () => {
                     <BsArrowLeft className="text-pink" /> Back
                   </Link>
                 </div>
-                <div className="sorting_wrap d-flex">
+                {/* <div className="sorting_wrap d-flex">
                   <div className="feedSorting me-4">
                     <div className="fltrs_prnt top_fltr">
                       <p className="lbl_fltr">Filter</p>
@@ -203,7 +245,7 @@ const UploadedContent = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </Col>
           </Row>
@@ -224,12 +266,8 @@ const UploadedContent = () => {
                             ? "Exclusive"
                             : type.type === "shared"
                               ? "Shared"
-                              : type.type === "Crime"
-                                ? "Crime"
-                                : type.type.length > 20
-                                  ? "Uploaded"
-                                    : "Celebrity"}{" "}
-                        Content
+                              : type.type}{" "}
+                        {type.type == "Special" ? "offers" : "content"}
                       </h1>
                     </div>
                     <Row className="">
@@ -258,21 +296,24 @@ const UploadedContent = () => {
                                         audioic
                                         : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
                                 feedType={contentCamera}
-                                feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
                                 user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
                                 author_Name={curr?.hopper_id?.user_name}
                                 lnkto={`/Feeddetail/content/${curr._id}`}
                                 fvticns={curr.favourite_status === "true" ? favouritedic : favic}
                                 content_id={curr._id}
                                 bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                favourite={handleFavourite}
+                                favourite={() => handleFavourite(index, "publish")}
+                                basket={() => handleBasket(index, "publish")}
+                                basketValue={curr.basket_status}
+                                allContent={curr?.content}
                                 type_img={curr?.type === "shared" ? shared : exclusive}
                                 type_tag={curr.type}
                                 feedHead={curr.heading}
-                                feedTime={moment(curr.published_time_date).format("h:mm A, DD MMMM YY")}
+                                feedTime={moment(curr.createdAt).format("h:mm A, DD MMMM YYYY")}
                                 feedLocation={curr.location}
                                 contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                viewTransaction={"View detail"}
+                                viewTransaction={"View details"}
                                 viewDetail={`/Feeddetail/content/${curr._id}`}
                                 feedTypeImg1={imageCount > 0 ? cameraic : null}
                                 postcount={imageCount > 0 ? imageCount : null}
@@ -288,164 +329,225 @@ const UploadedContent = () => {
                             </Col>
                           );
                         })
-                        : type?.type === "shared" || type?.type === "exclusive" ? pub_content?.map((curr, index) => {
-                          const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
-                          const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
-                          const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
-                          const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
-                          const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
-                          const imageCount = Image.length;
-                          const videoCount = Video.length;
-                          const audioCount = Audio.length;
-                          const pdfCount = Pdf.length;
-                          const docCount = Doc.length;
+                          : type?.type === "shared" || type?.type === "exclusive" ? pub_content?.map((curr, index) => {
+                            const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
+                            const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
+                            const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
+                            const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
+                            const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
+                            const imageCount = Image.length;
+                            const videoCount = Video.length;
+                            const audioCount = Audio.length;
+                            const pdfCount = Pdf.length;
+                            const docCount = Doc.length;
 
-                          return (
-                            <Col lg={3} md={4} sm={6}>
-                              <ContentFeedCard
-                                feedImg={
-                                  curr?.content[0]?.media_type === "video" ?
-                                    curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0]?.thumbnail
-                                    : curr?.content[0]?.media_type === "image" ?
-                                      curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content?.[0]?.media
-                                      : curr?.content[0]?.media_type === "audio" ?
-                                        audioic
-                                        : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
-                                feedType={contentCamera}
-                                feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
-                                user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
-                                author_Name={curr?.hopper_id?.user_name}
-                                lnkto={`/Feeddetail/content/${curr._id}`}
-                                fvticns={curr.favourite_status === "true" ? favouritedic : favic}
-                                content_id={curr._id}
-                                bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                favourite={handleFavourite}
-                                type_img={curr?.type === "shared" ? shared : exclusive}
-                                type_tag={curr.type}
-                                feedHead={curr.heading}
-                                feedTime={moment(curr.published_time_date).format("h:mm A, DD MMMM YY")}
-                                feedLocation={curr.location}
-                                contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                viewTransaction={"View detail"}
-                                viewDetail={`/Feeddetail/content/${curr._id}`}
-                                feedTypeImg1={imageCount > 0 ? cameraic : null}
-                                postcount={imageCount > 0 ? imageCount : null}
-                                feedTypeImg2={videoCount > 0 ? videoic : null}
-                                postcount2={videoCount > 0 ? videoCount : null}
-                                feedTypeImg3={audioCount > 0 ? interviewic : null}
-                                postcount3={audioCount > 0 ? audioCount : null}
-                                feedTypeImg4={pdfCount > 0 ? pdfic : null}
-                                postcount4={pdfCount > 0 ? pdfCount : null}
-                                feedTypeImg5={docCount > 0 ? docsic : null}
-                                postcount5={docCount > 0 ? docCount : null}
-                              />
-                            </Col>
-                          );
-                        })
-                        : type?.type?.length > 20 ?taskDetails?.content?.map((curr, index) => {
-                          // const Audio = curr?.filter((curr) => curr?.media_type === "audio");
-                          // const Video = curr?.filter((curr) => curr?.media_type === "video");
-                          // const Image = curr?.filter((curr) => curr?.media_type === "image");
-                          // const Pdf = curr?.filter((curr) => curr?.media_type === "pdf");
-                          // const Doc = curr?.filter((curr) => curr?.media_type === "doc");
-                          // const imageCount = Image.length;
-                          // const videoCount = Video.length;
-                          // const audioCount = Audio.length;
-                          // const pdfCount = Pdf.length;
-                          // const docCount = Doc.length;
+                            return (
+                              <Col lg={3} md={4} sm={6}>
+                                <ContentFeedCard
+                                  feedImg={
+                                    curr?.content[0]?.media_type === "video" ?
+                                      curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0]?.thumbnail
+                                      : curr?.content[0]?.media_type === "image" ?
+                                        curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content?.[0]?.media
+                                        : curr?.content[0]?.media_type === "audio" ?
+                                          audioic
+                                          : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
+                                  feedType={contentCamera}
+                                  feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                  user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
+                                  author_Name={curr?.hopper_id?.user_name}
+                                  lnkto={`/Feeddetail/content/${curr._id}`}
+                                  fvticns={curr.favourite_status === "true" ? favouritedic : favic}
+                                  content_id={curr._id}
+                                  bool_fav={curr.favourite_status === "true" ? "false" : "true"}
+                                  favourite={() => handleFavourite(index, "publish")}
+                                  basket={() => handleBasket(index, "publish")}
+                                  basketValue={curr.basket_status}
+                                  allContent={curr?.content}
+                                  type_img={curr?.type === "shared" ? shared : exclusive}
+                                  type_tag={curr.type}
+                                  feedHead={curr.heading}
+                                  feedTime={moment(curr.createdAt).format("h:mm A, DD MMMM YYYY")}
+                                  feedLocation={curr.location}
+                                  contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                  viewTransaction={"View details"}
+                                  viewDetail={`/Feeddetail/content/${curr._id}`}
+                                  feedTypeImg1={imageCount > 0 ? cameraic : null}
+                                  postcount={imageCount > 0 ? imageCount : null}
+                                  feedTypeImg2={videoCount > 0 ? videoic : null}
+                                  postcount2={videoCount > 0 ? videoCount : null}
+                                  feedTypeImg3={audioCount > 0 ? interviewic : null}
+                                  postcount3={audioCount > 0 ? audioCount : null}
+                                  feedTypeImg4={pdfCount > 0 ? pdfic : null}
+                                  postcount4={pdfCount > 0 ? pdfCount : null}
+                                  feedTypeImg5={docCount > 0 ? docsic : null}
+                                  postcount5={docCount > 0 ? docCount : null}
+                                />
+                              </Col>
+                            );
+                          })
+                            : type?.type === "Special" ? pub_content?.map((curr, index) => {
+                              const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
+                              const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
+                              const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
+                              const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
+                              const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
+                              const imageCount = Image.length;
+                              const videoCount = Video.length;
+                              const audioCount = Audio.length;
+                              const pdfCount = Pdf.length;
+                              const docCount = Doc.length;
 
-                          return (
-                            <Col lg={3} md={4} sm={6}>
-                              <ContentFeedCard
-                                feedImg={
-                                  curr?.media_type === "video" ?
-                                    curr?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.thumbnail
-                                    : curr?.media_type === "image" ?
-                                      curr?.watermark || curr?.media
-                                      : curr?.media_type === "audio" ?
-                                        audioic
-                                        : curr?.media_type === "doc" || 'pdf' ? docsic : ''}
-                                feedType={contentCamera}
-                                user_avatar={curr?.hopper_id?.avatar_id?.avatar ? process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar : avatar}
-                                author_Name={curr?.hopper_id?.user_name}
-                                lnkto={`/content-details/${curr._id}`}
-                                fvticns={curr.favourite_status === "true" ? favouritedic : favic}
-                                content_id={curr._id}
-                                type_img={taskDetails?.type === "shared" ? shared : exclusive}
-                                type_tag={taskDetails.type}
-                                feedHead={taskDetails.heading}
-                                feedTime={moment(taskDetails.createdAt).format("h:mm A, DD MMMM YY")}
-                                feedLocation={taskDetails.location}
-                                contentPrice={`${formatAmountInMillion(curr?.ask_price || 0)}`}
-                                viewTransaction={"View detail"}
-                                // feedTypeImg1={imageCount > 0 ? cameraic : null}
-                                // postcount={imageCount > 0 ? imageCount : null}
-                                // feedTypeImg2={videoCount > 0 ? videoic : null}
-                                // postcount2={videoCount > 0 ? videoCount : null}
-                                // feedTypeImg3={audioCount > 0 ? interviewic : null}
-                                // postcount3={audioCount > 0 ? audioCount : null}
-                                // feedTypeImg4={pdfCount > 0 ? pdfic : null}
-                                // postcount4={pdfCount > 0 ? pdfCount : null}
-                                // feedTypeImg5={docCount > 0 ? docsic : null}
-                                // postcount5={docCount > 0 ? docCount : null}
-                              />
-                            </Col>
-                          );
-                        })
-                        : pub_content?.map((curr, index) => {
-                          const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
-                          const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
-                          const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
-                          const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
-                          const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
-                          const imageCount = Image.length;
-                          const videoCount = Video.length;
-                          const audioCount = Audio.length;
-                          const pdfCount = Pdf.length;
-                          const docCount = Doc.length;
+                              return (
+                                <Col lg={3} md={4} sm={6}>
+                                  <ContentFeedCard
+                                    feedImg={
+                                      curr?.content[0]?.media_type === "video" ?
+                                        curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0]?.thumbnail
+                                        : curr?.content[0]?.media_type === "image" ?
+                                          curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content?.[0]?.media
+                                          : curr?.content[0]?.media_type === "audio" ?
+                                            audioic
+                                            : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
+                                    feedType={contentCamera}
+                                    feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                    user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
+                                    author_Name={curr?.hopper_id?.user_name}
+                                    lnkto={`/Feeddetail/content/${curr._id}`}
+                                    fvticns={curr.favourite_status === "true" ? favouritedic : favic}
+                                    content_id={curr._id}
+                                    bool_fav={curr.favourite_status === "true" ? "false" : "true"}
+                                    favourite={() => handleFavourite(index, "publish")}
+                                    basket={() => handleBasket(index, "publish")}
+                                    basketValue={curr.basket_status}
+                                    allContent={curr?.content}
+                                    type_img={curr?.type === "shared" ? shared : exclusive}
+                                    type_tag={curr.type}
+                                    feedHead={curr.heading}
+                                    feedTime={moment(curr.createdAt).format("h:mm A, DD MMMM YYYY")}
+                                    feedLocation={curr.location}
+                                    contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                    viewTransaction={"View details"}
+                                    viewDetail={`/Feeddetail/content/${curr._id}`}
+                                    feedTypeImg1={imageCount > 0 ? cameraic : null}
+                                    postcount={imageCount > 0 ? imageCount : null}
+                                    feedTypeImg2={videoCount > 0 ? videoic : null}
+                                    postcount2={videoCount > 0 ? videoCount : null}
+                                    feedTypeImg3={audioCount > 0 ? interviewic : null}
+                                    postcount3={audioCount > 0 ? audioCount : null}
+                                    feedTypeImg4={pdfCount > 0 ? pdfic : null}
+                                    postcount4={pdfCount > 0 ? pdfCount : null}
+                                    feedTypeImg5={docCount > 0 ? docsic : null}
+                                    postcount5={docCount > 0 ? docCount : null}
+                                    before_discount_value={curr?.before_discount_value ? curr?.before_discount_value : null}
+                                  />
+                                </Col>
+                              );
+                            })
+                              : type?.type?.length > 20 ?
+                                taskDetails?.map((item, index) => {
+                                  // const Audio = curr?.filter((curr) => curr?.media_type === "audio");
+                                  // const Video = curr?.filter((curr) => curr?.media_type === "video");
+                                  // const Image = curr?.filter((curr) => curr?.media_type === "image");
+                                  // const Pdf = curr?.filter((curr) => curr?.media_type === "pdf");
+                                  // const Doc = curr?.filter((curr) => curr?.media_type === "doc");
+                                  // const imageCount = Image.length;
+                                  // const videoCount = Video.length;
+                                  // const audioCount = Audio.length;
+                                  // const pdfCount = Pdf.length;
+                                  // const docCount = Doc.length;
 
-                          return (
-                            <Col lg={3} md={4} sm={6}>
-                              <ContentFeedCard
-                                feedImg={
-                                  curr?.content[0]?.media_type === "video" ?
-                                    curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0]?.thumbnail
-                                    : curr?.content[0]?.media_type === "image" ?
-                                      curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content?.[0]?.media
-                                      : curr?.content[0]?.media_type === "audio" ?
-                                        audioic
-                                        : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
-                                feedType={contentCamera}
-                                feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null} 
-                                user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
-                                author_Name={curr?.hopper_id?.user_name}
-                                lnkto={`/Feeddetail/content/${curr._id}`}
-                                fvticns={curr.favourite_status === "true" ? favouritedic : favic}
-                                content_id={curr._id}
-                                bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                favourite={handleFavourite}
-                                type_img={curr?.type === "shared" ? shared : exclusive}
-                                type_tag={curr.type}
-                                feedHead={curr.heading}
-                                feedTime={moment(curr.published_time_date).format("h:mm A, DD MMMM YY")}
-                                feedLocation={curr.location}
-                                contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                viewTransaction={"View detail"}
-                                viewDetail={`/Feeddetail/content/${curr._id}`}
-                                feedTypeImg1={imageCount > 0 ? cameraic : null}
-                                postcount={imageCount > 0 ? imageCount : null}
-                                feedTypeImg2={videoCount > 0 ? videoic : null}
-                                postcount2={videoCount > 0 ? videoCount : null}
-                                feedTypeImg3={audioCount > 0 ? interviewic : null}
-                                postcount3={audioCount > 0 ? audioCount : null}
-                                feedTypeImg4={pdfCount > 0 ? pdfic : null}
-                                postcount4={pdfCount > 0 ? pdfCount : null}
-                                feedTypeImg5={docCount > 0 ? docsic : null}
-                                postcount5={docCount > 0 ? docCount : null}
-                              />
-                            </Col>
-                          );
-                        })
+
+                                  return (
+                                    <Col lg={3} md={4} sm={6}>
+                                      <ContentFeedCard
+                                        feedImg={
+                                          item?.type === "image" ?
+                                            item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.imageAndVideo
+                                            : item?.type === "video" ?
+                                              item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.videothubnail
+                                              : item?.type === "audio" ? audioic : null
+                                        }
+                                        type={"task"}
+                                        postcount={1}
+                                        feedTypeImg1={item?.type === "image" ? cameraic : item?.type === "audio" ? interviewic : item?.type === "video" ? videoic : null}
+                                        user_avatar={process.env.REACT_APP_AVATAR_IMAGE + item?.avatar_detals[0]?.avatar}
+                                        author_Name={item?.hopper_id?.user_name}
+                                        lnkto={`/content-details/${item._id}`}
+                                        // lnkto={`/Feeddetail/content/${item._id}uploaded`}
+                                        viewTransaction="View details"
+                                        viewDetail={`/content-details/${item._id}`}
+                                        fvticns={item.favourite_status === "true" ? favouritedic : favic}
+                                        type_tag={item?.category_details[0]?.name}
+                                        type_img={item?.category_details[0]?.icon}
+                                        feedHead={item.task_id.task_description}
+                                        feedTime={moment(item.createdAt).format(" hh:mm A, DD MMM YYYY")}
+                                        feedLocation={item.task_id.location}
+                                        contentPrice={`${formatAmountInMillion(item?.type === "image" ? item?.task_id?.photo_price : item?.type === "audio" ? (item?.task_id?.interview_price || 0) : item?.type === "video" ? (item?.task_id?.videos_price || 0) : null)}`}
+                                        favourite={() => handleFavourite(index, "task")}
+                                        bool_fav={item.favourite_status === "true" ? "false" : "true"}
+                                        content_id={item._id}
+                                      />
+                                    </Col>
+                                  );
+                                })
+                                : pub_content?.map((curr, index) => {
+                                  const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
+                                  const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
+                                  const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
+                                  const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
+                                  const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
+                                  const imageCount = Image.length;
+                                  const videoCount = Video.length;
+                                  const audioCount = Audio.length;
+                                  const pdfCount = Pdf.length;
+                                  const docCount = Doc.length;
+
+                                  return (
+                                    <Col lg={3} md={4} sm={6}>
+                                      <ContentFeedCard
+                                        feedImg={
+                                          curr?.content[0]?.media_type === "video" ?
+                                            curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0]?.thumbnail
+                                            : curr?.content[0]?.media_type === "image" ?
+                                              curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content?.[0]?.media
+                                              : curr?.content[0]?.media_type === "audio" ?
+                                                audioic
+                                                : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
+                                        feedType={contentCamera}
+                                        feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                        user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
+                                        author_Name={curr?.hopper_id?.user_name}
+                                        lnkto={`/Feeddetail/content/${curr._id}`}
+                                        fvticns={curr.favourite_status === "true" ? favouritedic : favic}
+                                        content_id={curr._id}
+                                        bool_fav={curr.favourite_status === "true" ? "false" : "true"}
+                                        favourite={() => handleFavourite(index, "publish")}
+                                        basket={() => handleBasket(index, "publish")}
+                                        basketValue={curr.basket_status}
+                                        allContent={curr?.content}
+                                        type_img={curr?.type === "shared" ? shared : exclusive}
+                                        type_tag={curr.type}
+                                        feedHead={curr.heading}
+                                        feedTime={moment(curr.createdAt).format("h:mm A, DD MMMM YYYY")}
+                                        feedLocation={curr.location}
+                                        contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                        viewTransaction={"View details"}
+                                        viewDetail={`/Feeddetail/content/${curr._id}`}
+                                        feedTypeImg1={imageCount > 0 ? cameraic : null}
+                                        postcount={imageCount > 0 ? imageCount : null}
+                                        feedTypeImg2={videoCount > 0 ? videoic : null}
+                                        postcount2={videoCount > 0 ? videoCount : null}
+                                        feedTypeImg3={audioCount > 0 ? interviewic : null}
+                                        postcount3={audioCount > 0 ? audioCount : null}
+                                        feedTypeImg4={pdfCount > 0 ? pdfic : null}
+                                        postcount4={pdfCount > 0 ? pdfCount : null}
+                                        feedTypeImg5={docCount > 0 ? docsic : null}
+                                        postcount5={docCount > 0 ? docCount : null}
+                                      />
+                                    </Col>
+                                  );
+                                })
                       }
                     </Row>
                   </div>
@@ -471,19 +573,25 @@ const UploadedContent = () => {
                                       item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.videothubnail
                                       : item?.type === "audio" ? audioic : null
                                 }
+                                type={"task"}
                                 postcount={1}
                                 feedTypeImg1={item?.type === "image" ? cameraic : item?.type === "audio" ? interviewic : item?.type === "video" ? videoic : null}
                                 user_avatar={process.env.REACT_APP_AVATAR_IMAGE + item?.avatar_detals[0]?.avatar}
                                 author_Name={item?.hopper_id?.user_name}
                                 lnkto={`/content-details/${item._id}`}
                                 // lnkto={`/Feeddetail/content/${item._id}uploaded`}
-                                fvticns={favic}
+                                viewTransaction="View details"
+                                viewDetail={`/content-details/${item._id}`}
+                                fvticns={item.favourite_status === "true" ? favouritedic : favic}
                                 type_tag={item?.category_details[0]?.name}
                                 type_img={item?.category_details[0]?.icon}
                                 feedHead={item.task_id.task_description}
                                 feedTime={moment(item.createdAt).format(" hh:mm A, DD MMM YYYY")}
                                 feedLocation={item.task_id.location}
-                                contentPrice={`${formatAmountInMillion(item.videothubnail === null ? item.task_id.photo_price || 0 : item.task_id.videos_price || 0)}`}
+                                contentPrice={`${formatAmountInMillion(item?.type === "image" ? item?.task_id?.photo_price : item?.type === "audio" ? (item?.task_id?.interview_price || 0) : item?.type === "video" ? (item?.task_id?.videos_price || 0) : null)}`}
+                                favourite={() => handleFavourite(index, "upload")}
+                                bool_fav={item.favourite_status === "true" ? "false" : "true"}
+                                content_id={item._id}
                               />
                             </Col>
                           );
@@ -494,6 +602,9 @@ const UploadedContent = () => {
               </Col>
             )}
           </Row>
+          {
+            <PaginationComp totalPage={totalPage} path={`Uploaded-Content/${type?.type}`} type="fav" setPage={setPage} page={page} />
+          }
           <div className="mt-0">
             <TopSearchesTipsCard />
           </div>

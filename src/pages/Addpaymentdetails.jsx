@@ -34,16 +34,18 @@ import { Checkbox, FormControlLabel, Button } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 
 const Addpaymentdetails = () => {
+  const localData = localStorage.getItem("Page3") && JSON.parse(localStorage.getItem("Page3")) || {};
   const navigate = useNavigate();
 
   const [bankDetail, setBankDetails] = useState({
-    company_account_name: "",
-    bank_name: "",
-    sort_code: "",
-    account_number: "",
-    is_default: true,
+    company_account_name: localData?.company_account_name || "",
+    bank_name: localData?.bank_name || "",
+    sort_code: localData?.sort_code || "",
+    account_number: localData?.account_number || "",
+    is_default: localData?.is_default || true,
   });
 
+  
   const handleDetails = (event) => {
     let name = event.target.name;
     let value = event.target.value;

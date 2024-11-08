@@ -11,9 +11,12 @@ import Loader from "./Loader";
 import Fundsinvested from "./Sortfilters/Dashboard/Fundsinvested";
 import ChartsSort from "./Sortfilters/Dashboard/ChartsSort";
 import { Link, useNavigate } from "react-router-dom";
+import { formatAmountInMillion } from "./commonFunction";
+import { initStateOfTaskGraph } from "./staticData";
 // import { Get } from '../services/user.services';
 const TaskReports = ({ timeValuesProps }) => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("task");
   const [contentType, setContentType] = useState({
     series: [],
     labels: [],
@@ -42,7 +45,6 @@ const TaskReports = ({ timeValuesProps }) => {
     colors: ["#EC4E54", "#53C5AE", "#FFEC00", "#20639B"],
   });
 
-
   const [taskCategories, setTaskCategories] = useState({
     series: [],
     labels: [],
@@ -56,114 +58,24 @@ const TaskReports = ({ timeValuesProps }) => {
     colors: ["#EC4E54", "#53C5AE", "#FFEC00", "#20639B", "#9A7B4F"],
   });
 
-  const [taskSummary, setTaskSummary] = useState({
-    options: {
-      chart: {
-        id: "basic-bar",
-      },
-      xaxis: {
-        categories: [],
-      },
-      colors: ["#EC4E54"],
-    },
-    series: [
-      {
-        name: "sales",
-        data: [],
-      },
-    ],
-  });
+  const [taskSummary, setTaskSummary] = useState(initStateOfTaskGraph);
 
-  const [contentsourced, setContentsourced] = useState({
-    options: {
-      chart: {
-        id: "basic-bar",
-      },
-      xaxis: {
-        categories: [],
-      },
-      colors: ["#20639B"],
-    },
-    series: [
-      {
-        name: "sales",
-        data: [],
-      },
-    ],
-  });
+  const [contentsourced, setContentsourced] = useState(initStateOfTaskGraph);
 
-  const [fundInvested, setFundInvested] = useState({
-    options: {
-      chart: {
-        id: "basic-bar",
-      },
-      xaxis: {
-        categories: [],
-      },
-      colors: ["#20639B"],
-    },
-    series: [
-      {
-        name: "sales",
-        data: [],
-      },
-    ],
-  });
+  const [fundInvested, setFundInvested] = useState(initStateOfTaskGraph);
 
-  const chartOptions = {
-    labels: ["Business", "Political", "Crime", "Fashion", "Others"],
-    series: [90, 40, 45, 50, 9],
-    chart: {
-      type: "pie",
-    },
-    legend: {
-      position: "bottom",
-    },
-    colors: ["#EC4E54", "#53C5AE", "#FFEC00", "#20639B", "#9A7B4F"],
-    tooltip: {
-      theme: "custom-tooltip", // Use a custom tooltip theme
-    },
-  };
-
-  const [chartData3] = useState({
-    options: {
-      chart: {
-        id: "basic-bar",
-      },
-      xaxis: {
-        categories: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ],
-      },
-      colors: ["#53C5AE"],
-    },
-    series: [
-      {
-        name: "sales",
-        data: [30, 40, 45, 50, 49, 60, 70, 91, 75, 60, 45, 30],
-      },
-    ],
-  });
-
-  const [openSortComponent, setOpenSortComponent] = useState(false);
-
+  const [contentTypeState, setContentTypeState] = useState("");
   const [openSortContentType, setOpenSortContentType] = useState(false);
+
+  const [locationState, setLocationState] = useState("");
   const [openSortLocation, setOpenSortLocation] = useState(false);
+
+  const [sortCategoryState, setCategoryState] = useState("");
   const [openSortCategory, setOpenSortCategory] = useState(false);
+
+  const [taskState, setTaskState] = useState("");
   const [openSortTask, setOpenSortTask] = useState(false);
 
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timeValues, setTimeValues] = useState("");
   const [chartName, setChartName] = useState({
@@ -177,28 +89,16 @@ const TaskReports = ({ timeValuesProps }) => {
     setTimeValues(values);
   };
 
-  // open and close sort component-
-  const handleCloseSortComponent = (values) => {
-    setOpenSortComponent(values);
-  };
-
-  const handleOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   const TaskType = async () => {
     setLoading(true);
-
     try {
-      const resp = await Get(
-        `mediaHouse/reportcontentType?${(chartName.type == "contentType" && timeValues) || timeValuesProps
-        }=${(chartName.type == "contentType" && timeValues) || timeValuesProps}`
-      );
-      // console.log(resp.data, "<--------resp.data.data 150")
+      let resp;
+      if (contentTypeState) {
+        resp = await Get(`mediaHouse/reportcontentType?${contentTypeState}=${contentTypeState}`);
+      }
+      else {
+        resp = await Get(`mediaHouse/reportcontentType?`);
+      }
       if (resp) {
         setContentType((prev) => ({
           ...prev,
@@ -219,53 +119,18 @@ const TaskReports = ({ timeValuesProps }) => {
     }
   };
 
-  const TaskLocation = async () => {
-    setLoading(true);
-
-    try {
-      const resp = await Get(
-        `mediaHouse/reportlocation?${(chartName.location == "taskLocation" && timeValues) ||
-        timeValuesProps
-        }=${(chartName.location == "taskLocation" && timeValues) ||
-        timeValuesProps
-        }`
-      );
-      // console.log(resp.data, "<--------resp.data.data")
-      if (resp) {
-        setTaskLocation((prev) => ({
-          ...prev,
-          series: [
-            resp.data.data.north,
-            resp.data.data.south,
-            resp.data.data.east,
-            resp.data.data.west,
-          ],
-          labels: ["North", "South", "East", "West"],
-        }));
-        setLoading(false);
-        setChartName({ ...chartName, location: "" });
-      }
-    } catch (error) {
-      // console.log(error);
-      setLoading(false);
-      setChartName({ ...chartName, location: "" });
-    }
-  };
-
   const TaskCategories = async () => {
     setLoading(true);
 
     try {
-      const resp = await Get(
-        `mediaHouse/reportTaskcategory?${(chartName.category == "taskCategories" && timeValues) ||
-        timeValuesProps
-        }=${(chartName.category == "taskCategories" && timeValues) ||
-        timeValuesProps
-        }`
-      );
-      // console.log(resp.data, "<--------resp.data.data")
+      let resp;
+      if (sortCategoryState) {
+        resp = await Get(`mediaHouse/reportTaskcategory?${sortCategoryState}=${sortCategoryState}`);
+      }
+      else {
+        resp = await Get(`mediaHouse/reportTaskcategory`);
+      }
       if (resp) {
-        // console.log(resp, `<---there are responser of categories`);
         setTaskCategories((prev) => ({
           ...prev,
           series: [
@@ -287,14 +152,49 @@ const TaskReports = ({ timeValuesProps }) => {
     }
   };
 
+  const TaskLocation = async () => {
+    setLoading(true);
+
+    try {
+      let resp;
+      if (locationState) {
+        resp = await Get(`mediaHouse/reportlocation?${locationState}=${locationState}`)
+      }
+      else {
+        resp = await Get(`mediaHouse/reportlocation`)
+      }
+      if (resp) {
+        setTaskLocation((prev) => ({
+          ...prev,
+          series: [
+            resp.data.data.north,
+            resp.data.data.south,
+            resp.data.data.east,
+            resp.data.data.west,
+          ],
+          labels: ["North", "South", "East", "West"],
+        }));
+        setLoading(false);
+        setChartName({ ...chartName, location: "" });
+      }
+    } catch (error) {
+      // console.log(error);
+      setLoading(false);
+      setChartName({ ...chartName, location: "" });
+    }
+  };
+
   const TaskSummary = async () => {
     setLoading(true);
 
     try {
-      const resp = await Get(
-        `mediahouse/reportgraphoftask?${(chartName.task == "task" && timeValues) || timeValuesProps
-        }=${(chartName.task == "task" && timeValues) || timeValuesProps}`
-      );
+      let resp;
+      if (taskState) {
+        resp = await Get(`mediahouse/reportgraphoftask?${taskState}=${taskState}`)
+      }
+      else {
+        resp = await Get(`mediahouse/reportgraphoftask`)
+      }
       // console.log(resp.data.data, "<--------resp.data.data")
       if (resp) {
         setTaskSummary((prevTaskSummary) => ({
@@ -339,6 +239,8 @@ const TaskReports = ({ timeValuesProps }) => {
             },
           ],
         }));
+        setContentsourced(initStateOfTaskGraph);
+        setFundInvested(initStateOfTaskGraph)
         setLoading(false);
         setChartName({ ...chartName, task: "" });
       }
@@ -353,10 +255,13 @@ const TaskReports = ({ timeValuesProps }) => {
     setLoading(true);
 
     try {
-      const resp = await Get(
-        `mediahouse/reportcontentsourced?${(chartName.task == "task" && timeValues) || timeValuesProps
-        }=${(chartName.task == "task" && timeValues) || timeValuesProps}`
-      );
+      let resp;
+      if (taskState) {
+        resp = await Get(`mediahouse/reportcontentsourced?${taskState}=${taskState}`)
+      }
+      else {
+        resp = await Get(`mediahouse/reportcontentsourced`)
+      }
       // console.log(resp.data.data, "<--------resp.data.data")
       if (resp) {
         setContentsourced((prevTaskSummary) => ({
@@ -401,6 +306,8 @@ const TaskReports = ({ timeValuesProps }) => {
             },
           ],
         }));
+        setTaskSummary(initStateOfTaskGraph);
+        setFundInvested(initStateOfTaskGraph)
         setLoading(false);
         setChartName({ ...chartName, task: "" });
       }
@@ -415,10 +322,13 @@ const TaskReports = ({ timeValuesProps }) => {
     setLoading(true);
 
     try {
-      const resp = await Get(
-        `mediahouse/reportfundInvested?${(chartName.task == "task" && timeValues) || timeValuesProps
-        }=${(chartName.task == "task" && timeValues) || timeValuesProps}`
-      );
+      let resp;
+      if (taskState) {
+        resp = await Get(`mediahouse/reportfundInvested?${taskState}=${taskState}`)
+      }
+      else {
+        resp = await Get(`mediahouse/reportfundInvested`)
+      }
       // console.log(resp.data.data, "<--------resp.data.data")
       if (resp) {
         setFundInvested((prevTaskSummary) => ({
@@ -463,6 +373,8 @@ const TaskReports = ({ timeValuesProps }) => {
             },
           ],
         }));
+        setContentsourced(initStateOfTaskGraph);
+        setTaskSummary(initStateOfTaskGraph)
         setLoading(false);
         setChartName({ ...chartName, task: "" });
       }
@@ -474,7 +386,6 @@ const TaskReports = ({ timeValuesProps }) => {
   };
 
   const [report, setReport] = useState();
-  // reports card
   const getReports = async () => {
     try {
       const res = await Get(`mediahouse/reportTaskCount`);
@@ -485,11 +396,6 @@ const TaskReports = ({ timeValuesProps }) => {
     } catch (er) { }
   };
 
-  // const Navigate=(type)=>{
-  //   navigate(`/reports-tables-task/${type}`)
-
-  // }
-
   useEffect(() => {
     TaskLocation();
     TaskType();
@@ -498,16 +404,40 @@ const TaskReports = ({ timeValuesProps }) => {
     FundInvested();
     TaskCategories();
     getReports();
-  }, [timeValues, timeValuesProps]);
+  }, []);
 
-  const formatAmountInMillion = (amount) =>
-    amount?.toLocaleString('en-US', {
-      maximumFractionDigits: 2,
-    });
+  useEffect(() => {
+    TaskCategories();
+  }, [sortCategoryState]);
+
+  useEffect(() => {
+    TaskType();
+  }, [contentTypeState]);
+
+  useEffect(() => {
+    TaskLocation();
+  }, [locationState]);
+
+  useEffect(() => {
+    TaskSummary();
+    ContentSourced();
+    FundInvested();
+  }, [taskState]);
+
+  useEffect(() => {
+    if (activeTab === "task") {
+      TaskSummary();
+    }
+    else if (activeTab === "content") {
+      ContentSourced();
+    }
+    else if (activeTab === "funds") {
+      FundInvested();
+    }
+  }, [activeTab]);
 
   return (
     <>
-      {/* {console.log(taskCategories, `<----123`)} */}
       {loading && <Loader />}
       <div className="taskReports_container tsk rep_tsk">
         <Row>
@@ -560,20 +490,20 @@ const TaskReports = ({ timeValuesProps }) => {
                     gutterBottom
                     className="cardContent_head"
                   >
-                    Tasks broadcasted today
+                    Broadcasted tasks today
                   </Typography>
                   <div className="content_stat">
                     {report?.task_broadcasted_today?.type === "increase" ? (
                       <span className="stat_up">
                         <BsArrowUp />
-                        {report?.task_broadcasted_today?.percent}%
+                        {(report?.task_broadcasted_today?.percent)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.task_broadcasted_today?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
-                        {report?.task_broadcasted_today?.percent}%
+                        {(report?.task_broadcasted_today?.percent)?.toFixed(2)}%
                       </span>
-                    )}
+                    ) : <span>{"No change "}</span>}
                     <span>vs yesterday</span>
                   </div>
                 </CardContent>
@@ -630,21 +560,20 @@ const TaskReports = ({ timeValuesProps }) => {
                     gutterBottom
                     className="cardContent_head"
                   >
-                    Content sourced from tasks today
+                    Content purchased from tasks today
                   </Typography>
                   <div className="content_stat">
-                    {report?.today_content_sourced_from_task?.type ===
-                      "increase" ? (
+                    {report?.today_content_sourced_from_task?.type === "increase" ? (
                       <span className="stat_up">
                         <BsArrowUp />
-                        {report?.today_content_sourced_from_task?.percent}%
+                        {(report?.today_content_sourced_from_task?.percent)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.today_content_sourced_from_task?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
-                        {report?.today_content_sourced_from_task?.percent}%
+                        {(report?.today_content_sourced_from_task?.percent)?.toFixed(2)}%
                       </span>
-                    )}
+                    ) : <span>{"No change "}</span>}
                     <span>vs yesterday</span>
                   </div>
                 </CardContent>
@@ -701,21 +630,21 @@ const TaskReports = ({ timeValuesProps }) => {
                     gutterBottom
                     className="cardContent_head"
                   >
-                    Total content sourced from tasks
+                    Total content purchased from tasks
                   </Typography>
                   <div className="content_stat">
-                    {report?.total_content_sourced_from_task?.type ===
-                      "increase" ? (
+                    {report?.total_content_sourced_from_task?.type === "increase" ? (
                       <span className="stat_up">
                         <BsArrowUp />
-                        {report?.total_content_sourced_from_task?.percent}%
+                        {(report?.total_content_sourced_from_task?.percent)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.total_content_sourced_from_task?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
-                        {report?.total_content_sourced_from_task?.percent}%
+                        {(report?.total_content_sourced_from_task?.percent)?.toFixed(2)}%
                       </span>
-                    )}
+                    ) : <span>{"No change "}</span>
+                    }
                     <span>vs last month</span>
                   </div>
                 </CardContent>
@@ -763,7 +692,7 @@ const TaskReports = ({ timeValuesProps }) => {
                     </div>
 
                     <Typography variant="body2" className="card-head-txt mb-2">
-                      £{report?.today_fund_invested?.count ?? 0}
+                      £{formatAmountInMillion(report?.today_fund_invested?.count) ?? 0}
                     </Typography>
                   </div>
                   <Typography
@@ -778,14 +707,14 @@ const TaskReports = ({ timeValuesProps }) => {
                     {report?.today_fund_invested?.type === "increase" ? (
                       <span className="stat_up">
                         <BsArrowUp />
-                        {report?.today_fund_invested?.percentage}%
+                        {(report?.today_fund_invested?.percentage)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.today_fund_invested?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
-                        {report?.today_fund_invested?.percentage}%
+                        {(report?.today_fund_invested?.percentage)?.toFixed(2)}%
                       </span>
-                    )}
+                    ) : <span>{"No change "}</span>}
                     <span>vs yesterday</span>
                   </div>
                 </CardContent>
@@ -833,8 +762,7 @@ const TaskReports = ({ timeValuesProps }) => {
                     </div>
 
                     <Typography variant="body2" className="card-head-txt mb-2">
-                      £
-                      {formatAmountInMillion(report?.total_fund_invested?.count || 0)}
+                      £{formatAmountInMillion(report?.total_fund_invested?.count || 0)}
                     </Typography>
                   </div>
                   <Typography
@@ -849,14 +777,14 @@ const TaskReports = ({ timeValuesProps }) => {
                     {report?.total_fund_invested?.type === "increase" ? (
                       <span className="stat_up">
                         <BsArrowUp />
-                        {report?.total_fund_invested?.percentage}%
+                        {(report?.total_fund_invested?.percentage)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.total_fund_invested?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
-                        {report?.total_fund_invested?.percentage}%
+                        {(report?.total_fund_invested?.percentage)?.toFixed(2)}%
                       </span>
-                    )}
+                    ) : <span>{"No change "}</span>}
 
                     <span>vs yesterday</span>
                   </div>
@@ -921,12 +849,12 @@ const TaskReports = ({ timeValuesProps }) => {
                         <BsArrowUp />
                         {(report?.deadline_met?.percentage || 0)?.toFixed(2)}%
                       </span>
-                    ) : (
+                    ) : report?.deadline_met?.type === "decrease" ? (
                       <span className="stat_down">
                         <BsArrowDown />
                         {(report?.deadline_met?.percentage || 0)?.toFixed(2)}%
                       </span>
-                    )}{" "}
+                    ) : <span>{"No change "}</span>}
                     <span>vs yesterday</span>
                   </div>
                 </CardContent>
@@ -970,8 +898,11 @@ const TaskReports = ({ timeValuesProps }) => {
                       </button>
                       {openSortCategory && (
                         <ChartsSort
+                          setActive={setCategoryState}
+                          active={sortCategoryState}
                           rangeTimeValues={timeValuesHandler}
                           closeSortComponent={() => setOpenSortCategory(false)}
+                          setChartName={setChartName}
                         />
                       )}
                     </div>
@@ -1021,10 +952,13 @@ const TaskReports = ({ timeValuesProps }) => {
                       </button>
                       {openSortContentType && (
                         <ChartsSort
+                          active={contentTypeState}
+                          setActive={setContentTypeState}
                           rangeTimeValues={timeValuesHandler}
                           closeSortComponent={() =>
                             setOpenSortContentType(false)
                           }
+                          setChartName={setChartName}
                         />
                       )}
                     </div>
@@ -1077,8 +1011,11 @@ const TaskReports = ({ timeValuesProps }) => {
                       </button>
                       {openSortLocation && (
                         <ChartsSort
+                          active={locationState}
+                          setActive={setLocationState}
                           rangeTimeValues={timeValuesHandler}
                           closeSortComponent={() => setOpenSortLocation(false)}
+                          setChartName={setChartName}
                         />
                       )}
                     </div>
@@ -1129,18 +1066,22 @@ const TaskReports = ({ timeValuesProps }) => {
               </button>
               {openSortTask && (
                 <ChartsSort
+                  active={taskState}
+                  setActive={setTaskState}
                   rangeTimeValues={timeValuesHandler}
                   closeSortComponent={() => setOpenSortTask(false)}
+                  setChartName={setChartName}
                 />
               )}
             </div>
 
             <Tabs
-              defaultActiveKey="tasks"
+              activeKey={activeTab}
               id="uncontrolled-tab-example"
               className="mb-3 grph_tbs"
+              onSelect={(e) => setActiveTab(e)}
             >
-              <Tab eventKey="tasks" title="Task summary">
+              <Tab eventKey="task" title="Task summary">
                 <Link
                   to={"/reports-tables-task/task_summary"}
                   className="text-dark"
@@ -1162,7 +1103,7 @@ const TaskReports = ({ timeValuesProps }) => {
 
               <Tab
                 eventKey="content"
-                title="Content sourced from tasks summary"
+                title="Content purchased from tasks summary"
               >
                 <Link
                   to={"/reports-tables-task/content_sourced_from_task_summary"}
@@ -1194,12 +1135,12 @@ const TaskReports = ({ timeValuesProps }) => {
                   to={"/reports-tables-task/fund_invested_summary"}
                   className="text-dark"
                 >
-                <ReactApexChart
-                  options={fundInvested.options}
-                  series={fundInvested.series}
-                  type="bar"
-                  height={350}
-                />
+                  <ReactApexChart
+                    options={fundInvested.options}
+                    series={fundInvested.series}
+                    type="bar"
+                    height={350}
+                  />
                 </Link>
               </Tab>
             </Tabs>

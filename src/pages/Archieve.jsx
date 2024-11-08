@@ -23,15 +23,18 @@ import DbFooter from "../component/DbFooter";
 import Loader from "../component/Loader";
 import TopSearchesTipsCard from "../component/card/TopSearchesTipsCard";
 import { Post } from "../services/user.services";
+
 const ArchieveItems = () => {
     const { startDate, endDate } = useParams();
-    const [pub_content, setPub_Content] = useState([]);
+    const [archieveContent, setArchieveContent] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [fav, setFav] = useState(false);
 
-    const handleFavourite = () => {
-        setFav(!fav);
-        PublishedContent();
+    const handleFavourite = (i) => {
+        setArchieveContent((prev) => {
+            const allContent = [...prev];
+            allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+            return allContent
+          })
     };
 
     const PublishedContent = async () => {
@@ -52,7 +55,7 @@ const ArchieveItems = () => {
             });
 
 
-            setPub_Content(resp.data.content);
+            setArchieveContent(resp.data.content);
             if (resp) {
                 setLoading(false);
             }
@@ -95,7 +98,7 @@ const ArchieveItems = () => {
                     <h1>{new Date(endDate?.slice(1))?.toLocaleString('default', { month: 'short' })} {new Date(endDate?.slice(1))?.getFullYear()}</h1>
                     <Row className="">
                         {
-                            pub_content?.map((curr, index) => {
+                            archieveContent?.map((curr, index) => {
                                 const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
                                 const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
                                 const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
@@ -108,7 +111,7 @@ const ArchieveItems = () => {
                                 const docCount = Doc.length;
 
                                 return (
-                                    <Col lg={3} md={4} sm={6}>
+                                    <Col lg={3} md={4} sm={6} key={index}>
                                         <ContentFeedCard
                                             feedImg={
                                                 curr?.content[0]?.media_type === "video" ?
@@ -119,21 +122,22 @@ const ArchieveItems = () => {
                                                             audioic
                                                             : curr?.content[0]?.media_type === "doc" || 'pdf' ? docsic : ''}
                                             feedType={contentCamera}
-                                            feedTag={curr?.mostPopular ? "Most popular" : curr?.mostviewed ? "Most viewed" : null}
+                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
                                             user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
                                             author_Name={curr?.hopper_id?.user_name}
                                             lnkto={`/Feeddetail/content/${curr._id}`}
-                                            fvticns={curr.favourite_status === "true" ? favouritedic : favic}
+                                            fvticns={curr?.favourite_status === "true" ? favouritedic : favic}
                                             content_id={curr._id}
                                             bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                            favourite={handleFavourite}
+                                            favourite={()=> handleFavourite(index)}
                                             type_img={curr?.type === "shared" ? shared : exclusive}
                                             type_tag={curr.type}
                                             feedHead={curr.heading}
-                                            feedTime={moment(curr.published_time_date).format("h:mm A, DD MMMM YY")}
+                                            feedTime={moment(curr.createdAt).format("h:mm A, DD MMMM YYYY")}
                                             feedLocation={curr.location}
                                             contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                            viewTransaction={"View detail"}
+                                            viewTransaction={"View details"}
+                                            viewDetail={`/Feeddetail/content/${curr._id}`}
                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                             postcount={imageCount > 0 ? imageCount : null}
                                             feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -152,7 +156,7 @@ const ArchieveItems = () => {
                         }
                     </Row>
                     {
-                        pub_content.length === 0 && <p>No Data Found</p>
+                        archieveContent.length === 0 && <p>No Data Found</p>
                     }
                     <div className="mt-0">
                         <TopSearchesTipsCard />

@@ -29,6 +29,7 @@ const FAQPostLogin = () => {
 
   useEffect(() => {
     FAQ()
+    window?.scrollTo(0, 0);
   }, [])
 
   return (
@@ -40,7 +41,7 @@ const FAQPostLogin = () => {
             <Row className="row-w-m m-0 position-relative">
               <Col lg="6" className="p-0">
                 <div className="left-side bg-white cstm_ht">
-                  <Link className='back_link'><BsArrowLeft className='text-pink' onClick={() => window.history.back()} /> Back </Link>
+                  <Link className='back_link' onClick={() => window.history.back()}><BsArrowLeft className='text-pink' /> Back </Link>
                   <div className="pg_heading">
                     <h1>FAQ</h1>
                   </div>
@@ -68,54 +69,6 @@ const FAQPostLogin = () => {
                         )
                       })}
                     </Accordion>
-                    {/* <Accordion className="mb_20" defaultActiveKey="0">
-                      <Accordion.Item eventKey="1">
-                        <Accordion.Header>
-                          <span className="questnTag">Q</span>
-                          Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolores, totam?
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <span className="questnTag">A</span>
-                          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Quibusdam animi quisquam voluptatibus nam repudiandae ad earum nisi totam suscipit est!
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                    <Accordion className="mb_20" defaultActiveKey="0">
-                      <Accordion.Item eventKey="1">
-                        <Accordion.Header>
-                          <span className="questnTag">Q</span>
-                          Lorem ipsum amet consectetur, adipisicing elit. Natus inventore beatae maiores?
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <span className="questnTag">A</span>
-                          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Quibusdam animi quisquam voluptatibus nam repudiandae ad earum nisi totam suscipit est!
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                    <Accordion className="mb_20" defaultActiveKey="0">
-                      <Accordion.Item eventKey="1">
-                        <Accordion.Header>
-                          <span className="questnTag">Q</span>
-                          Lorem consectetur adipisicing elit. Nobis, fuga?
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <span className="questnTag">A</span>
-                          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Quibusdam animi quisquam voluptatibus nam repudiandae ad earum nisi totam suscipit est!
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion>
-                    <Accordion className="mb_20" defaultActiveKey="0">
-                      <Accordion.Item eventKey="1">
-                        <Accordion.Header>
-                          <span className="questnTag">Q</span>
-                          Lorem ipsum dolor sit amet, consectetur adipisicing elit. Natus, quas?
-                        </Accordion.Header>
-                        <Accordion.Body>
-                          <span className="questnTag">A</span>
-                          Lorem ipsum dolor sit amet consectetur adipisicing elit. Illum possimus sint non velit nam est eius unde assumenda voluptate fugiat.
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    </Accordion> */}
                   </div>
                 </div>
               </Col>

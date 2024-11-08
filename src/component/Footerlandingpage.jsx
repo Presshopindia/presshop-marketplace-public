@@ -54,7 +54,7 @@ const Footerlandingpage = ({ scrollToDiv }) => {
         progress: undefined,
         theme: "colored",
         transition: Slide,
-        });
+      });
       // console.log(resp);
     } catch (error) {
       setLoading(false);
@@ -63,9 +63,9 @@ const Footerlandingpage = ({ scrollToDiv }) => {
 
   return (
     <>
-    {
-      loading && <Loader/>
-    }
+      {
+        loading && <Loader />
+      }
       <div className="footer">
         <Container fluid className="">
           <div className="footer-txt">
@@ -86,7 +86,7 @@ const Footerlandingpage = ({ scrollToDiv }) => {
                     placeholder="Stay connected with us. Enter your email here"
                     onChange={changeHandler}
                   />
-                  <span className="subScrbutton" onClick={sendEmail} style={{cursor:"pointer"}}>
+                  <span className="subScrbutton" onClick={sendEmail} style={{ cursor: "pointer" }}>
                     <BsCheckSquare className="me-2" /> Subscribe now
                   </span>
                 </div>
@@ -97,12 +97,12 @@ const Footerlandingpage = ({ scrollToDiv }) => {
                 <div className="presshopInfo">
                   <h6 className="font-bold">Presso Media UK Limited</h6>
                   <p className="mb-0">
-                  167-169 Great Portland Street,<br />5th Floor, London<br />W1W 5PF<br />
+                    167-169 Great Portland Street,<br />London<br />W1W 5PF<br />
                   </p>
                   <div className="contantUsby">
                     <span>
                       <MdOutlineEmail />
-                      support@presshop.news
+                      hello@presshop.co.uk
                     </span>
                     <span>
                       <SlGlobe />
@@ -112,22 +112,22 @@ const Footerlandingpage = ({ scrollToDiv }) => {
                 </div>
                 <div className="foot-logos text-center">
                   <div className="img-wrap ms-0">
-                    <a href="https://www.facebook.com/presshopuk">
+                    <a href='https://www.facebook.com/presshopuk/' target="_blank">
                       <img src={facebook} alt="Facebook" className="facebook" />
                     </a>
                   </div>
                   <div className="img-wrap">
-                    <a href="https://www.linkedin.com/company/79070111/admin/feed/posts/">
+                    <a href='https://www.linkedin.com/company/presshop/' target="_blank" >
                       <img src={linkedin} alt="LinkedIn" />
                     </a>
                   </div>
                   <div className="img-wrap">
-                    <a href="https://www.instagram.com/presshopuk/">
+                    <a href='https://www.instagram.com/presshopuk/' target="_blank">
                       <img src={instagram} alt="" className="instagram" />
                     </a>
                   </div>
                   <div className="img-wrap">
-                    <a href="https://twitter.com/Presshopuk/">
+                    <a href='https://twitter.com/Presshopuk/' target="_blank">
                       <img src={twitter} alt="twitter" className="twitter" />
                     </a>
                   </div>
@@ -154,7 +154,7 @@ const Footerlandingpage = ({ scrollToDiv }) => {
                     <Col md={3}>
                       <div className="aboutPress">
                         <Link onClick={() => scrollToDiv("div5")}>FAQS</Link>
-                        <Link to="/terms-and-conditions">Legal T&Cs</Link>
+                        <Link to="/pre-login-tandc">Legal T&Cs</Link>
                         <Link to="/pre-privacy-policy">Privacy Policy</Link>
                         <Link to={"/contact-us"}>Contact us</Link>
                         <Link to={"/login"}>Log in</Link>

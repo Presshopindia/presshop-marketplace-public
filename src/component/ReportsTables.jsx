@@ -100,7 +100,7 @@ const Tasktables = () => {
                                   </td>
                                   <td className="timedate_wrap">
                                     <p className="timedate"><img src={watch} className="icn_time" />{moment(curr.createdAt).format("hh:mm A")}</p>
-                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.createdAt).format("DD MMMM, YYYY")}</p>
+                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.createdAt).format("DD MMM, YYYY")}</p>
                                   </td>
                                   <td className="description_td">
                                     <p className="desc_ht mb-0">
@@ -133,7 +133,7 @@ const Tasktables = () => {
                                   </td>
                                   <td className="timedate_wrap">
                                     <p className="timedate"><img src={watch} className="icn_time" />{moment(curr.deadline_date).format("hh:mm A")}</p>
-                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.deadline_date).format("DD MMMM, YYYY")}</p>
+                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.deadline_date).format("DD MMM, YYYY")}</p>
                                   </td>
                                   <td className="">
                                     <p className="trend_success"><BsArrowUp />50%</p>
@@ -298,7 +298,7 @@ const Tasktables = () => {
                       <div className="">
                         <div className='d-flex justify-content-between align-items-center tbl_hdr' px='20px' mb='10px'>
                           <Typography className='tbl_hdng'>
-                            Content sourced from tasks today
+                            Content purchased from tasks today
                           </Typography>
                           <div className="tbl_rt">
                             <span className="tbl_rt_txt">Monthly</span>

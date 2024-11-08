@@ -31,12 +31,17 @@ import contentic from "../../../assets/images/sortIcons/content.svg";
 import Form from "react-bootstrap/Form";
 import { Get } from "../../../services/user.services";
 
-const TopFilterComn = ({ closeFilterComponent, feedMultiFilter }) => {
+const TopFilterComn = ({ closeFilterComponent, feedMultiFilter,multiFilter,setMultiFilter,active,setActive }) => {
   const handleClose = (values) => {
+    if(values===false){
+      feedMultiFilter([])
+      setMultiFilter([])
+      setActive("")
+    }
     closeFilterComponent(values)
   }
 
-  const [active, setActive] = useState("")
+  // const [active, setActive] = useState("")
 
   const [categoryId, setCategoryId] = useState([]);
   const getCategory = async () => {
@@ -49,7 +54,7 @@ const TopFilterComn = ({ closeFilterComponent, feedMultiFilter }) => {
     }
   }
 
-  const [multiFilter, setMultiFilter] = useState([])
+  //const [multiFilter, setMultiFilter] = useState([])
 
   const handleClickValues = (field, values, type) => {
     const existingIndex = multiFilter.findIndex((item) => item.values === values);
@@ -83,10 +88,10 @@ const TopFilterComn = ({ closeFilterComponent, feedMultiFilter }) => {
     <>
       <div className="filter_wrap">
         <div className="srt_fltr_hdr">
-          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={() => handleClose(false)} />
+          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={() => handleClose()} />
           <p className="hdng">Filter</p>
           <div className="notf_icn_wrp">
-            <a className="link" onClick={clearAll}>Clear all</a>
+            <a className="link" onClick={() => handleClose(false)}>Clear all</a>
           </div>
         </div>
         <div className="srt_sub_hdng mt-3">

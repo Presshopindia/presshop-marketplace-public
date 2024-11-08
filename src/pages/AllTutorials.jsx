@@ -9,27 +9,27 @@ import allttrls from "../assets/images/login-images/all-tutorials.svg";
 import videothum from "../assets/images/vthumbnail.png";
 import Footerlandingpage from "../component/Footerlandingpage";
 import { Get } from "../services/user.services";
+import Header from "../component/Header";
+import DbFooter from "../component/DbFooter";
+import { BsArrowLeft } from 'react-icons/bs';
 
 const Success = () => {
-
-  const AdminDetails = JSON.parse(localStorage.getItem("OnboardDetails"));
-
-  const [tutorials, setTutorials] = useState()
+  const [tutorials, setTutorials] = useState();
+  const token = localStorage.getItem("token");
 
   const GetTutorials = async () => {
     const resp = await Get(`mediaHouse/getGenralMgmt?videos=videos`)
-    // console.log(resp, "<--------resp")
     setTutorials(resp.data.status)
   }
 
   useEffect(() => {
     GetTutorials()
+    window.scrollTo(0, 0)
   }, [])
 
   return (
     <>
-      {/* {console.log(AdminDetails, ",---------AdminDetails")} */}
-      <HeaderN />
+      {token ? <Header /> : <HeaderN />}
       <div className="page-wrap login-page p-0 all_ttrls_page">
         <Container fluid className="pdng">
           <div className="log-wrap onboar_success">
@@ -37,6 +37,7 @@ const Success = () => {
               <Col lg="6" className="bg-white p-0">
                 <div className="login_stepsWrap left-pdng">
                   <div className="onboardMain">
+                  <Link className='back_link mb-2' onClick={() => window.history.back()}><BsArrowLeft className='text-pink' /> Back </Link>
                     <div className="onboardIntro sign_section border-bottom-0">
                       <div className="onboardStep top_txt ttl_tp_txt">
                         <p>
@@ -47,7 +48,7 @@ const Success = () => {
                           content across the UK. If you would like to speak to
                           one of our team members to understand more, please
                           <span className="txt-success-link">
-                            <Link to={"/contact-us"}> contact us </Link>
+                            <Link to={token ? "/contact-us-post" : "/contact-us"}> contact us </Link>
                           </span>
                           and we will be very happy to explain
                         </p>
@@ -100,7 +101,9 @@ const Success = () => {
           </div>
         </Container>
       </div>
-      <Footerlandingpage />
+      {
+        token ? <DbFooter /> : <Footerlandingpage />
+      }
     </>
   );
 };

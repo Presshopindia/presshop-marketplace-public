@@ -33,12 +33,12 @@ const DbFooter = () => {
                                     <img src={logoDark} alt="Presshop" className="footer-logo darkLogo" />
                                 </div>
                                 <div className="presshopInfo">
-                                    <h6 className='font-bold'>Presshop Media UK Limited</h6>
-                                    <p className='ftr_adr'>167-169 Great Portland Street,<br />5th Floor, London<br />W1W 5PF<br /></p>
+                                    <h6 className='font-bold'>Presso Media UK Limited</h6>
+                                    <p className='ftr_adr'>167-169 Great Portland Street,<br />London<br />W1W 5PF<br /></p>
                                     <div className="contantUsby">
                                         <span>
                                             <MdOutlineEmail />
-                                            support@presshop.news
+                                            hello@presshop.co.uk
                                         </span>
                                         <span>
                                             <SlGlobe />
@@ -48,22 +48,22 @@ const DbFooter = () => {
                                 </div>
                                 <div className="foot-logos text-center">
                                     <div className="img-wrap ms-0">
-                                        <a href='https://www.facebook.com/presshopuk'>
+                                        <a href='https://www.facebook.com/presshopuk/' target="_blank">
                                             <img src={facebook} alt="Facebook" className="facebook" />
                                         </a>
                                     </div>
                                     <div className="img-wrap">
-                                        <a href='https://www.linkedin.com/company/79070111/admin/feed/posts/'>
+                                        <a href='https://www.linkedin.com/company/presshop/' target="_blank" >
                                             <img src={linkedin} alt="LinkedIn" />
                                         </a>
                                     </div>
                                     <div className="img-wrap">
-                                        <a href='https://www.instagram.com/presshopuk/'>
+                                        <a href='https://www.instagram.com/presshopuk/' target="_blank">
                                             <img src={instagram} alt="" className="instagram" />
                                         </a>
                                     </div>
                                     <div className="img-wrap">
-                                        <a href='https://twitter.com/Presshopuk'>
+                                        <a href='https://twitter.com/Presshopuk/' target="_blank">
                                             <img src={twitter} alt="twitter" className="twitter" />
                                         </a>
                                     </div>
@@ -142,9 +142,9 @@ const DbFooter = () => {
                                                         <div className="aboutPress">
                                                             <Link to={"/landing-page"}>About Presshop</Link>
                                                             <Link to={"/broadcasted-taks"}>Tasks</Link>
-                                                            <Link to={"/content"}>Content</Link>
+                                                            <Link to={"/content/exclusive/published/favourited"}>Content</Link>
                                                             <Link to={"/chat"}>Chat</Link>
-                                                            <Link to={"/reports"}>Reports</Link>
+                                                            <Link to={"/reports/content"}>Reports</Link>
                                                             <Link to={"/onboard"}>Onboard</Link>
                                                         </div>
                                                     </Col>
@@ -153,7 +153,7 @@ const DbFooter = () => {
                                                             <Link to={"/published-content"}>Feed</Link>
                                                             <Link to={"/faq-post"}>FAQs</Link>
                                                             <Link to={"/post-login-tandc"}>Legal T&Cs</Link>
-                                                            <Link to={"/pre-privacy-policy"}>Privacy Policy</Link>
+                                                            <Link to={"/privacy-policy"}>Privacy Policy</Link>
                                                             <Link to={"/contact-us-post"}>Contact Presshop</Link>
                                                             <Link to={"/login"}>Log in</Link>
                                                         </div>

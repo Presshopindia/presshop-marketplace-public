@@ -14,13 +14,16 @@ import { AiFillStar, AiOutlineStar } from "react-icons/ai";
 import { BsArrowLeft, BsArrowRight, BsChevronDown, BsMic, BsPause, BsPlay } from "react-icons/bs";
 import { MdAdd, MdOutlineWatchLater } from "react-icons/md";
 import { SlLocationPin } from "react-icons/sl";
-import { ReactMic } from "react-mic";
+import { ReactMic } from "react-mic-recorder";
 import { Rating } from "react-simple-star-rating";
 import io from "socket.io-client";
 import { Pagination } from "swiper";
 import "swiper/css";
 import { Swiper, SwiperSlide } from "swiper/react";
+import usric from "../assets/images/menu-icons/user.svg";
+import tickic from "../assets/images/chat-icons/tick.svg";
 import audioic from "../assets/images/audimg.svg";
+import photoic from "../assets/images/camera.svg";
 import NoProfile from "../assets/images/blank-profile-picture.png";
 import cameraic from "../assets/images/camera.svg";
 import presshopchatic from "../assets/images/chat-icons/presshoplogo.svg";
@@ -48,36 +51,35 @@ import { Get, Patch, Post } from "../services/user.services";
 import socketInternal from "../InternalSocket";
 import Loader from "../component/Loader";
 import { useDarkMode } from "../context/DarkModeContext";
+import { formatAmountInMillion, successToasterFun } from "../component/commonFunction";
 const socket = io.connect("https://uat.presshop.live:3005");
 
 const UploadedContentDetails = (props) => {
   const [isRecording, setIsRecording] = useState(false)
   const { profileData } = useDarkMode();
 
+  const userImage = profileData?.hasOwnProperty("admin_detail") ? profileData?.admin_detail?.admin_profile
+    : profileData?.profile_image
+
+  const username = profileData?.full_name
+
   const [selectedIds, setSelectedIds] = useState([]);
   const param = useParams();
   const navigate = useNavigate()
   const [adminList, setAdminList] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [msg, setMsg] = useState("")
-  const [offer_value, setOffer_value] = useState("")
   const [room_details, setRoom_Details] = useState()
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState();
   const [fav, setFav] = useState();
   const [hopper, setHopper] = useState();
   const [hopperid, setHopperid] = useState();
-  const [currentIndex, setCurrentIndex] = React.useState(0)
-  const [tags, setTags] = useState([]);
   const [userList, setUserList] = useState([]);
   const [senderId, setSenderId] = useState("");
-  const [offer_change, setOffer_change] = useState(false)
   const [review, setReview] = useState("")
-  const usernew = UserDetails
-  const [content, setCont] = useState([]);
-  const [morecontent, moreContentset] = useState([]);
+  const [relatedContent, setRelatedContent] = useState([]);
+  const [moreContent, setMoreContent] = useState([]);
   const [openRecentActivity, setOpenRecentActivity] = useState(false);
-  const [userProfile, setUserProfile] = useState([])
   const [chatContentIds, setChatContentIds] = useState({ room_id: '', sender_id: '', })
   const [contentId, setContentId] = useState(null);
   const [showChat, setShowChat] = useState({ content: false, task: false, presshop: false, internal: false });
@@ -94,36 +96,30 @@ const UploadedContentDetails = (props) => {
   const [admins, setAdmins] = useState([]);
   const [tabSelect, setTabSelect] = useState("internal");
 
+  const User = UserDetails
+
   useEffect(() => {
     // Scroll to the top when the component mounts
     window.scrollTo(0, 0);
-  }, []);
+  }, [param]);
 
 
   // External Chat
-  useEffect(() => {
-    socket.emit('room join', { room_id: room_idForContent });
-    socket?.on("getAdmins", (data) => {
-      setAdmins(data)
-    })
-    socket.on("initialoffer", (data) => {
-      // console.log("initialoffer1231231231", data)
-      const newMessage = data;
-      setMessages((prevMessages) => [...prevMessages, newMessage,]);
-    });
-    return () => {
-      socket.emit('room leave', { room_id: room_idForContent });
-      socket.off("initialoffer");
-    };
-  }, [socket, room_idForContent]);
-
-
-  const getMessages = async () => {
-    const resp1 = await Post(`mediaHouse/getAllchat`, { room_id: roomDetails?.room_id });
-    if (resp1) {
-      setMessages(resp1?.data?.response);
-    }
-  };
+  // useEffect(() => {
+  //   socket.emit('room join', { room_id: room_idForContent });
+  //   socket?.on("getAdmins", (data) => {
+  //     setAdmins(data)
+  //   })
+  //   socket.on("initialoffer", (data) => {
+  //     // console.log("initialoffer1231231231", data)
+  //     const newMessage = data;
+  //     // setMessages((prevMessages) => [...prevMessages, newMessage,]);
+  //   });
+  //   return () => {
+  //     socket.emit('room leave', { room_id: room_idForContent });
+  //     socket.off("initialoffer");
+  //   };
+  // }, [socket, room_idForContent]);
 
   const CreateRoom = async (id, idnew) => {
     try {
@@ -136,12 +132,11 @@ const UploadedContentDetails = (props) => {
       const resp = await Post(`mediaHouse/createRoom`, obj);
       if (resp && resp.data && resp.data.details) {
         setRoom_Details(resp.data.details);
-        setRoomDetails(resp.data.details);
+        // setRoomDetails(resp.data.details);
         setRoom_idForContent(resp.data.details.room_id)
-        // JoinRoom(resp.data.details.room_id);
         const resp1 = await Post(`mediaHouse/getAllchat`, { room_id: resp.data.details.room_id });
         if (resp1 && resp1.data && resp1.data.response) {
-          setMessages(resp1.data.response);
+          // setMessages(resp1.data.response);
         }
       } else {
         console.error("Incomplete response data:", resp);
@@ -151,185 +146,23 @@ const UploadedContentDetails = (props) => {
     }
   };
 
-
-  const Start_Offer = async () => {
-    setLoading(true)
-    try {
-      const obj = {
-        room_id: roomDetails.room_id,
-        content_id: roomDetails.content_id,
-        sender_type: "Mediahouse",
-        sender_id: roomDetails.sender_id,
-        message_type: "offer_started",
-        receiver_id: roomDetails.receiver_id,
-        initial_offer_price: "",
-        finaloffer_price: "",
-      };
-      socket.emit("initialoffer", obj);
-      socket.on("initialoffer", (obj) => {
-        const tempMsg = obj
-        setMessages([...messages])
-        getMessages();
-        setLoading(false)
-      });
-    } catch (error) {
-      // Handle errors
-      setLoading(false)
-    }
-  };
-
-  const Content_Offer = (offer_type) => {
-    try {
-      let obj = {
-        room_id: room_details.room_id,
-        content_id: room_details.content_id,
-        sender_type: "Mediahouse",
-        sender_id: room_details.sender_id,
-        message_type: offer_type,
-        receiver_id: room_details.receiver_id,
-        initial_offer_price: "",
-        finaloffer_price: "",
-      };
-      if (offer_type === "Mediahouse_initial_offer") {
-        obj.initial_offer_price = offer_value;
-      }
-      if (offer_type === "Mediahouse_final_offer") {
-        obj.finaloffer_price = offer_value;
-      }
-
-      // console.log('obj1231231231', obj)
-      socket.emit("initialoffer", obj);
-      setOffer_value("");
-      getMessages();
-
-    } catch (error) {
-      // Handle errors
-    }
-  };
-
-  const paymentintentnew = (curr) => {
+  const RatingNReview = (curr) => {
     const obj = {
-      room_id: room_details.room_id,
-      content_id: room_details.content_id,
+      room_id: curr?.room_id,
       sender_type: "Mediahouse",
-      sender_id: room_details.sender_id,
-      message_type: "PaymentIntent",
-      receiver_id: room_details.receiver_id,
-      initial_offer_price: "",
-      finaloffer_price: "",
-    };
-    socket.emit("initialoffer", obj);
-    socket.on("initialoffer", (obj) => {
-      // Handle initialoffer event if needed
-    });
-    Payment(curr);
-    RatingForMediahouse();
-    RatingForHopper();
-    getMessages();
-  };
-
-  const Payment = async (curr) => {
-    // console.log('curr12312312312', curr)
-    setLoading(true);
-    try {
-      const obj = {
-        image_id: !curr.hasOwnProperty("image_id") ? curr.content[0]._id : curr.image_id,
-        amount: !curr.hasOwnProperty("amount") ? curr.ask_price : curr.amount,
-        type: "content",
-        customer_id: UserDetails.stripe_customer_id,
-      };
-      // console.log('obj12312312312', obj)
-      const resp = await Post('mediahouse/createPayment', obj);
-      window.open(resp.data.url, '_blank');
-      if (resp) {
-        getMessages();
-        setLoading(false)
-      }
-    } catch (error) {
-      setLoading(false);
-      // Handle errors
-    }
-  };
-
-  const DownloadContent = async (id) => {
-    const resp = await Get(`mediahouse/image_pathdownload?image_id=${id}&type=content`);
-    if (resp) {
-      const filename = resp.data.message.slice(85);
-      fetch(resp.data.message)
-        .then(response => response.blob())
-        .then(blob => {
-          const downloadElement = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          downloadElement.href = url;
-          downloadElement.download = filename;
-          downloadElement.click();
-          URL.revokeObjectURL(url);
-        });
-    }
-  };
-
-  const RatingForMediahouse = () => {
-    try {
-      let obj = {
-        room_id: room_details.room_id,
-        content_id: room_details.content_id,
-        sender_type: "Mediahouse",
-        sender_id: room_details.sender_id,
-        message_type: "rating_mediaHouse",
-        receiver_id: room_details.receiver_id,
-        initial_offer_price: "",
-        finaloffer_price: "",
-      };
-      socket.emit("initialoffer", obj);
-      getMessages();
-    } catch (error) {
-      // console.log(error, "<-----errors for Start_Offer");
-    }
-  };
-
-  const RatingForHopper = () => {
-    try {
-      let obj = {
-        room_id: room_details?.room_id,
-        content_id: room_details?.content_id,
-        sender_type: "Mediahouse",
-        sender_id: room_details?.sender_id,
-        message_type: "rating_hopper",
-        receiver_id: room_details?.receiver_id,
-        initial_offer_price: "",
-        finaloffer_price: "",
-      };
-      socket.emit("initialoffer", obj);
-      getMessages();
-    } catch (error) {
-      // Handle errors
-    }
-  };
-
-  const [rating, setRating] = useState(0);
-  const handleRating = (rate) => {
-    setRating(rate);
-  };
-
-  const RatingNReview = (image_id) => {
-    const obj = {
-      room_id: room_details.room_id,
-      sender_type: "Mediahouse",
-      receiver_id: room_details.receiver_id,
-      sender_id: room_details.sender_id,
+      receiver_id: curr?.receiver_id?._id,
+      sender_id: curr?.sender_id?._id,
       rating: rating,
       review: review,
-      chat_id: messages && messages?.find((obj) => obj.message_type === "rating_mediaHouse")._id,
-      type: "content",
-      image_id: image_id,
-    };
-    socket.emit("rating", obj);
+      chat_id: messages && messages.find((obj) => obj.message_type === "rating_mediaHouse")?._id,
+      type: "task_content",
+      image_id: curr?.image_id
+    }
+    socket.emit("rating", obj)
     socket.on("rating", (obj) => {
-      // Handle rating event if needed
-    });
-
-    getMessages();
-  };
+    })
+    getMessages(JSON.parse(localStorage.getItem("external_chat_room_detail")))
+  }
 
   useEffect(() => {
     socket.emit("getallchat", { room_id: roomDetails?.room_id });
@@ -352,110 +185,81 @@ const UploadedContentDetails = (props) => {
   const PaymentIntent = Paymentt ? Paymentt.paid_status : "";
 
 
+  const [taskDetails, setTaskDetails] = useState()
   const handleCloseRecentActivity = (values) => {
     setOpenRecentActivity(values);
   };
 
-
+  const [taskExpireDiff, setTaskExpireDiff] = useState(null);
   const ContentByID = async () => {
     setLoading(true);
     try {
       const resp = await Get(`mediaHouse/getuploadedContentbyHoppers?_id=${param.id}`);
-      setContentId(resp?.data?.data?.[0]?.task_id?._id)
       setData(resp.data.data[0]);
-      setChatContentIds((pre) => ({ ...pre, room_id: resp?.data.room_id?.room_id }))
+
+      // const getHoppers = await Get(`mediaHouse/findacceptedtasks?task_id=${Livetask?.data?.tasks?.find?.((el) => el?._id == resp.data.data[0]?.task_id?._id)?._id}&receiver_id=${User && User._id || User.id}&type=task_content`);
+      setRoomDetails(resp.data.data[0])
+
+      // const liveTasks = await Get(`mediaHouse/live/expired/tasks?status=live&id=${Livetask?.data?.tasks?.find?.((el) => el?._id == resp.data.data[0]?.task_id?._id)?._id}`)
+      setTaskDetails(resp.data.data[0]?.task_id)
+
+      // Task should active 1 hour after deadline-
+      const nowDate = moment();
+      const deadlineDate = moment(resp.data.data[0]?.task_id?.deadline_date);
+      const newDateDiff = nowDate.diff(deadlineDate, "hours");
+
+      setTaskExpireDiff(newDateDiff);
+
+      localStorage.setItem("external_chat_room_detail", JSON.stringify(resp.data.data[0]))
+      getMessages(resp.data.data[0])
+
+      setChatContentIds((pre) => ({ ...pre, room_id: resp.data.data[0]?.roomsdetails?.room_id }))
       setChatContentIds((pre) => ({ ...pre, sender_id: profileData?._id }))
       localStorage.setItem('internal', resp?.data?.data?.[0]?.task_id?._id)
-      CreateRoom(resp.data.data[0]?.hopper_id?._id, resp.data.data[0].task_id?._id)
       setHopper(resp.data.data[0]?.hopper_id);
-      console.log("resp.data.data[0]?.hopper_id", resp.data)
       setHopperid(resp.data.data[0]?.hopper_id?._id);
-      const resp1 = await Post(`mediaHouse/MoreContent`, {
+      const resp1 = await Post(`mediaHouse/MoreContentforTask`, {
         hopper_id: resp.data.data[0]?.hopper_id?._id,
+        task_id: resp.data.data[0]?.task_id?._id
       });
-      moreContentset(resp1.data.content);
-      const resp2 = await Post(`mediaHouse/relatedContent`, {
-        tag_id:
-          [resp.data.content.tag_ids[0]?._id],
-        hopper_id: resp.data.data[0]?.hopper_id?._id
+      setMoreContent(resp1.data.content);
+      const resp2 = await Post(`mediaHouse/relatedContentforTask`, {
+        hopper_id: resp.data.data[0]?.hopper_id?._id,
+        task_id: resp.data.data[0]?.task_id?._id
       });
-      setCont(resp2.data.content);
-      localStorage.setItem('tag_id', resp.data.content.tag_ids[0]?._id, 'hopper_id', resp.data.data[0]?.hopper_id?._id)
+      setRelatedContent(resp2.data.content);
+      // localStorage.setItem('tag_id', resp.data.content.tag_ids[0]?._id, 'hopper_id', resp.data.data[0]?.hopper_id?._id)
       setHopperid(resp.data.data[0]?.hopper_id?._id);
       localStorage.setItem("hopperid", resp.data.data[0]?.hopper_id?._id);
       if (resp) {
         setLoading(false);
       }
+      CreateRoom(resp.data.data[0]?.hopper_id?._id, resp.data.data[0].task_id?._id)
     } catch (error) {
-      // console.log(error);
+      console.log(error)
       setLoading(false);
     }
   };
 
-
-
-
   const Favourite = async () => {
     try {
+
       let obj = {
-        favourite_status:
-          (data && data.favourite_status === "false") ||
-            (fav && fav.content_id && fav.content_id.favourite_status === "false")
-            ? "true"
-            : "false",
-        content_id: data ? data._id : fav?.content_id?._id,
+        type: "uploaded_content",
+        uploaded_content: data ? data._id : fav?.content_id?._id,
       };
 
-      const resp = await Patch(`mediaHouse/add/to/favourites`, obj);
-      if (resp) {
-        if (param.type === "content") {
-          ContentByID();
-        } else if (param.type === "favourite") {
-          history.back()
-        }
-      }
+      setData((prev) => {
+        const updatedData = { ...prev };
+        updatedData.favourite_status = updatedData.favourite_status === "true" ? "false" : "true"
+        return updatedData
+      })
+      await Patch(`mediaHouse/add/to/favourites`, obj);
     } catch (error) {
       // Handle error here
     }
   };
 
-
-  const FavouriteByID = async () => {
-    setLoading(true);
-    try {
-      const resp = await Post(`mediaHouse/favourites`, { id: param.id });
-      setContentId(resp?.data?.response?.response?.content_id?._id)
-      setFav(resp.data.response.response)
-      if (resp) {
-        localStorage.setItem('internal', resp?.data?.response?.response?.content_id?._id)
-        CreateRoom(resp?.data?.response?.response?.content_id?.hopper_id?._id, resp?.data?.response?.response?.content_id?._id)
-        setHopper(resp?.data?.response?.response?.content_id?.hopper_id);
-        setHopperid(resp?.data?.response?.response?.content_id?.hopper_id?._id);
-        const resp1 = await Post(`mediaHouse/MoreContent`, {
-          hopper_id: resp?.data?.response?.response?.content_id?.hopper_id?._id,
-        });
-        moreContentset(resp1?.data.content);
-        const resp2 = await Post(`mediaHouse/relatedContent`, { tag_id: [resp?.data?.response?.response?.content_id?.tag_ids[0]?._id], hopper_id: resp?.data?.response?.response?.content_id?.hopper_id?._id });
-        setCont(resp2.data.content);
-        localStorage.setItem('tag_id', resp?.data?.response?.response?.content_id?.tag_ids[0]?._id, 'hopper_id', resp?.data?.response?.response?.content_id?.hopper_id?._id)
-        setHopperid(resp.data.content?.hopper_id?._id);
-        localStorage.setItem("hopperid", resp?.data?.response?.response?.content_id?.hopper_id?._id);
-        if (resp) {
-          setLoading(false);
-        }
-      }
-    } catch (error) {
-      // console.log(error);
-      setLoading(false);
-    }
-  };
-
-
-  useEffect(() => {
-    getMessages()
-  }, [socket])
-
-  console.log('param ----->', param)
   useEffect(() => {
     ContentByID();
     GetUserList();
@@ -491,29 +295,10 @@ const UploadedContentDetails = (props) => {
       value: "",
     });
 
-
-
-  // recent activity
-  const recentActivity = async () => {
-    try {
-      if (contentId) {
-        const response = await Post('mediaHouse/recentactivityformediahouse', {
-          content_id: contentId,
-        });
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    recentActivity();
-  }, [contentId]);
-
   const GetUserList = async () => {
-    const resp = await Get(`mediaHouse/getdesignatedUSer?allow_to_chat_externally=true`);
+    const resp = await Post(`mediaHouse/getMediahouseUser`);
     if (resp) {
-      setUserList(resp.data.response.sort((a, b) => a.first_name.toLowerCase().localeCompare(b.first_name.toLowerCase())));
+      setUserList(resp.data.response.filter((el) => el?.role == "Adduser"));
     }
     const resp1 = await Get(`mediaHouse/adminlist`);
     const newData = resp1?.data?.data?.map((el) => {
@@ -544,9 +329,7 @@ const UploadedContentDetails = (props) => {
     setIsRecording(true);
   };
 
-
   const onStopRecording = async (recordedBlob) => {
-    console.log('recordedBlob -------------->', recordedBlob)
     setIsRecording(false);
     try {
       const formData = new FormData();
@@ -569,27 +352,66 @@ const UploadedContentDetails = (props) => {
     ChatList();
   }, [chatContentIds, socketInternal]);
 
+  // useEffect(() => {
+  //   const messageContainer = document.getElementById("message-container-1"); // Replace "message-container" with the actual ID or class of your message container element
+  //   if (messageContainer) {
+  //     messageContainer.scrollTop = messageContainer.scrollHeight;
+  //   }
+
+  //   socketInternal.emit('room join', { room_id: chatContentIds?.room_id });
+  //   socketInternal.on("internal group chat", (data) => {
+  //     const newMessage = data;
+  //     setMessage((prevMessages) => [...prevMessages, newMessage,]);
+
+  //     if (newMessage) {
+  //       messageContainer.scrollTop = messageContainer.scrollHeight;
+  //     }
+  //   });
+  //   return () => {
+  //     socketInternal.emit('room leave', { room_id: chatContentIds?.room_id });
+  //     socketInternal.off("internal group chat");
+  //   };
+  // }, [socketInternal, chatContentIds?.room_id]);
+
   useEffect(() => {
-    const messageContainer = document.getElementById("message-container-1"); // Replace "message-container" with the actual ID or class of your message container element
-    if (messageContainer) {
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-
-    socketInternal.emit('room join', { room_id: chatContentIds?.room_id });
-    socketInternal.on("internal group chat", (data) => {
-      const newMessage = data;
-      // console.log('newMessage12312312', newMessage)
-      setMessage((prevMessages) => [...prevMessages, newMessage,]);
-
-      if (newMessage) {
+    // Internal Chat and External Chat-
+    if (tabSelect == "internal") {
+      const messageContainer = document.getElementById("message-container-1"); // Replace "message-container" with the actual ID or class of your message container element
+      if (messageContainer) {
         messageContainer.scrollTop = messageContainer.scrollHeight;
       }
-    });
-    return () => {
-      socketInternal.emit('room leave', { room_id: chatContentIds?.room_id });
-      socketInternal.off("internal group chat");
-    };
-  }, [socketInternal, chatContentIds?.room_id]);
+      socket.emit("room join", { room_id: chatContentIds?.room_id });
+      socket.on("internal group chat", (data) => {
+        const newMessage = data;
+        if (!newMessage?.createdAt) {
+          setMessage((prevMessages) => [...prevMessages, newMessage]);
+          messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+        if (newMessage) {
+          messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+      });
+      return () => {
+        socket.emit("room leave", { room_id: chatContentIds?.room_id });
+        socket.off("internal group chat");
+      };
+    }
+    else if (tabSelect == "external") {
+      socket.emit("room join", { room_id: room_idForContent });
+      socket?.on("getAdmins", (data) => {
+        setAdmins(data);
+      });
+      socket.on("initialoffer", (data) => {
+        const newMessage = data;
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      });
+      return () => {
+        socket.emit("room leave", { room_id: room_idForContent });
+        socket.off("initialoffer");
+      };
+    }
+
+  }, [tabSelect]);
 
   const handleCheckboxChange = (itemId) => {
     if (selectedIds.includes(itemId)) {
@@ -607,6 +429,7 @@ const UploadedContentDetails = (props) => {
         content_id: param.id,
         room_id: chatContentIds ? chatContentIds?.room_id : ''
       };
+
       const resp = await Post('mediaHouse/internalGroupChatMH', obj);
       if (resp) {
         setSelectedIds([]);
@@ -654,13 +477,17 @@ const UploadedContentDetails = (props) => {
       message: mediaFile?.path ? mediaFile?.path : msg1,
       type: mediaFile?.type ? mediaFile?.type : 'text',
       user_info: {
-        profile_image: profileData?.profile_image,
+        profile_image: profileData?.hasOwnProperty(
+          "admin_detail"
+        )
+          ? profileData?.admin_detail
+            ?.admin_profile
+          : profileData?.profile_image,
         first_name: profileData?.first_name,
         last_name: profileData?.last_name,
       },
     };
 
-    console.log('messages, mediaFile', messages, mediaFile)
     socketInternal.emit('internal group chat', messages);
     setMsg1('');
     setMediaFile({
@@ -676,10 +503,12 @@ const UploadedContentDetails = (props) => {
       const resp = await Get(`mediaHouse/openChatsMH?room_id=${chatContentIds?.room_id}`);
       if (resp) {
         localStorage.setItem("contentId", JSON.stringify(param.id))
+        localStorage.setItem("type", "task")
         localStorage.setItem("roomId", JSON.stringify(chatContentIds?.room_id) || "")
         localStorage.removeItem("receiverId")
         localStorage.setItem("tabName", JSON.stringify("internal"))
-        setMessage(resp?.data?.response?.data);
+        const newData = resp?.data?.response?.data?.filter((el) => el?.type);
+        setMessage(newData);
       }
     } catch (error) {
       // Handle errors
@@ -709,6 +538,99 @@ const UploadedContentDetails = (props) => {
   };
 
 
+
+  // External chat-------------------------------------------------------------
+
+  const JoinRoom = () => {
+    socket.emit("room join", { room_id: roomDetails?.roomsdetails?.room_id })
+  }
+
+  useEffect(() => {
+    JoinRoom()
+  }, [roomDetails?.roomsdetails?.room_id])
+
+  const getMessages = async (room) => {
+    const resp1 = await Post(`mediaHouse/getAllchat`, { room_id: room?.roomsdetails?.room_id });
+    if (resp1) {
+      setMessages(resp1?.data?.response);
+    }
+  };
+
+  // useEffect(() => {
+  //   getMessages(JSON.parse(localStorage.getItem("external_chat_room_detail")))
+  // })
+
+  const stripePayment = async (curr) => {
+    let obj = {
+      image_id: curr?.image_id,
+      customer_id: UserDetails.stripe_customer_id,
+      amount: curr?.media?.amount,
+      type: "task_content",
+      task_id: taskDetails?._id
+    }
+    const resp = await Post('mediahouse/createPayment', obj)
+    window.open(resp.data.url, '_blank')
+    if (resp) {
+    }
+  }
+
+  const requestMoreContent = (curr) => {
+    try {
+      let obj = {
+        room_id: curr?.room_id,
+        sender_id: curr?.sender_id?._id,
+        receiver_id: curr?.receiver_id?._id,
+        sender_type: "mediahouse",
+        message_type: 'request_more_content',
+      }
+
+      socket.emit("offer message", obj)
+      socket.on("offer message", (obj) => {
+        getMessages(JSON.parse(localStorage.getItem("external_chat_room_detail")))
+      })
+    } catch (error) {
+    }
+  }
+
+  const DownloadContent = async (id) => {
+    const resp = await Get(`mediahouse/image_pathdownload?image_id=${id}`)
+    if (resp) {
+      const filename = resp.data.message.slice(85)
+      fetch(resp.data.message)
+        .then(response => response.blob())
+        .then(blob => {
+          const downloadElement = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          downloadElement.href = url;
+          downloadElement.download = filename;
+          downloadElement.click();
+          URL.revokeObjectURL(url);
+        });
+    }
+  }
+
+  // Catch Rating value
+  const [rating, setRating] = useState()
+  const handleRating = (rate) => {
+    setRating(rate)
+  }
+
+  const handleFavourite = (i, type) => {
+    if (type == "more") {
+      setMoreContent((prev) => {
+        const allContent = [...prev];
+        allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+    else if (type == "related") {
+      setRelatedContent((prev) => {
+        const allContent = [...prev];
+        allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+        return allContent
+      })
+    }
+  };
 
   return (
     <>
@@ -795,19 +717,13 @@ const UploadedContentDetails = (props) => {
                               </div>
                             }
                           </div>
-                          <div className="post_itm_icns right dtl_icns" onClick={Favourite}>
+                          <div className="post_itm_icns right dtl_icns" onClick={() => { Favourite() }}>
                             <img
                               className="feedMediaType iconBg"
                               src={
-                                data
-                                  ? data?.favourite_status === "true"
-                                    ? favouritedic
-                                    : favic
-                                  : fav
-                                    ? fav?.content_id?.favourite_status === "true"
-                                      ? favouritedic
-                                      : favic
-                                    : null
+                                data?.favourite_status === "true"
+                                  ? favouritedic
+                                  : favic
                               }
                               alt=""
                             />
@@ -832,10 +748,10 @@ const UploadedContentDetails = (props) => {
                                       ) : curr?.media_type === "audio" ? (
                                         <div>
                                           <img src={audioic} alt={`Audio ${curr._id}`} className="slider-img" onClick={toggleAudio} />
-                                          <audio controls src={curr.hasOwnProperty("watermark") ? curr.watermark : curr?.media} type="audio/mpeg" className="slider-audio" ref={audioRef} />
+                                          <audio controls src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.media} type="audio/mpeg" className="slider-audio" ref={audioRef} />
                                         </div>
                                       ) : curr?.media_type === "video" ? (
-                                        <video controls className="slider-vddo" src={curr.hasOwnProperty("watermark") ? curr.watermark : curr?.media} />
+                                        <video controls className="slider-vddo" src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.media} />
                                       ) :
                                         <embed src="https://uat-presshope.s3.eu-west-2.amazonaws.com/public/contentData/169383718859210044629829-1025-123123122222121_seller_invoice.pdf" type="application/pdf" width="100%" height="500" />
 
@@ -871,14 +787,9 @@ const UploadedContentDetails = (props) => {
                             <h1 className="feedTitle">
                               {data ? data?.task_id?.heading : fav?.content_id?.heading}
                             </h1>
-                            {/* <p className="feed_descrptn dtl_txt">
-                              {data
-                                ? data?.task_id?.task_description
-                                : fav?.content_id?.description}
-                            </p> */}
 
                             <textarea className="form-control custom_textarea" readOnly
-                              value={data? data?.task_id?.task_description
+                              value={data ? data?.task_id?.task_description
                                 : fav?.content_id?.description}>
                             </textarea>
                           </div>
@@ -909,71 +820,88 @@ const UploadedContentDetails = (props) => {
                               )}
                             </div>
                           </div>
-                          {/* <hr /> */}
-                          <div className="content">
-                            <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Hopper</span>
-                                <div className="item-in-right">
-                                  <img
-                                    src={process.env.REACT_APP_AVATAR_IMAGE + data?.avatar_detals[0]?.avatar}
-                                    alt=""
-                                  />
+                          <div className="right-content-wrap">
+                            <div className="content">
+                              <div className="sub-content">
+                                <div className="item d-flex justify-content-between align-items-center">
+                                  <span className="fnt-bold">Hopper</span>
+                                  <div className="item-in-right">
+                                    <img
+                                      src={process.env.REACT_APP_AVATAR_IMAGE + data?.avatar_detals[0]?.avatar}
+                                      alt=""
+                                    />
 
-                                  <span className="hpr_nme">
-                                    {data ? data?.hopper_id?.user_name : fav?.content_id?.hopper_id?.user_name}
-                                  </span>
+                                    <span className="hpr_nme">
+                                      {data ? data?.hopper_id?.user_name : fav?.content_id?.hopper_id?.user_name}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="sub-content">
+                                <div className="item d-flex justify-content-between align-items-center">
+                                  <span className="fnt-bold">Location</span>
+                                  <div className="item-in-right loc">
+                                    <span>
+                                      <SlLocationPin />{" "}
+                                      <div>
+                                        {data?.task_id?.location}
+                                      </div>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="sub-content">
+                                <div className="item d-flex justify-content-between align-items-center">
+                                  <span className="fnt-bold">TimeStamp</span>
+                                  <div className="item-in-right loc">
+                                    <span>
+                                      <MdOutlineWatchLater />
+                                      {moment(data?.task_id?.createdAt).format("h:mm A, DD MMM YYYY")}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="sub-content">
+                                <div className="item d-flex justify-content-between align-items-center">
+                                  <span className="fnt-bold">Category</span>
+                                  <div className="">
+                                    <img
+                                      src={data?.category_details[0]?.icon}
+                                      className="exclusive-img"
+                                      alt=""
+                                    />
+                                    <span className="txt_catg_licn">
+                                      {capitalizeFirstLetter(
+                                        data?.category_details[0]?.name
+                                      )}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Location</span>
-                                <div className="item-in-right loc">
-                                  <span>
-                                    <SlLocationPin />{" "}
-                                    <div>
-                                      {data?.task_id?.location}
-                                    </div>
-                                  </span>
+                            <div className="footer-content">
+                              <div className="price-offered-wrap">
+                                <h4 className="offered-price">Price offered</h4>
+                                <div className="button-group d-flex justify-content-between
+                          ">
+                                  <div className="btn-1">
+                                    <p>Photo</p>
+                                    <button className="btn-price">£ 200</button>
+                                  </div>
+                                  <div className="btn-1">
+                                    <p>Interview</p>
+                                    <button className="btn-price">£ 300</button>
+                                  </div>
+                                  <div className="btn-1">
+                                    <p>Video</p>
+                                    <button className="btn-price">£ 500</button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">TimeStamp</span>
-                                <div className="item-in-right loc">
-                                  <span>
-                                    <MdOutlineWatchLater />
-                                    {moment(data?.task_id?.createdAt).format("h:mm A, DD MMMM YY")}
-                                  </span>
-                                </div>
+                              <div className="add-to-basket-btn">
+                                <button className="black-btn">Add to Basket</button>
+                                <button className="red-btn">Add to Basket</button>
                               </div>
-                            </div>
-                            <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Category</span>
-                                <div className="">
-                                  <img
-                                    src={data?.category_details[0]?.icon}
-                                    className="exclusive-img"
-                                    alt=""
-                                  />
-                                  <span className="txt_catg_licn">
-                                    {capitalizeFirstLetter(
-                                      data?.category_details[0]?.name
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="foot cont-info-actions">
-                              <Button
-                                  variant="secondary"
-                                  width="100%"
-                                >
-                                  Buy
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -981,11 +909,11 @@ const UploadedContentDetails = (props) => {
                     </Col>
                     <Col md={12} className="feed_dtl_chat_wrap">
                       <div className="chat-tabs-wrap">
-                        <Tabs 
-                          defaultActiveKey={tabSelect} 
+                        <Tabs
+                          defaultActiveKey={tabSelect}
                           activeKey={tabSelect || JSON.parse(localStorage.getItem("tabName"))}
-                          id="chat-tabs" 
-                          className="mb-3 tbs" 
+                          id="chat-tabs"
+                          className="mb-3 tbs"
                           onSelect={(tabName) => {
                             localStorage.setItem("tabName", JSON.stringify(tabName));
                             setTabSelect(tabName)
@@ -1006,8 +934,7 @@ const UploadedContentDetails = (props) => {
                                       <h6 className="txt_light">Once added, you can start chatting with your team members. Use the text box below to type or send voice notes. Good luck</h6>
                                     </div>
 
-
-                                    {message && message.map((curr) => (
+                                    {message?.map((curr) => (
                                       <div className="baat_cheet">
                                         {
                                           curr?.type === 'add' ?
@@ -1024,7 +951,7 @@ const UploadedContentDetails = (props) => {
                                                   {`${curr.user_info ? curr?.user_info?.first_name : curr?.sender_id?.first_name} 
                                                 ${curr.user_info ? curr?.user_info?.last_name : curr?.sender_id?.last_name}`}
                                                   <span className="text-secondary time">
-                                                    {moment(curr.createdAt).format(`hh:mm A`)}
+                                                    {moment(curr?.createdAt).format(`DD MMM YYYY`)} - {moment(curr.createdAt).format(`hh:mm A`)}
                                                   </span>
                                                 </h5>
                                                 <Typography className="comment_text">
@@ -1045,22 +972,14 @@ const UploadedContentDetails = (props) => {
                                               </div>
                                             </div>
                                         }
-
-
-
-
                                       </div>
-
-
-
-
                                     ))}
 
                                   </div>
 
                                   <Form onSubmit={handleButtonClick}>
                                     <div className="inpt typeMsg_inp mt-2">
-                                      <img src={profileData?.profile_image} alt="" />
+                                      <img src={profileData?.hasOwnProperty("admin_detail") ? profileData?.admin_detail?.admin_profile : profileData?.profile_image} alt="" />
                                       <InputGroup className="">
                                         <Form.Control
                                           placeholder="Type here..."
@@ -1125,9 +1044,6 @@ const UploadedContentDetails = (props) => {
                                     <Link >
                                       <div className="tab_in_card-heading d-flex justify-content-between align-items-center" >
                                         <h4>Participants</h4>
-                                        {/* <div className="icon text-white ">
-                                          <AiOutlinePlus onClick={AddParticipents} />
-                                        </div> */}
                                       </div>
                                     </Link>
 
@@ -1138,13 +1054,11 @@ const UploadedContentDetails = (props) => {
                                           return (
                                             <div className="tab_in_card_items">
                                               <div className="checkWrap">
-                                                {/* <FormControlLabel className="me-0" checked={selectedIds.includes(curr._id) || message?.some((item => (curr?.first_name === (item?.addedMsg)?.split(" ")?.[0]) && (curr?.last_name === (item?.addedMsg)?.split(" ")?.[1])))}
-                                                  onChange={() => handleCheckboxChange(curr._id)} control={<Checkbox defaultChecked />} label="" /> */}
                                                 <FormControlLabel
                                                   className={`me-0 ${!selectedIds.includes(curr._id) && "afterCheck"}`}
-                                                  checked={selectedIds.includes(curr._id) || message?.some((item => (curr?.first_name === (item?.addedMsg)?.split(" ")?.[0]) && (curr?.last_name === (item?.addedMsg)?.split(" ")?.[1])))}
+                                                  checked={selectedIds.includes(curr._id) || message?.some((item => (`${curr?.first_name} ${curr?.last_name}` == (item?.addedMsg))))}
                                                   onChange={() => handleCheckboxChange(curr._id)} control={<Checkbox defaultChecked />}
-                                                  disabled={message?.some((item => (curr?.first_name === (item?.addedMsg)?.split(" ")?.[0]) && (curr?.last_name === (item?.addedMsg)?.split(" ")?.[1])))}
+                                                  disabled={message?.some((item => (`${curr?.first_name} ${curr?.last_name}` == (item?.addedMsg))))}
                                                 />
                                               </div>
                                               <div className="img" onClick={() => {
@@ -1156,13 +1070,9 @@ const UploadedContentDetails = (props) => {
                                                   internal: true,
                                                 });
                                               }}>
-                                                <img src={
-                                                  curr?.profile_image?.includes(".mp4") ? NoProfile : !curr?.profile_image?.includes("https") ? process.env.REACT_APP_EMPLOYEE_IMAGE + curr?.profile_image : curr?.profile_image} alt="user" />
-                                                <span> {" "}{curr.first_name + " " + curr.last_name}</span>
+                                                <img src={usric} alt="user" />
+                                                <span> {" "}{curr?.first_name + " " + curr?.last_name}</span>
                                               </div>
-                                              {/* <div className="dots">
-                                                <Link className="view_chat">View</Link>
-                                              </div> */}
                                             </div>
                                           );
                                         })}
@@ -1177,287 +1087,216 @@ const UploadedContentDetails = (props) => {
                             </div>
                           </Tab>
 
-                          <Tab eventKey="external" title="External Chat">
+                          <Tab eventKey="external" title="Hopper Chat">
                             <a href="lorem"></a>
                             <div className="tab-data active">
                               <Row>
                                 <Col md={12}>
-                                  <div className="feed_dtl_msgs extrnl dd">
+                                  <div className="feed_dtl_msgs extrnl dd chatmain">
                                     <div className="externalText">
                                       <h6 className="txt_light">Welcome <span className="txt_bld">{fullName}</span>.</h6>
-                                      <h6 className="txt_light">Please click the 'Offer' button to make an offer, or simply click 'Buy' to purchase the content</h6>
                                     </div>
-                                    <div className="d-flex flex-column-reverse">
-
-                                      {/* {console.log("messages123123", messages)} */}
-                                      {messages && messages.map((curr) => {
-
-                                        const Ratingg = messages?.find(item => item?.message_type === "rating_mediaHouse");
-
-                                        const Ratings = Ratingg ? Ratingg?.rating : ""
-                                        return (
-                                          curr?.message_type === "offer_started" ?
-                                            <div className="crd chatting_itm sngl_cht d-flex align-items-start" >
-                                              <div className="img">
-                                                <img src={presshopchatic} alt="User" className="usr_img" />
-                                              </div>
-                                              <div className="cht_txt postedcmnt_info">
-                                                <h5>{"Presshop"}
-                                                  <span className="text-secondary time">{moment(curr?.createdAt).format(`hh:mm`)}</span>
-                                                </h5>
-                                                <Typography className="comment_text">Make an initial offer by entering your price below</Typography>
-                                                <div className="usr_upld_opts cont_opts">
-                                                  <input className="cht_prc_inp text-center"
-                                                    disabled={messages.length !== 1 && true}
-                                                    type="number"
-                                                    value={messages[1]?.initial_offer_price ? messages[1]?.initial_offer_price : offer_value}
-                                                    placeholder={messages?.filter((el) => el.message_type == "Mediahouse_initial_offer")[0]?.initial_offer_price ? messages?.filter((el) => el.message_type == "Mediahouse_initial_offer")[0]?.initial_offer_price : "Enter price here ..."}
-                                                    onChange={(e) => {
-                                                      setOffer_value(e.target.value)
-                                                    }} />
-                                                  {
-                                                    // console.log("mediaoffer", messages?.filter((el) => el.message_type == "Mediahouse_initial_offer"))
-                                                  }
-
-                                                  {!MediahouseInitialOffer
-                                                    && <button className="theme_btn"
-                                                      disabled={messages.length !== 1 && true}
-                                                      onClick={() => Content_Offer("Mediahouse_initial_offer")}>
-                                                      Submit
-                                                    </button>}
+                                    <div className="chat_msgs_scrl chatting">
+                                      {roomDetails &&
+                                        <div className="chatting_itm sngl_cht d-flex align-items-start" >
+                                          <img src={presshopchatic} alt="User" className="usr_img" />
+                                          <div className="cht_txt">
+                                            <div className="d-flex align-items-center">
+                                              <p className="usr_name mb-0">Presshop
+                                              </p>
+                                              <p className="cht_time mb-0">{moment(roomDetails?.createdAt).format('h:mm A, D MMM YYYY')}</p>
+                                            </div>
+                                            <p className="mb-0 msg">This task has been accepted by {roomDetails?.hopper_id?.user_name}</p>
+                                            <div className="ofr_crd position-relative">
+                                              <img src={tickic} alt="Accepted" className="acpte" />
+                                              <p className="tsk_stts">Task Accepted</p>
+                                              <p className="tsk_descr">{taskDetails?.task_description}</p>
+                                              <div className="btm_btns d-flex justify-content-between">
+                                                <div className="sngl_btn">
+                                                  <p className="prc">{taskDetails?.need_photos === true ? "£" + taskDetails?.photo_price : "--"}</p>
+                                                  <p className="offrd_txt">
+                                                    Offered</p>
+                                                  <div className="cont_tp">
+                                                    Picture
+                                                  </div>
+                                                </div>
+                                                <div className="sngl_btn">
+                                                  <p className="prc">{taskDetails?.need_interview === true ? "£" + taskDetails?.interview_price : "--"}</p>
+                                                  <p className="offrd_txt">
+                                                    Offered</p>
+                                                  <div className="cont_tp">
+                                                    Interview
+                                                  </div>
+                                                </div>
+                                                <div className="sngl_btn">
+                                                  <p className="prc">{taskDetails?.need_videos === true ? "£" + taskDetails?.videos_price : "--"}</p>
+                                                  <p className="offrd_txt">
+                                                    Offered</p>
+                                                  <div className="cont_tp">
+                                                    Video
+                                                  </div>
                                                 </div>
                                               </div>
                                             </div>
+                                          </div>
+                                        </div>
+                                      }
+                                      {messages && messages?.map((curr, index) => {
+                                        const Ratingg = messages && messages.find(item => item?.message_type === "rating_mediaHouse");
+                                        const Ratings = Ratingg ? Ratingg?.rating : ""
+                                        return (
+                                          <>
 
-                                            : curr.message_type === "Mediahouse_initial_offer" ?
-                                              <div className="crd chatting_itm sngl_cht d-flex align-items-start" >
-                                                <div className="img">
-                                                  <img src={JSON.parse(localStorage.getItem("user"))?.profile_image} alt="User" className="usr_img" />
+                                            {curr.message_type === "media" && <div className="chatting_itm sngl_cht d-flex align-items-start" >
+                                              <img src={process.env.REACT_APP_AVATAR_IMAGE + roomDetails?.avatar_detals[0]?.avatar} alt="User" className="usr_img" />
+                                              <div className="cht_txt">
+                                                <div className="d-flex align-items-center">
+                                                  <p className="usr_name mb-0">{curr?.sender_id?.user_name}
+                                                  </p>
+                                                  <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
                                                 </div>
-                                                <div className="cht_txt postedcmnt_info">
-                                                  {/* <div className="d-flex align-items-center"> */}
-                                                  <h5>{messages[1]?.sender_id.first_name + " " + messages[1]?.sender_id.last_name}
-                                                    <span className="text-secondary time">{moment(messages[1]?.sender_id.createdAt).format(`hh:mm A`)}</span>
-                                                  </h5>
-                                                  {/* </div> */}
-                                                  <Typography className="comment_text">Has initially offered <a className="link">£{curr.message_type === "Mediahouse_initial_offer" && curr.initial_offer_price}</a> to buy the content</Typography>
-                                                  {/* <p className="mb-0 msg auto_press_msg">Has initially offered £{curr.message_type === "Mediahouse_initial_offer" && curr.initial_offer_price} to buy the content</p> */}
+                                                <p className="mb-0 msg">Has uploaded 1 {curr?.media?.mime == "video" ? "Video" : curr?.media?.mime == "image" ? "Image" : "Audio"}</p>
+                                                <div className="content_uplded position-relative">
+                                                  <span className="cont_tp">
+                                                    <img src={curr?.media?.mime === "image" ? photoic : curr?.media?.mime === "video" ? videoic : interviewic} alt="Content type" />
+                                                  </span>
+                                                  {
+                                                    curr?.media?.mime === "image" ? <img src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.media?.name} className="usr_upld_cont" alt="Content Image" /> : curr?.media?.mime === "video" ? <video controls className="slider-vddo" src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.media?.name} /> : <div>
+                                                      <img src={audioic} alt={`Audio ${curr._id}`} className="slider-img" onClick={toggleAudio} />
+                                                      <audio controls src={process.env.REACT_APP_UPLOADED_CONTENT + curr?.media?.name} type="audio/mpeg" className="slider-audio" ref={audioRef} />
+                                                    </div>
+                                                  }
                                                 </div>
+                                                <div className="usr_upld_opts">
+                                                  {curr?.paid_status !== true ?
+                                                    <button className="theme_btn" onClick={() => {
+                                                      if (taskExpireDiff >= 1) {
+                                                        successToasterFun("This task has been expired");
+                                                      }
+                                                      else {
+                                                        stripePayment(curr)
+                                                      }
+                                                    }}
+                                                    >
+                                                      Buy
+                                                    </button>
+                                                    : ""
+                                                  }
+                                                  {curr?.paid_status !== true && curr?.request_sent === null && <span>or</span>}
+                                                  {curr?.request_sent === null && <button className="secondary_btn" onClick={() => {
+                                                    if (taskExpireDiff >= 1) {
+                                                      successToasterFun("This task has been expired");
+                                                    }
+                                                    else {
+                                                      requestMoreContent(curr);
+                                                    }
+                                                  }}
+                                                  >
+                                                    Request more content
+                                                  </button>}
+                                                </div>
+                                                <p className="buy_btn_txt mb-0">This content has been directly uploaded by the Hopper on our platform. We have not reviewed the content for authenticity & privacy, and are not responsible. Please review the content properly before purchasing it. Please  <a className="link">
+                                                  contact us {" "}
+                                                </a>
+                                                  should you wish to discuss this content.</p>
                                               </div>
-                                              : curr.message_type === "hopper_final_offer" ?
-                                                <div className="chatting_itm crd sngl_cht d-flex align-items-start" >
-                                                  <div className="img">
-                                                    <img src={data
-                                                      ? data?.hopper_id?.avatar_id?.avatar
-                                                        ? process.env.REACT_APP_AVATAR_IMAGE + data?.hopper_id?.avatar_id?.avatar
-                                                        : null
-                                                      : fav?.content_id?.hopper_id?.avatar_id?.avatar
-                                                        ? process.env.REACT_APP_AVATAR_IMAGE + fav?.content_id?.hopper_id?.avatar_id?.avatar
-                                                        : null} alt="User" className="usr_img" />
+                                            </div>}
+
+                                            {curr?.paid_status === true && <div className="chatting_itm auto_msg sngl_cht d-flex align-items-start" >
+                                              <img src={presshopchatic} alt="User" className="usr_img" />
+                                              <div className="cht_txt">
+                                                <div className="d-flex align-items-center">
+                                                  <p className="usr_name mb-0">Presshop
+                                                  </p>
+                                                  <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
+                                                </div>
+                                                <p className="mb-0 msg auto_press_msg">Congrats, you’ve successfully purchased 1 {curr?.thumbnail_url ? "video" : "photo"} for £{curr?.amount} from {curr?.sender_id?.user_name}. Please download the water-mark free, and  high definition content, by clicking below</p>
+                                                <div className="usr_upld_opts">
+                                                  <button className="theme_btn" onClick={() => DownloadContent(curr?.image_id)}>
+                                                    Download
+                                                  </button>
+                                                </div>
+                                                <p className="buy_btn_txt mb-0">Please refer to our <a className="link">licensing terms of usage</a>, and <a className="link">terms and conditions</a>. If you have any questions, please <a className="link">chat</a> or <a className="link">contact</a> our helpful teams who are available 24x7 to assist you. Thank you.</p>
+                                              </div>
+                                            </div>}
+                                            {curr.message_type === "request_more_content" && <div className="chatting_itm auto_msg sngl_cht d-flex align-items-start" >
+                                              <img src={curr?.receiver_id?.profile_image} alt="User" className="usr_img" />
+                                              <div className="cht_txt">
+                                                <div className="d-flex align-items-center">
+                                                  <p className="usr_name mb-0">{curr?.receiver_id?.first_name + " " + curr?.receiver_id?.last_name}
+                                                  </p>
+                                                  <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
+                                                </div>
+                                                <p className="mb-0 msg auto_press_msg">Has requested for more content from {curr?.sender_id?.user_name}</p>
+                                              </div>
+                                            </div>}
+
+                                            {curr.paid_status &&
+                                              <div className="chatting_itm auto_msg rating sngl_cht d-flex align-items-start" >
+                                                <img src={presshopchatic} alt="User" className="usr_img" />
+                                                <div className="cht_txt">
+                                                  <div className="d-flex align-items-center">
+                                                    <p className="usr_name mb-0">Presshop
+                                                    </p>
+                                                    <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
                                                   </div>
-                                                  <div className="cht_txt postedcmnt_info">
-                                                    <div className="d-flex align-items-center">
-                                                      <h5 className="usr_name mb-0">{data ? data?.hopper_id?.user_name : fav?.content_id?.hopper_id?.user_name}
-                                                        <span className="text-secondary time">26 may, 2023</span>
-                                                      </h5>
-                                                    </div>
-                                                    <p className="mb-0 msg">Has counter offered <a className="link">£{curr.message_type === "hopper_final_offer" && curr.finaloffer_price}</a> to sell the content</p>
-                                                    {!MediahouseFinalCounter && <div className="usr_upld_opts">
-                                                      <button className="theme_btn ">
-                                                        Buy
-                                                      </button>
-                                                      <span>or</span>
-                                                      <button className="secondary_btn" onClick={() => Content_Offer("Mediahouse_final_counter")}>
-                                                        Make a Counter Offer
-                                                      </button>
-                                                    </div>}
-                                                    <p className="buy_btn_txt mb-0">The Hopper can make a counter offer only once to you</p>
+                                                  <p className="mb-0 msg auto_press_msg">Rate your experience with {curr?.sender_id?.user_name}</p>
+                                                  <div className="usr_upld_opts">
+                                                    <Rating
+                                                      onClick={handleRating}
+                                                      disabled={!Number(Ratings)}
+                                                      initialValue={Ratings ? Number(Ratings) : 0}
+                                                      value={rating}
+                                                    />
+                                                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
+                                                      <Form.Control placeholder="Write your review" disabled={curr.review} value={curr.review ? curr.review : review} onChange={(e) => {
+                                                        setReview(e.target.value)
+                                                      }} as="textarea" rows={3} >
+
+                                                      </Form.Control>
+                                                    </Form.Group>
+                                                    {!curr.rating && <button className="theme_btn" onClick={() => RatingNReview(curr)}>
+                                                      Submit
+                                                    </button>}
                                                   </div>
                                                 </div>
-                                                : curr.message_type === "Mediahouse_final_counter" ?
-                                                  <div className="chatting_itm crd sngl_cht d-flex align-items-start" >
-                                                    <div className="img">
-                                                      <img src={presshopchatic} alt="User" className="usr_img" />
-                                                    </div>
-                                                    <div className="cht_txt postedcmnt_info">
-                                                      <div className="d-flex align-items-center">
-                                                        <h5 className="usr_name mb-0">{"Presshop"}
-                                                          <span className="text-secondary time">26 may, 2023</span>
-                                                        </h5>
-                                                      </div>
-                                                      <p className="mb-0 msg">Make an final counter offer by entering your price below</p>
-
-                                                      <div className="usr_upld_opts cont_opts">
-                                                        <input className="cht_prc_inp text-center"
-                                                          disabled={hopperFinalOfferPrice && true}
-                                                          type="text"
-                                                          value={hopperFinalOfferPrice ? hopperFinalOfferPrice : offer_value}
-                                                          placeholder="Enter price here ..."
-                                                          onChange={(e) => {
-                                                            setOffer_value(e.target.value)
-                                                          }} />
-                                                        {!hopperFinalOfferPrice && <button className="theme_btn"
-                                                          // disabled={hopperFinalOfferPrice && true}
-                                                          onClick={() => Content_Offer("Mediahouse_final_offer")}>
-                                                          Submit
-                                                        </button>}
-                                                      </div>
-                                                    </div>
+                                              </div>}
+                                            {curr.message_type === "reject_mediaHouse_offer" && !curr.paid_status &&
+                                              <div className="chatting_itm auto_msg rating sngl_cht d-flex align-items-start" >
+                                                <img src={presshopchatic} alt="User" className="usr_img" />
+                                                <div className="cht_txt">
+                                                  <div className="d-flex align-items-center">
+                                                    <p className="usr_name mb-0">
+                                                      Presshop
+                                                    </p>
+                                                    <p className="cht_time mb-0">{moment(curr?.createdAt).format('h:mm A, D MMM YYYY')}</p>
                                                   </div>
-                                                  : curr.message_type === "Mediahouse_final_offer" ?
-                                                    <div className="chatting_itm crd auto_msg sngl_cht d-flex align-items-start" >
-                                                      <div className="img">
-                                                        <img src={messages[1]?.sender_id.profile_image} alt="User" className="usr_img" />
-                                                      </div>
-                                                      <div className="cht_txt postedcmnt_info">
-                                                        <div className="d-flex align-items-center">
-                                                          <h5 className="usr_name mb-0">{messages[1]?.sender_id.first_name + " " + messages[1]?.sender_id.last_name}
-                                                            <span className="text-secondary time">26 may, 2023</span>
-                                                          </h5>
-                                                        </div>
-                                                        <p className="mb-0 msg auto_press_msg">Has finally offered £{curr.message_type === "Mediahouse_final_offer" && curr.finaloffer_price} to buy the content</p>
-                                                      </div>
-                                                    </div>
-                                                    : curr.message_type === "accept_mediaHouse_offer" ?
-                                                      <div className="crd chatting_itm sngl_cht d-flex align-items-start" >
-                                                        <div className="img">
-                                                          <img src={data
-                                                            ? data?.hopper_id?.avatar_id?.avatar
-                                                              ? process.env.REACT_APP_AVATAR_IMAGE + data?.hopper_id?.avatar_id?.avatar
-                                                              : null
-                                                            : fav?.content_id?.hopper_id?.avatar_id?.avatar
-                                                              ? process.env.REACT_APP_AVATAR_IMAGE + fav?.content_id?.hopper_id?.avatar_id?.avatar
-                                                              : null} alt="User" className="usr_img" />
-                                                        </div>
-                                                        <div className="cht_txt postedcmnt_info">
-                                                          <div className="d-flex align-items-center">
-                                                            <h5 className="usr_name mb-0">{curr?.sender_id?.user_name}
-                                                              <span className="text-secondary time">26 may, 2023</span>
-                                                            </h5>
-                                                          </div>
-                                                          <p className="mb-0 msg" >
-                                                            Has accepted your offer of <a a className="link" >£{curr?.amount}</a> to sell the content
-                                                          </p>
-                                                          <div className="usr_upld_opts">
-                                                            <button className={curr.paid_status === true ? "sub_hdng_inn" : "theme_btn"} disabled={curr.paid_status === true} onClick={() => { paymentintentnew(curr);}}>
-                                                              Buy
-                                                            </button>
-                                                          </div>
-                                                        </div>
-                                                      </div>
-                                                      : curr.message_type === "reject_mediaHouse_offer" ?
-                                                        <div className="crd chatting_itm sngl_cht d-flex align-items-start" >
-                                                          <div className="img">
-                                                            <img src={presshopchatic} alt="User" className="usr_img" />
-                                                          </div>
-                                                          <div className="cht_txt postedcmnt_info">
-                                                            <div className="d-flex align-items-center">
-                                                              <h5 className="usr_name mb-0">{"Presshop"}
-                                                                <span className="text-secondary time">26 may, 2023</span>
-                                                              </h5>
-                                                            </div>
-                                                            <p className="mb-0 msg" >
-                                                              Has rejected your offer to sell the content
-                                                            </p>
-                                                          </div>
-                                                        </div>
-                                                        : (curr.message_type === "PaymentIntent" && PaymentIntent) ?
-                                                          <div className="crd chatting_itm auto_msg sngl_cht d-flex align-items-start" >
-                                                            <div className="img">
-                                                              <img src={presshopchatic} alt="User" className="usr_img" />
-                                                            </div>
-                                                            <div className="cht_txt postedcmnt_info">
-                                                              <div className="d-flex align-items-center">
-                                                                <h5 className="usr_name mb-0">Presshop
-                                                                  <span className="text-secondary time">26 may, 2023</span>
-                                                                </h5>
-                                                              </div>
-                                                              <p className="mb-0 msg auto_press_msg">Congrats, you’ve successfully purchased {data?.content?.count} content for £{curr?.amount_paid}. Please download the water-mark free, and  high definition content, by clicking below</p>
-                                                              <div className="usr_upld_opts">
-                                                                <button className="theme_btn" onClick={() => DownloadContent(curr?.image_id)}>
-                                                                  Download
-                                                                </button>
-                                                              </div>
-                                                              <p className="buy_btn_txt mb-0">Please refer to our <a className="link">licensing terms of usage</a>, and <a className="link">terms and conditions</a>. If you have any questions, please <a className="link">chat</a> or <a className="link">contact</a> our helpful teams who are available 24x7 to assist you. Thank you.</p>
-                                                            </div>
-                                                          </div>
+                                                  <p className="mb-0 msg auto_press_msg">Rate your experience with Pseudonymous</p>
+                                                  <div className="usr_upld_opts">
+                                                    <Rating
+                                                      onClick={handleRating}
+                                                      value={rating}
+                                                      disabled={!Number(Ratings)}
+                                                      initialValue={Ratings ? Number(Ratings) : 0}
+                                                    />
+                                                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
+                                                      <Form.Control placeholder="Write your review" disabled={curr.review} value={curr.review ? curr.review : review} onChange={(e) => {
+                                                        setReview(e.target.value)
+                                                      }} as="textarea" rows={3} >
 
-                                                          : curr.message_type === "rating_mediaHouse" && curr.paid_status ?
-                                                            <div className="crd chatting_itm auto_msg rating sngl_cht d-flex align-items-start" >
-                                                              <div className="img">
-                                                                <img src={presshopchatic} alt="User" className="usr_img" />
-                                                              </div>
-                                                              <div className="cht_txt postedcmnt_info">
-                                                                <div className="d-flex align-items-center">
-                                                                  <h5 className="usr_name mb-0">Presshop
-                                                                    <span className="text-secondary time">26 may, 2023</span>
-                                                                  </h5>
-                                                                </div>
-                                                                <p className="mb-0 msg auto_press_msg">Rate your experience with Pseudonymous</p>
-                                                                <div className="usr_upld_opts">
-                                                                  <Rating
-                                                                    onClick={handleRating}
-                                                                    // onPointerEnter={onPointerEnter}
-                                                                    // onPointerLeave={onPointerLeave}
-                                                                    // onPointerMove={onPointerMove}
-                                                                    disabled={!Number(Ratings)}
-                                                                    initialValue={Ratings ? Number(Ratings) : 0}
-                                                                    value={rating}
-                                                                  />
-                                                                  <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                                                                    <Form.Control placeholder="Write your review" disabled={curr.review} value={curr.review ? curr.review : review} onChange={(e) => {
-                                                                      setReview(e.target.value)
-                                                                    }} as="textarea" rows={3} >
-
-                                                                    </Form.Control>
-                                                                  </Form.Group>
-                                                                  {!curr.rating && <button className="theme_btn" onClick={() => RatingNReview(curr.image_id)}>
-                                                                    Submit
-                                                                  </button>}
-                                                                </div>
-                                                              </div>
-                                                            </div>
-                                                            : curr.message_type === "reject_mediaHouse_offer" && !curr.paid_status ?
-                                                              <div className="crd chatting_itm auto_msg rating sngl_cht d-flex align-items-start" >
-                                                                <div className="img">
-                                                                  <img src={presshopchatic} alt="User" className="usr_img" />
-                                                                </div>
-                                                                <div className="cht_txt postedcmnt_info">
-                                                                  <div className="d-flex align-items-center">
-                                                                    <h5 className="usr_name mb-0">
-                                                                      Presshop
-                                                                      <span className="text-secondary time">{moment(curr?.createdAt).format(`hh:mm A`)}</span>
-                                                                    </h5>
-                                                                  </div>
-                                                                  <p className="mb-0 msg auto_press_msg">Rate your experience with Pseudonymous</p>
-                                                                  <div className="usr_upld_opts">
-                                                                    <Rating
-                                                                      onClick={handleRating}
-                                                                      // onPointerEnter={onPointerEnter}
-                                                                      // onPointerLeave={onPointerLeave}
-                                                                      // onPointerMove={onPointerMove}
-                                                                      value={rating}
-                                                                      disabled={!Number(Ratings)}
-                                                                      // initialValue={Ratingg ? Number(Ratings) : rating}
-                                                                      initialValue={Ratings ? Number(Ratings) : 0}
-                                                                    // defaultValue={3}
-                                                                    />
-                                                                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                                                                      <Form.Control placeholder="Write your review" as="textarea" rows={3} >
-
-                                                                      </Form.Control>
-                                                                    </Form.Group>
-                                                                    <button className="theme_btn" onClick={() => RatingNReview(curr.image_id)}>
-                                                                      Submit
-                                                                    </button>
-                                                                  </div>
-                                                                </div>
-                                                              </div>
-                                                              :
-                                                              ''
+                                                      </Form.Control>
+                                                    </Form.Group>
+                                                    <button className="theme_btn" onClick={() => RatingNReview(curr.image_id)}>
+                                                      Submit
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>}
+                                          </>
                                         )
                                       })}
                                     </div>
+
                                   </div>
                                 </Col>
 
@@ -1506,7 +1345,6 @@ const UploadedContentDetails = (props) => {
                                               <div className="checkWrap">
                                                 <FormControlLabel
                                                   className="afterCheck"
-                                                  // disabled={admins?.some((el) => el?.userId?.id !== curr._id)}
                                                   control={<Checkbox />}
                                                   checked={curr.checked}
                                                   onChange={() => handleChecked(curr)}
@@ -1519,7 +1357,7 @@ const UploadedContentDetails = (props) => {
                                             </div>
                                           );
                                         })}
-                                        {admins.length === 0 &&
+                                      {admins.length === 0 &&
                                         adminList.filter(obj1 =>
                                           obj1.role === "admin"
                                         ).map((curr) => {
@@ -1537,7 +1375,6 @@ const UploadedContentDetails = (props) => {
                                               <div className="checkWrap">
                                                 <FormControlLabel
                                                   className="afterCheck"
-                                                  // disabled={admins?.some((el) => el?.userId?.id !== curr._id)}
                                                   control={<Checkbox />}
                                                   checked={curr.checked}
                                                   onChange={() => handleChecked(curr)}
@@ -1561,34 +1398,10 @@ const UploadedContentDetails = (props) => {
                     </Col>
                   </Row>
                 </div>
-                {/* <div className="d-flex flex-column">
-                  {show.task && (
-                    <div className="tsk_wdth cht_tasks">
-                      <div className="mb-0">
-                        <Chatbroadcasttask id={taskId} />
-                      </div>
-                    </div>
-                  )}
-                  <div className="cht_tsk_cht d-flex flex-column">
-                  <ContentChatSocket messages={messages} room_details={roomDetails} offer_change={offer_change} count={data?.content?.length} />
-
-                    {show.presshop && <ChatCard senderId={senderId} />}
-                    {show.internal && <Chatinternal senderId={senderId} />}
-                  </div>
-                </div> */}
                 <div className="feedsContainer">
                   <div className="feedContent_header">
                     <h1>Related content</h1>
                     <div className="d-flex align-items-center">
-                      {/* <Form.Group className="globalSort me-4">
-                        <Form.Select>
-                          <option>Sort</option>
-                          <option>Latest</option>
-                          <option>Relevance</option>
-                        </Form.Select>
-                      </Form.Group>
-                      <Link to="/related-content">View all <BsArrowRight className='text-pink' /></Link>
-                      </Form.Group> */}
                       <div className="fltrs_prnt me-3 ht_sort">
                         <Button
                           className="sort_btn"
@@ -1606,77 +1419,53 @@ const UploadedContentDetails = (props) => {
                           />
                         )}
                       </div>
-                      <Link to="/related-content" className="next_link">
+                      <Link to={`/related-content-task/:tag_id/${data?.hopper_id?._id}/${data?.category_details[0]?._id}`} className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>
                     </div>
                   </div>
                   <Row className="">
-                    {content &&
-                      content?.slice(0, 4).map((curr) => {
-
-                        const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio")
-                        const Video = curr?.content?.filter((curr) => curr?.media_type === "video")
-                        const Image = curr?.content?.filter((curr) => curr?.media_type === "image")
-                        const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf")
-                        const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc")
-
-                        const imageCount = Image.length;
-                        const videoCount = Video.length;
-                        const audioCount = Audio.length;
-                        const pdfCount = Pdf.length;
-                        const docCount = Doc.length;
-                        return (
-
-                          <Col md={3}>
-                            <ContentFeedCard
-                              lnkto={`/Feeddetail/content/${curr._id}`}
-                              // postcount={curr?.content?.length}
-                              feedImg={
-                                curr?.content[0]?.media_type === "video"
-                                  ? curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA +
-                                  curr?.content[0]?.thumbnail
-                                  : curr?.content[0]?.media_type === "audio"
-                                    ? audioic
-                                    : curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA +
-                                    curr?.content[0]?.media
-                              }
-                              // feedType={contentVideo}
-                              feedTag={"Most Viewed"}
-                              user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
-                              author_Name={
-                                curr.hopper_id?.user_name
-                              }
-                              fvticns={curr?.favourite_status === true ? favouritedic : favic}
-                              type_img={curr?.type === "shared" ? shared : exclusive}
-                              type_tag={curr.type}
-                              feedHead={curr.heading}
-                              feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")}
-                              feedLocation={curr.location}
-                              contentPrice={curr?.ask_price}
-                              feedTypeImg1={imageCount > 0 ? cameraic : null}
-                              postcount={imageCount > 0 ? imageCount : null}
-                              feedTypeImg2={videoCount > 0 ? videoic : null}
-                              postcount2={videoCount > 0 ? videoCount : null}
-                              feedTypeImg3={audioCount > 0 ? interviewic : null}
-                              postcount3={audioCount > 0 ? audioCount : null}
-                              feedTypeImg4={pdfCount > 0 ? docsic : null}
-                              postcount4={pdfCount > 0 ? pdfCount : null}
-                              feedTypeImg5={docCount > 0 ? docsic : null}
-                              postcount5={docCount > 0 ? docCount : null}
-
-                            />
-                          </Col>
-                        );
-                      })}
+                    {relatedContent?.map((item, index) => {
+                      return (
+                        <Col md={3}>
+                          <ContentFeedCard
+                            feedImg={
+                              item?.type === "image" ?
+                                item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.imageAndVideo
+                                : item?.type === "video" ?
+                                  item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.videothubnail
+                                  : item?.type === "audio" ? audioic : null
+                            }
+                            type={"task"}
+                            postcount={1}
+                            feedTypeImg1={item?.type === "image" ? cameraic : item?.type === "audio" ? interviewic : item?.type === "video" ? videoic : null}
+                            user_avatar={process.env.REACT_APP_AVATAR_IMAGE + item?.avatar_detals[0]?.avatar}
+                            author_Name={item?.hopper_id?.user_name}
+                            lnkto={`/content-details/${item._id}`}
+                            viewTransaction="View details"
+                            viewDetail={`/content-details/${item._id}`}
+                            fvticns={item.favourite_status === "true" ? favouritedic : favic}
+                            type_tag={item?.category_details[0]?.name}
+                            type_img={item?.category_details[0]?.icon}
+                            feedHead={item.task_id.task_description}
+                            feedTime={moment(item.createdAt).format(" hh:mm A, DD MMM YYYY")}
+                            feedLocation={item.task_id.location}
+                            contentPrice={`${formatAmountInMillion(item?.type === "image" ? item?.task_id?.photo_price : item?.type === "audio" ? (item?.task_id?.interview_price || 0) : item?.type === "video" ? (item?.task_id?.videos_price || 0) : null)}`}
+                            favourite={() => handleFavourite(index, "related")}
+                            bool_fav={item.favourite_status === "true" ? "false" : "true"}
+                            content_id={item._id}
+                          />
+                        </Col>
+                      );
+                    })}
                   </Row>
                 </div>
 
                 <div className="feedsContainer mb-0">
                   <div className="feedContent_header">
                     <h1>
-                      More content from {hopper?.user_name}
+                      More content from {data?.hopper_id?.user_name}
                     </h1>
                     <div className="d-flex align-items-center">
                       <div className="fltrs_prnt me-3 ht_sort">
@@ -1696,67 +1485,46 @@ const UploadedContentDetails = (props) => {
                           />
                         )}
                       </div>
-                      <Link to="/more-content" className="next_link">
+                      <Link to={`/more-content-task/${data?.hopper_id?._id}/${data?.task_id?._id}`} className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>
                     </div>
                   </div>
                   <Row className="">
-                    {morecontent &&
-                      morecontent.slice(0, 4).map((curr) => {
-                        const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio")
-                        const Video = curr?.content?.filter((curr) => curr?.media_type === "video")
-                        const Image = curr?.content?.filter((curr) => curr?.media_type === "image")
-                        const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf")
-                        const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc")
-
-                        const imageCount = Image.length;
-                        const videoCount = Video.length;
-                        const audioCount = Audio.length;
-                        const pdfCount = Pdf.length;
-                        const docCount = Doc.length;
-                        return (
-                          <Col md={3}>
-                            <ContentFeedCard
-                              lnkto={`/Feeddetail/content/${curr._id}`}
-                              feedImg={
-                                curr?.content[0]?.media_type === "video"
-                                  ? process.env.REACT_APP_CONTENT_MEDIA +
-                                  curr?.content[0]?.thumbnail
-                                  : curr?.content[0]?.media_type === "audio"
-                                    ? audioic
-                                    : curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA +
-                                    curr?.content[0]?.media
-                              }
-                              // postcount={curr?.content?.length}
-
-                              feedType={contentVideo}
-                              feedTag={"Most Viewed"}
-                              user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar || authorimg}
-                              author_Name={curr.hopper_id?.user_name}
-                              type_img={curr?.type === "shared" ? shared : exclusive}
-                              type_tag={curr?.type}
-                              feedHead={curr.heading}
-                              feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")}
-                              feedLocation={curr.location}
-                              contentPrice={curr.ask_price}
-                              // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
-                              fvticns={curr?.favourite_status === true ? favouritedic : favic}
-                              feedTypeImg1={imageCount > 0 ? cameraic : null}
-                              postcount={imageCount > 0 ? imageCount : null}
-                              feedTypeImg2={videoCount > 0 ? videoic : null}
-                              postcount2={videoCount > 0 ? videoCount : null}
-                              feedTypeImg3={audioCount > 0 ? interviewic : null}
-                              postcount3={audioCount > 0 ? audioCount : null}
-                              feedTypeImg4={pdfCount > 0 ? docsic : null}
-                              postcount4={pdfCount > 0 ? pdfCount : null}
-                              feedTypeImg5={docCount > 0 ? docsic : null}
-                              postcount5={docCount > 0 ? docCount : null}
-                            />
-                          </Col>
-                        );
-                      })}
+                    {moreContent?.map((item, index) => {
+                      return (
+                        <Col md={3}>
+                          <ContentFeedCard
+                            feedImg={
+                              item?.type === "image" ?
+                                item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.imageAndVideo
+                                : item?.type === "video" ?
+                                  item.videothubnail || process.env.REACT_APP_UPLOADED_CONTENT + item.videothubnail
+                                  : item?.type === "audio" ? audioic : null
+                            }
+                            type={"task"}
+                            postcount={1}
+                            feedTypeImg1={item?.type === "image" ? cameraic : item?.type === "audio" ? interviewic : item?.type === "video" ? videoic : null}
+                            user_avatar={process.env.REACT_APP_AVATAR_IMAGE + item?.avatar_detals[0]?.avatar}
+                            author_Name={item?.hopper_id?.user_name}
+                            lnkto={`/content-details/${item?._id}`}
+                            viewTransaction="View details"
+                            viewDetail={`/content-details/${item?._id}`}
+                            fvticns={item.favourite_status === "true" ? favouritedic : favic}
+                            type_tag={item?.category_details[0]?.name}
+                            type_img={item?.category_details[0]?.icon}
+                            feedHead={item.task_id.task_description}
+                            feedTime={moment(item.createdAt).format(" hh:mm A, DD MMM YYYY")}
+                            feedLocation={item.task_id.location}
+                            contentPrice={`${formatAmountInMillion(item?.type === "image" ? item?.task_id?.photo_price : item?.type === "audio" ? (item?.task_id?.interview_price || 0) : item?.type === "video" ? (item?.task_id?.videos_price || 0) : null)}`}
+                            favourite={() => handleFavourite(index, "more")}
+                            bool_fav={item.favourite_status === "true" ? "false" : "true"}
+                            content_id={item._id}
+                          />
+                        </Col>
+                      );
+                    })}
                   </Row>
                 </div>
               </div>
@@ -1768,7 +1536,6 @@ const UploadedContentDetails = (props) => {
         </Container>
       </div>
       <DbFooter />
-      {/* Show Image in Chat */}
       <Modal show={show1} onHide={handleClose}
         aria-labelledby="contained-modal-title-hcenter profile_mdl"
         className="modal_wrapper"
@@ -1796,8 +1563,6 @@ const UploadedContentDetails = (props) => {
           </Button>
         </Modal.Footer>
       </Modal>
-
-      {/* Show Image in Chat */}
       <Modal show={preview?.modalOpen} onHide={handleClosePreview}
         aria-labelledby="contained-modal-title-hcenter profile_mdl"
         className="modal_wrapper"

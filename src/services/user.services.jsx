@@ -25,7 +25,7 @@ export function axios_interceptor() {
     // Do something with response data
     return response;
   }, function (error) {
-    if (error.response.status == 401 && error.response.data == "Unauthorized") {
+    if (error?.response?.status == 401 && error?.response?.data == "Unauthorized") {
       // toast.error("Session Expired, Plesse login again");
       localStorage.clear();
       sessionStorage.clear();

@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Header from "../component/Header";
 import DbFooter from "../component/DbFooter";
 import DashBoardCardList from "../component/card/DashBoardCardList";
 import DashBoardTabCards from "../component/card/DashBoardTabCards";
 import DashBoardPayment from "../component/card/DashBoardPayment";
 import contentCamera from "../assets/images/contentCamera.svg";
+import contentVideo from "../assets/images/contentVideo.svg";
 import docsic from "../assets/images/docsic.svg";
 import typeCam from "../assets/images/typeCam.svg";
 import typeVideo from "../assets/images/typeVideo.svg";
 import typeInterview from "../assets/images/interview.svg";
 import typeInterviewwt from "../assets/images/typeinterview-wt.svg";
 import usric from "../assets/images/menu-icons/user.svg";
+import star from "../assets/images/star.png";
+import FillStar from "../assets/images/half_filled_star.png";
 import {
   Card,
   TextField,
@@ -37,7 +40,7 @@ import AddBroadcastTask from "./AddBroadcastTask";
 import { Get, Post } from "../services/user.services";
 import Loader from "../component/Loader";
 import moment from "moment";
-import audioic from "../assets/images/audio-icon.svg";
+import audioic from "../assets/images/audimg.svg";
 import audioicsm from "../assets/images/audimgsmall.svg";
 import audioicbg from "../assets/images/audimgbg.svg";
 import io from "socket.io-client";
@@ -47,6 +50,12 @@ import { Rating } from "react-simple-star-rating";
 import RecentActivityDF from "../component/Sortfilters/Dashboard/RecentActivity";
 import CommonSort from "../component/Sortfilters/commonSort";
 import { useDarkMode } from "../context/DarkModeContext";
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import {
+  capitalizeWord,
+  formatAmountInMillion,
+  hasDecimal,
+} from "../component/commonFunction";
 // import Navbar from '../component/Navbar';
 
 //const socket = io.connect("https://betazone.promaticstechnologies.com:3005");
@@ -62,8 +71,10 @@ const Dashboard = () => {
   const [pending_payment, setPending_payment] = useState([]);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-    // Dark Mode-
-    const { profileData } = useDarkMode();
+  const params = useParams();
+
+  // Dark Mode-
+  const { profileData } = useDarkMode();
 
   const [filter, setFilter] = useState({
     status: false,
@@ -76,11 +87,15 @@ const Dashboard = () => {
   const [dashboardSort, setDashboardSort] = useState({
     type: "",
   });
+  const [contentUnderOfferSort, setContentUnderOfferSort] = useState("");
+  const [favouritedContentSort, setFavouritedContentSort] = useState("");
+  const [contentPurchaseOnline, setContentPurchaseOnline] = useState("");
+  const [broadCasterTaskSort, setBroadCasterTaskSort] = useState("");
+  const [fundsInvestedSort, setFundsInvesteSort] = useState("");
+  const [recentActivityState, setRecentActivityState] = useState("");
   const handleSortClick = (value) => {
     setDashboardSort({ ...dashboardSort, type: value });
   };
-
-  console.log("dashboardSort--->", dashboardSort);
 
   const Navigate = (type) => {
     navigate(`/dashboard-tables/${type}`);
@@ -107,7 +122,6 @@ const Dashboard = () => {
     setOpenRecentActivity(values);
   };
 
-  // Recent Activity-
   const [recentActivityValues, setRecentActivityValues] = useState({
     field: "yearly",
     value: "yearly",
@@ -125,12 +139,11 @@ const Dashboard = () => {
       if (dashboardSort.type && dashboardSort.time) {
         resp = await Post(`mediaHouse/dashboard/Count`, {
           type: dashboardSort?.type,
-          [dashboardSort.time]: dashboardSort.time
+          [dashboardSort.time]: dashboardSort.time,
         });
-        setDashboardSort({ ...dashboardSort, type: "" })
-      }
-      else {
-        resp = await Post(`mediaHouse/dashboard/Count`,);
+        setDashboardSort({ ...dashboardSort, type: "" });
+      } else {
+        resp = await Post(`mediaHouse/dashboard/Count`);
       }
       setDashCount(resp.data);
       if (resp) {
@@ -143,7 +156,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     DashboardCount();
-  }, [dashboardSort.time])
+  }, [dashboardSort.time]);
 
   const ChatCount = async () => {
     setLoading(true);
@@ -176,29 +189,37 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const resp = await Get(
-        `mediahouse/recentactivity?${recentActivityValues.field && recentActivityValues.field
+        `mediahouse/recentactivity?${
+          recentActivityValues.field && recentActivityValues.field
         }=${recentActivityValues.value && recentActivityValues.value}`
       );
-      const sortedData = resp?.data?.data?.filter((el) => el.content_id != null)?.sort(
-        (a, b) => new Date(b?.updatedAt) - new Date(a?.updatedAt)
-      );
+      const sortedData = resp?.data?.data
+        ?.filter((el) => el.content_id != null)
+        ?.sort((a, b) => new Date(b?.updatedAt) - new Date(a?.updatedAt));
       setRecentUploaded(sortedData);
       setLoading(false);
-      console.log("sortedData13123s", sortedData)
     } catch (error) {
       setLoading(false);
     }
   };
 
-  const PublishedContent = async (type) => {
-    // console.log(type, `<---type`)
-
+  const PublishedContent = async () => {
     setLoading(true);
 
     try {
-      const resp = await Get(`mediaHouse/publish/content?type=${type}`);
+      let resp;
+      if (params?.type === "discount") {
+        resp = await Post("mediaHouse/view/published/content", {
+          isDiscount: true,
+          limit: 2,
+        });
+      } else {
+        resp = await Post(`mediaHouse/DashboardcontentTypeMain`, {
+          soldtype: params?.type,
+          limit: 2,
+        });
+      }
       setPub_Content(resp.data.content);
-      // console.log()
       if (resp) {
         setLoading(false);
       }
@@ -212,7 +233,7 @@ const Dashboard = () => {
 
     try {
       const resp = await Get(`mediaHouse/paymenttobemade`);
-      setPending_payment(resp.data.data);
+      setPending_payment(resp.data);
       if (resp) {
         setLoading(false);
       }
@@ -224,41 +245,47 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const res = await Get(`mediahouse/allratedcontent`);
-      setReceivedCount(res?.data?.review_recivedcount);
+      setReceivedCount(res?.data?.review_given_count);
     } catch (error) {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
-    // socket.disconnect();
-    receivedRatingFromHopper();
-    Trendingseraches();
-    ChatCount();
-    RatingNReview_Count();
     RecentActivity();
-    PublishedContent("exclusive");
-    PendingPayments();
   }, [recentActivityValues]);
+
+  useEffect(() => {
+    PublishedContent();
+  }, [params?.type]);
+
+  useEffect(() => {
+    PendingPayments();
+    ChatCount();
+    Trendingseraches();
+    receivedRatingFromHopper();
+    RatingNReview_Count();
+  }, []);
 
   const [favContent, setFavContent] = useState(null);
   const FavContent = async () => {
-    try{
-      const resp = await Post("mediaHouse/favourites");
-      setFavContent(resp?.data?.response?.response)
+    try {
+      let resp;
+      if (dashboardSort.type && dashboardSort.time) {
+        resp = await Post("mediaHouse/favourites", {
+          [dashboardSort.time]: dashboardSort.time,
+        });
+      } else {
+        resp = await Post("mediaHouse/favourites");
+      }
+      setFavContent(resp?.data?.response?.response);
+    } catch (error) {
+      // console.log(error);
     }
-    catch(error){
-      console.log(error);
-    }
-  }
+  };
   useEffect(() => {
-    FavContent()
-  }, [] )
-
-  const formatAmountInMillion = (amount) =>
-    amount?.toLocaleString("en-US", {
-      maximumFractionDigits: 0,
-    });
+    FavContent();
+  }, [dashboardSort.time]);
 
   return (
     <>
@@ -282,11 +309,37 @@ const Dashboard = () => {
                       <CardContent className="dash-c-body">
                         <div className="cardCustomHead">
                           <div className="edit_card_sel">
-                            <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
+                            <svg
+                              width="20"
+                              height="17"
+                              viewBox="0 0 20 17"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M0.747559 6.15625H19.4976"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M0.747559 10.8438H19.4976"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M6.21631 6.15625V15.5312"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
                             </svg>
                           </div>
                           <Typography
@@ -307,12 +360,14 @@ const Dashboard = () => {
                       </CardContent>
                       <CardActions className="dash-c-foot">
                         <div className="card-imgs-wrap">
-                          {current_chat_detais &&
-                            current_chat_detais.slice(0, 3).map((curr) => {
-                              const Content = profileData?.hasOwnProperty("admin_detail") ? profileData?.admin_detail?.admin_profile
+                          {current_chat_detais?.map((curr) => {
+                            const Content = profileData?.hasOwnProperty(
+                              "admin_detail"
+                            )
+                              ? profileData?.admin_detail?.admin_profile
                               : profileData?.profile_image;
-                              return <img src={Content} className="card-img" />;
-                            })}
+                            return <img src={Content} className="card-img" />;
+                          })}
                           <span>
                             {" "}
                             <Link to="/chat">
@@ -335,12 +390,38 @@ const Dashboard = () => {
                           className="edit_card_sel"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                          <svg
+                            width="20"
+                            height="17"
+                            viewBox="0 0 20 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 6.15625H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 10.8438H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M6.21631 6.15625V15.5312"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
                           <div className="fltrs_prnt">
                             <Button
                               className="sort_btn"
@@ -353,8 +434,11 @@ const Dashboard = () => {
                             </Button>
                             {dashboardSort?.type == "content_under_offer" ? (
                               <CommonSort
+                                sort={contentUnderOfferSort}
+                                setSort={setContentUnderOfferSort}
                                 dashboardSort={dashboardSort}
                                 setDashboardSort={setDashboardSort}
+                                setSortState={setContentUnderOfferSort} // Pass the appropriate setter function
                               />
                             ) : null}
                           </div>
@@ -383,27 +467,24 @@ const Dashboard = () => {
                       {/* Move CardActions inside Link */}
                       <CardActions className="dash-c-foot">
                         <div className="card-imgs-wrap">
-                          {dash_count?.content_under_offer?.task &&
-                            dash_count?.content_under_offer?.task
-                              .slice(0, 3)
-                              .map((curr) => {
-                                const Content = curr.content[0]
-                                  ? curr.content[0].media_type === "video"
-                                    ? curr.content[0].watermark ||
+                          {dash_count?.content_under_offer?.newdata
+                            .slice(0, 3)
+                            .map((curr) => {
+                              const Content = curr.content[0]
+                                ? curr.content[0].media_type === "video"
+                                  ? curr.content[0].watermark ||
                                     process.env.REACT_APP_CONTENT_MEDIA +
-                                    curr.content[0].thumbnail
-                                    : curr.content[0].media_type === "audio"
-                                      ? audioicsm
-                                      : curr.content[0].media_type === "pdf"
-                                      ? docsic
-                                      : curr.content[0].watermark ||
-                                      process.env.REACT_APP_CONTENT_MEDIA +
+                                      curr.content[0].thumbnail
+                                  : curr.content[0].media_type === "audio"
+                                  ? audioicsm
+                                  : curr.content[0].media_type === "pdf"
+                                  ? docsic
+                                  : curr.content[0].watermark ||
+                                    process.env.REACT_APP_CONTENT_MEDIA +
                                       curr.content[0].media
-                                  : null;
-                                return (
-                                  <img src={Content} className="card-img" />
-                                );
-                              })}
+                                : null;
+                              return <img src={Content} className="card-img" />;
+                            })}
                           <span>
                             {" "}
                             <BsArrowRight />
@@ -423,12 +504,38 @@ const Dashboard = () => {
                           className="edit_card_sel"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                          <svg
+                            width="20"
+                            height="17"
+                            viewBox="0 0 20 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 6.15625H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 10.8438H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M6.21631 6.15625V15.5312"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
                           <div className="fltrs_prnt">
                             <Button
                               className="sort_btn"
@@ -441,8 +548,11 @@ const Dashboard = () => {
                             </Button>
                             {dashboardSort?.type == "favourited_content" ? (
                               <CommonSort
+                                sort={favouritedContentSort}
+                                setSort={setFavouritedContentSort}
                                 dashboardSort={dashboardSort}
                                 setDashboardSort={setDashboardSort}
+                                setSortState={setFavouritedContentSort} // Pass the appropriate setter function
                               />
                             ) : null}
                           </div>
@@ -472,32 +582,27 @@ const Dashboard = () => {
                         <Link to="/Favourited-Content">
                           <div className="card-imgs-wrap">
                             {favContent &&
-                              favContent
-                                ?.slice(0, 3)
-                                .map((curr) => {
-                                  const Content = curr.content_id.content[0]
-                                    ? curr.content_id.content[0]
-                                      .media_type === "video"
-                                      ? curr.content_id.content[0]
-                                        .watermark ||
+                              favContent?.slice(0, 3).map((curr) => {
+                                const Content = curr.content_id.content[0]
+                                  ? curr.content_id.content[0].media_type ===
+                                    "video"
+                                    ? curr.content_id.content[0].watermark ||
                                       process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr.content_id.content[0]
-                                        .thumbnail
-                                      : curr.content_id.content[0]
-                                        .media_type === "audio"
-                                        ? audioic
-                                        : curr.content_id.content[0]
-                                        .media_type === "pdf"
-                                        ? docsic
-                                        : curr.content_id.content[0]
-                                          .watermark ||
-                                        process.env.REACT_APP_CONTENT_MEDIA +
+                                        curr.content_id.content[0].thumbnail
+                                    : curr.content_id.content[0].media_type ===
+                                      "audio"
+                                    ? audioic
+                                    : curr.content_id.content[0].media_type ===
+                                      "pdf"
+                                    ? docsic
+                                    : curr.content_id.content[0].watermark ||
+                                      process.env.REACT_APP_CONTENT_MEDIA +
                                         curr.content_id.content[0].media
-                                    : null;
-                                  return (
-                                    <img src={Content} className="card-img" />
-                                  );
-                                })}
+                                  : null;
+                                return (
+                                  <img src={Content} className="card-img" />
+                                );
+                              })}
                             <span>
                               <Link to="/Favourited-Content">
                                 <BsArrowRight />
@@ -519,12 +624,38 @@ const Dashboard = () => {
                           className="edit_card_sel"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                          <svg
+                            width="20"
+                            height="17"
+                            viewBox="0 0 20 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 6.15625H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 10.8438H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M6.21631 6.15625V15.5312"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
                           <div className="fltrs_prnt">
                             <Button
                               className="sort_btn"
@@ -536,10 +667,13 @@ const Dashboard = () => {
                               <BsChevronDown />
                             </Button>
                             {dashboardSort?.type ==
-                              "content_purchased_online" ? (
+                            "content_purchased_online" ? (
                               <CommonSort
+                                sort={contentPurchaseOnline}
+                                setSort={setContentPurchaseOnline}
                                 dashboardSort={dashboardSort}
                                 setDashboardSort={setDashboardSort}
+                                setSortState={setContentPurchaseOnline}
                               />
                             ) : null}
                           </div>
@@ -574,25 +708,26 @@ const Dashboard = () => {
                                 .map((curr) => {
                                   const Content =
                                     curr.content_ids &&
-                                      curr.content_ids[0]?.content[0]
+                                    curr.content_ids[0]?.content[0]
                                       ? curr.content_ids[0]?.content[0]
-                                        .media_type === "video"
+                                          .media_type === "video"
                                         ? curr.content_ids[0]?.content[0]
-                                          .watermark ||
-                                        process.env.REACT_APP_CONTENT_MEDIA +
-                                        curr.content_ids[0]?.content[0]
-                                          .thumbnail
-                                        : curr.content_ids[0]?.content[0]
-                                          .media_type === "audio"
-                                          ? audioicsm
-                                          : curr.content_ids[0]?.content[0]
                                             .watermark ||
                                           process.env.REACT_APP_CONTENT_MEDIA +
-                                          curr.content_ids[0]?.content[0]
-                                            .media
-                                      : 
-                                      curr.content_ids[0]?.content[0]
-                                      .media_type === "audio" ? docsic : null;
+                                            curr.content_ids[0]?.content[0]
+                                              .thumbnail
+                                        : curr.content_ids[0]?.content[0]
+                                            .media_type === "audio"
+                                        ? audioic
+                                        : curr.content_ids[0]?.content[0]
+                                            .watermark ||
+                                          process.env.REACT_APP_CONTENT_MEDIA +
+                                            curr.content_ids[0]?.content[0]
+                                              .media
+                                      : curr.content_ids[0]?.content[0]
+                                          .media_type === "audio"
+                                      ? docsic
+                                      : null;
                                   return (
                                     <img src={Content} className="card-img" />
                                   );
@@ -613,84 +748,169 @@ const Dashboard = () => {
 
                 {/* Broadcast Tasks */}
                 <Col md={4} className="p-0 mb-0">
-                  <Card className="dash-top-cards crd_edit">
-                    <CardContent className="dash-c-body">
-                      <div className="cardCustomHead">
-                        <div
-                          className="edit_card_sel"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                          <div className="fltrs_prnt">
-                            <Button
-                              className="sort_btn"
-                              onClick={() => handleSortClick("broadcast_task")}
-                            >
-                              Sort
-                              <BsChevronDown />
-                            </Button>
-                            {dashboardSort?.type == "broadcast_task" ? (
-                              <CommonSort
-                                dashboardSort={dashboardSort}
-                                setDashboardSort={setDashboardSort}
-                              />
-                            ) : null}
-                          </div>
-                        </div>
-                        <Link to="/dashboard-tables/broadcasted_task">
-                          <Typography
-                            variant="body2"
-                            className="card-head-txt mb-2"
+                  {/* <Tooltip title="Launching soon"> */}
+                    <Card className="dash-top-cards crd_edit">
+                      <CardContent className="dash-c-body">
+                        <div className="cardCustomHead">
+                          <div
+                            className="edit_card_sel"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            {dash_count?.broad_casted_tasks_details?.count || 0}
+                            <svg
+                              width="20"
+                              height="17"
+                              viewBox="0 0 20 17"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M0.747559 6.15625H19.4976"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M0.747559 10.8438H19.4976"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M6.21631 6.15625V15.5312"
+                                stroke="black"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                            <div className="fltrs_prnt">
+                              <Button
+                                className="sort_btn"
+                                onClick={() =>
+                                  handleSortClick("broadcast_task")
+                                }
+                              >
+                                Sort
+                                <BsChevronDown />
+                              </Button>
+                              {dashboardSort?.type == "broadcast_task" ? (
+                                <CommonSort
+                                  sort={broadCasterTaskSort}
+                                  setSort={setBroadCasterTaskSort}
+                                  dashboardSort={dashboardSort}
+                                  setDashboardSort={setDashboardSort}
+                                  setSortState={setBroadCasterTaskSort} // Pass the appropriate setter function
+                                />
+                              ) : null}
+                            </div>
+                          </div>
+                          <Link 
+                          to="/dashboard-tables/broadcasted_task"
+                          >
+                            <Typography
+                              variant="body2"
+                              className="card-head-txt mb-2"
+                            >
+                              {dash_count?.broad_casted_tasks_details?.count ||
+                                0}
+                            </Typography>
+                          </Link>
+                        </div>
+                        <Link
+                        to="/dashboard-tables/broadcasted_task"
+                        >
+                          <Typography
+                            sx={{ fontSize: 14 }}
+                            color="text.secondary"
+                            gutterBottom
+                            className="cardContent_head"
+                          >
+                            Broadcasted tasks
                           </Typography>
                         </Link>
-                      </div>
-                      <Link to="/dashboard-tables/broadcasted_task">
-                        <Typography
-                          sx={{ fontSize: 14 }}
-                          color="text.secondary"
-                          gutterBottom
-                          className="cardContent_head"
-                        >
-                          Broadcasted tasks
-                        </Typography>
-                      </Link>
-                    </CardContent>
-                    <Link to="/dashboard-tables/broadcasted_task">
-                      <CardActions className="dash-c-foot cstm justify-content-start">
-                        <Link to="/dashboard-tables/broadcasted_task">
-                          <div className="card-imgs-wrap">
-                            {dash_count?.broad_casted_tasks_details?.task
-                              ?.filter((el) => el.hasOwnProperty("content"))
-                              ?.slice(0, 3)
-                              .map((curr) => {
-                                const Content = curr
-                                  ? curr?.content[0]?.media_type === "video"
-                                    ? curr?.content[0]?.thumbnail
-                                    : curr?.content[0]?.media_type === "audio"
+                      </CardContent>
+                      <Link 
+                      to="/dashboard-tables/broadcasted_task"
+                      >
+                        <CardActions className="dash-c-foot cstm justify-content-start">
+                          <Link 
+                          to="/dashboard-tables/broadcasted_task"
+                          >
+                            <div className="card-imgs-wrap">
+                              {dash_count?.broad_casted_tasks_details?.task
+                                ?.filter((el) => el.hasOwnProperty("content"))
+                                ?.slice(0, 3)
+                                .map((curr) => {
+                                  const Content = curr
+                                    ? curr?.content[0]?.media_type === "video"
+                                      ? curr?.content[0]?.thumbnail
+                                      : curr?.content[0]?.media_type === "audio"
                                       ? audioicsm
                                       : curr?.content[0]?.media
-                                  : null;
-                                return (
-                                  <img src={Content || usric} className="card-img" />
-                                );
-                              })}
-                            <span>
-                              <BsArrowRight
-                                onClick={() => Navigate("broadcasted_task")}
-                              />
-                            </span>
-                          </div>
-                        </Link>
-                      </CardActions>
-                    </Link>
-                  </Card>
+                                    : null;
+                                  return Content ? (
+                                    <img src={Content} className="card-img" />
+                                  ) : (
+                                    <div className="mapInput2">
+                                      <style>
+                                        {`
+                                        .gm-style > div:first-child {
+                                        cursor: pointer !important;
+                                      }
+                                    `}
+                                      </style>
+                                      <GoogleMap
+                                        googleMapsApiKey={
+                                          process.env
+                                            .REACT_APP_GOOGLE_MAPS_API_KEY
+                                        }
+                                        center={{
+                                          lat: curr?.address_location
+                                            ?.coordinates[0],
+                                          lng: curr?.address_location
+                                            ?.coordinates[1],
+                                        }}
+                                        zoom={7}
+                                        mapContainerStyle={{
+                                          height: "42px",
+                                          width: "42px",
+                                          borderRadius: "8px",
+                                        }}
+                                        options={{
+                                          disableDefaultUI: true,
+                                          mapTypeControl: false,
+                                          streetViewControl: false,
+                                        }}
+                                      >
+                                        <Marker
+                                          key={curr._id}
+                                          position={{
+                                            lat: curr?.address_location
+                                              ?.coordinates[0],
+                                            lng: curr?.address_location
+                                              ?.coordinates[1],
+                                          }}
+                                        />
+                                      </GoogleMap>
+                                    </div>
+                                  );
+                                })}
+                              <span>
+                                <BsArrowRight
+                                  onClick={() => Navigate("broadcasted_task")}
+                                />
+                              </span>
+                            </div>
+                          </Link>
+                        </CardActions>
+                      </Link>
+                    </Card>
+                  {/* </Tooltip> */}
                 </Col>
 
                 {/* Funds Invested */}
@@ -702,12 +922,38 @@ const Dashboard = () => {
                           className="edit_card_sel"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 6.15625H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M0.747559 10.8438H19.4976" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                              <path d="M6.21631 6.15625V15.5312" stroke="black" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                          <svg
+                            width="20"
+                            height="17"
+                            viewBox="0 0 20 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.747559 1.46875H19.4976V14.75C19.4976 14.9572 19.4152 15.1559 19.2687 15.3024C19.1222 15.4489 18.9235 15.5312 18.7163 15.5312H1.52881C1.32161 15.5312 1.12289 15.4489 0.976382 15.3024C0.829869 15.1559 0.747559 14.9572 0.747559 14.75V1.46875Z"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 6.15625H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M0.747559 10.8438H19.4976"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                            <path
+                              d="M6.21631 6.15625V15.5312"
+                              stroke="black"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
                           <div className="fltrs_prnt">
                             <Button
                               className="sort_btn"
@@ -718,8 +964,11 @@ const Dashboard = () => {
                             </Button>
                             {dashboardSort?.type == "funds_invested" ? (
                               <CommonSort
+                                sort={fundsInvestedSort}
+                                setSort={setFundsInvesteSort}
                                 dashboardSort={dashboardSort}
                                 setDashboardSort={setDashboardSort}
+                                setSortState={setFundsInvesteSort} // Pass the appropriate setter function
                               />
                             ) : null}
                           </div>
@@ -744,15 +993,56 @@ const Dashboard = () => {
                           gutterBottom
                           className="cardContent_head"
                         >
-                          Funds invested
+                          Total funds invested
                         </Typography>
                       </Link>
                     </CardContent>
-                    <Link to="/dashboard-tables/fund_invested">
+                    {/* <Link to="/dashboard-tables/fund_invested">
                       <CardActions className="dash-c-foot">
                         <Link to="/dashboard-tables/fund_invested">
                           <div className="card-imgs-wrap">
                             <span onClick={() => Navigate("fund_invested")}>
+                              <BsArrowRight
+                                onClick={() => Navigate("fund_invested")}
+                              />
+                            </span>
+                          </div>
+                        </Link>
+                      </CardActions>
+                    </Link> */}
+                    <Link to="/dashboard-tables/fund_invested">
+                      <CardActions className="dash-c-foot cstm justify-content-start">
+                        <Link to="/dashboard-tables/fund_invested">
+                          <div className="card-imgs-wrap">
+                            {dash_count?.content_online?.task
+                              .slice(0, 3)
+                              .map((curr) => {
+                                const Content =
+                                  curr.content_ids &&
+                                  curr.content_ids[0]?.content[0]
+                                    ? curr.content_ids[0]?.content[0]
+                                        .media_type === "video"
+                                      ? curr.content_ids[0]?.content[0]
+                                          .watermark ||
+                                        process.env.REACT_APP_CONTENT_MEDIA +
+                                          curr.content_ids[0]?.content[0]
+                                            .thumbnail
+                                      : curr.content_ids[0]?.content[0]
+                                          .media_type === "audio"
+                                      ? audioic
+                                      : curr.content_ids[0]?.content[0]
+                                          .watermark ||
+                                        process.env.REACT_APP_CONTENT_MEDIA +
+                                          curr.content_ids[0]?.content[0].media
+                                    : curr.content_ids[0]?.content[0]
+                                        .media_type === "audio"
+                                    ? docsic
+                                    : null;
+                                return (
+                                  <img src={Content} className="card-img" />
+                                );
+                              })}
+                            <span>
                               <BsArrowRight
                                 onClick={() => Navigate("fund_invested")}
                               />
@@ -784,59 +1074,60 @@ const Dashboard = () => {
                       className="p-0 tbs"
                       // onSelect={PublishedContent}
                       onSelect={(eventKey) => {
-                        if (eventKey === "exclusive") {
-                          PublishedContent("exclusive");
-                        } else if (eventKey === "shared") {
-                          PublishedContent("shared");
-                        }
+                        navigate(`/dashboard/${eventKey}`);
                       }}
+                      activeKey={params?.type}
                     >
                       <Tab eventKey="exclusive" title="Exclusive">
-                        {pub_content &&
-                          pub_content?.slice(0, 2).map((curr, index) => {
-                            return (
-                              <Link to={`/Feeddetail/content/${curr._id}`}>
-                                <DashBoardTabCards
-                                  imgtab={
-                                    curr?.content[0]?.media_type === "video"
-                                      ? curr?.content[0]?.watermark ||
+                        {pub_content?.map((curr, index) => {
+                          return (
+                            <Link to={`/Feeddetail/content/${curr._id}`}>
+                              <DashBoardTabCards
+                                imgtab={
+                                  curr?.content[0]?.media_type === "video"
+                                    ? curr?.content[0]?.watermark ||
                                       process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr?.content[0]?.thumbnail
-                                      : curr?.content[0]?.media_type === "audio"
-                                        ? audioicsm
-                                        : curr?.content[0]?.watermark ||
-                                        process.env.REACT_APP_CONTENT_MEDIA +
+                                        curr?.content[0]?.thumbnail
+                                    : curr?.content[0]?.media_type === "audio"
+                                    ? audioicsm
+                                    : curr?.content[0]?.watermark ||
+                                      process.env.REACT_APP_CONTENT_MEDIA +
                                         curr?.content[0]?.media
-                                  }
-                                  lnkto={`/Feeddetail/content/${curr._id}`}
-                                  tabcarddata={curr.heading}
-                                  tabcard4={moment(curr?.published_time_date).format(
-                                    "hh:mm A, DD MMM YYYY"
-                                  )}
-                                  image_type={curr?.content[0]?.media_type}
-                                  // tabcard2={"2h:32m"}
-                                  feedIcon={
-                                    curr?.content[0]?.media_type === "image"
-                                      ? typeCam
-                                      : curr?.content[0]?.media_type === "video"
-                                        ? typeVideo
-                                        : typeInterview
-                                  }
-                                  feedType={
-                                    curr?.content[0]?.media_type === "image"
-                                      ? "Photo"
-                                      : curr?.content[0]?.media_type === "video"
-                                        ? "Video"
-                                        : "Audio"
-                                  }
-                                  tabcard3={
-                                    " Buy £" +
-                                    formatAmountInMillion(curr?.ask_price || 0)
-                                  }
-                                />
-                              </Link>
-                            );
-                          })}
+                                }
+                                lnkto={`/Feeddetail/content/${curr._id}`}
+                                tabcarddata={curr.heading}
+                                tabcard4={moment(curr?.createdAt).format(
+                                  "hh:mm A, DD MMM YYYY"
+                                )}
+                                image_type={curr?.content[0]?.media_type}
+                                // tabcard2={"2h:32m"}
+                                feedIcon={
+                                  curr?.content[0]?.media_type === "image"
+                                    ? typeCam
+                                    : curr?.content[0]?.media_type === "video"
+                                    ? typeVideo
+                                    : typeInterview
+                                }
+                                feedType={
+                                  curr?.content[0]?.media_type === "image"
+                                    ? "Photo"
+                                    : curr?.content[0]?.media_type === "video"
+                                    ? "Video"
+                                    : "Audio"
+                                }
+                                tabcard3={
+                                  " Buy £" +
+                                  formatAmountInMillion(curr?.ask_price || 0)
+                                }
+                                tabcard5={curr?.hopper_id?.user_name}
+                                imgtab1={
+                                  process.env.REACT_APP_AVATAR_IMAGE +
+                                  curr?.hopper_id?.avatar_id?.avatar
+                                }
+                              />
+                            </Link>
+                          );
+                        })}
                       </Tab>
 
                       <Tab eventKey="shared" title="Shared">
@@ -848,13 +1139,13 @@ const Dashboard = () => {
                                   imgtab={
                                     curr?.content[0]?.media_type === "video"
                                       ? curr?.content[0]?.watermark ||
-                                      process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr?.content[0]?.thumbnail
-                                      : curr?.content[0]?.media_type === "audio"
-                                        ? audioicsm
-                                        : curr?.content[0]?.watermark ||
                                         process.env.REACT_APP_CONTENT_MEDIA +
-                                        curr?.content[0]?.media
+                                          curr?.content[0]?.thumbnail
+                                      : curr?.content[0]?.media_type === "audio"
+                                      ? audioicsm
+                                      : curr?.content[0]?.watermark ||
+                                        process.env.REACT_APP_CONTENT_MEDIA +
+                                          curr?.content[0]?.media
                                   }
                                   feedIcon={
                                     curr?.content[0]?.media_type === "image"
@@ -862,7 +1153,7 @@ const Dashboard = () => {
                                       : typeVideo
                                   }
                                   tabcarddata={curr.heading}
-                                  tabcard4={moment(curr?.published_time_date)?.format(
+                                  tabcard4={moment(curr?.createdAt)?.format(
                                     `hh:mm A, DD MMM YYYY`
                                   )}
                                   image_type={curr?.content[0]?.media_type}
@@ -872,17 +1163,75 @@ const Dashboard = () => {
                                     curr?.content[0]?.media_type === "image"
                                       ? "Photo"
                                       : curr?.content[0]?.media_type === "video"
-                                        ? "Video"
-                                        : "Audio"
+                                      ? "Video"
+                                      : "Audio"
                                   }
                                   tabcard3={
                                     " Buy £" +
                                     formatAmountInMillion(curr?.ask_price || 0)
                                   }
+                                  tabcard5={curr?.hopper_id?.user_name}
+                                  imgtab1={
+                                    process.env.REACT_APP_AVATAR_IMAGE +
+                                    curr?.hopper_id?.avatar_id?.avatar
+                                  }
                                 />
                               </Link>
                             );
                           })}
+                      </Tab>
+
+                      <Tab eventKey="discount" title="Special offers">
+                        {pub_content?.map((curr, index) => {
+                          return (
+                            <Link to={`/Feeddetail/content/${curr._id}`}>
+                              <DashBoardTabCards
+                                imgtab={
+                                  curr?.content[0]?.media_type === "video"
+                                    ? curr?.content[0]?.watermark ||
+                                      process.env.REACT_APP_CONTENT_MEDIA +
+                                        curr?.content[0]?.thumbnail
+                                    : curr?.content[0]?.media_type === "audio"
+                                    ? audioicsm
+                                    : curr?.content[0]?.watermark ||
+                                      process.env.REACT_APP_CONTENT_MEDIA +
+                                        curr?.content[0]?.media
+                                }
+                                feedIcon={
+                                  curr?.content[0]?.media_type === "image"
+                                    ? typeCam
+                                    : typeVideo
+                                }
+                                tabcarddata={curr.heading}
+                                tabcard4={moment(curr?.createdAt)?.format(
+                                  `hh:mm A, DD MMM YYYY`
+                                )}
+                                image_type={curr?.content[0]?.media_type}
+                                // tabcard2={"2h:32m"}
+                                lnkto={`/Feeddetail/content/${curr._id}`}
+                                feedType={
+                                  curr?.content[0]?.media_type === "image"
+                                    ? "Photo"
+                                    : curr?.content[0]?.media_type === "video"
+                                    ? "Video"
+                                    : "Audio"
+                                }
+                                tabcard3={
+                                  " Buy £" +
+                                  formatAmountInMillion(curr?.ask_price || 0)
+                                }
+                                tabcard5={curr?.hopper_id?.user_name}
+                                imgtab1={
+                                  process.env.REACT_APP_AVATAR_IMAGE +
+                                  curr?.hopper_id?.avatar_id?.avatar
+                                }
+                                before_discount_value={
+                                  curr?.before_discount_value || null
+                                }
+                              />
+                            </Link>
+                          );
+                        })}
                       </Tab>
                     </Tabs>
                   </div>
@@ -892,27 +1241,34 @@ const Dashboard = () => {
                     <div className="card-heading sub_heading">
                       Payments to be Made
                     </div>
-                    <Link to="/accounts" className="view-all-link">
+                    <Link
+                      to="/accounts"
+                      className="view-all-link"
+                      onClick={localStorage.setItem(
+                        "backBtnVisibility",
+                        JSON.stringify("backBtn")
+                      )}
+                    >
                       View accounts
                       <BsArrowRight className="text-danger" />{" "}
                     </Link>
                     {pending_payment &&
-                      pending_payment?.slice(0, 2).map((curr) => {
+                      pending_payment?.data?.slice(0, 2)?.map((curr) => {
                         return (
                           <Link to={`/auto-invoice/${curr?.id}`}>
                             <DashBoardPayment
                               imgtab={
                                 curr?.content[0]?.media_type === "video"
                                   ? curr?.content[0]?.watermark ||
-                                  process.env.REACT_APP_CONTENT_MEDIA +
-                                  curr?.content[0]?.thumbnail
-                                  : curr?.content[0]?.media_type === "audio"
-                                    ? audioicsm
-                                    : curr?.content[0]?.media_type === "pdf"
-                                    ? docsic
-                                    : curr?.content[0]?.watermark ||
                                     process.env.REACT_APP_CONTENT_MEDIA +
-                                    curr?.content[0]?.media
+                                      curr?.content[0]?.thumbnail
+                                  : curr?.content[0]?.media_type === "audio"
+                                  ? audioicsm
+                                  : curr?.content[0]?.media_type === "pdf"
+                                  ? docsic
+                                  : curr?.content[0]?.watermark ||
+                                    process.env.REACT_APP_CONTENT_MEDIA +
+                                      curr?.content[0]?.media
                               }
                               // imgtab={curr?.content[0]?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.content[0]?.media}
                               imgtab1={
@@ -922,7 +1278,12 @@ const Dashboard = () => {
                               tabcarddata={curr?.heading}
                               tabcard3={curr?.hopper_id?.user_name}
                               paying={formatAmountInMillion(
-                                curr?.amount ? curr?.amount : curr?.ask_price
+                                pending_payment?.chatdata?.find(
+                                  (el) => el?.image_id == curr?._id
+                                )?.amount || 0
+                              )}
+                              tabcard2={moment(curr?.createdAt)?.format(
+                                `hh:mm A, DD MMM YYYY`
                               )}
                             />
                           </Link>
@@ -966,16 +1327,36 @@ const Dashboard = () => {
                             >
                               {rat_count?.avgRating !== undefined
                                 ? Number.isInteger(rat_count.avgRating)
-                                  ? rat_count.avgRating
-                                  : rat_count.avgRating.toFixed(2)
+                                  ? rat_count?.avgRating?.toFixed(1)
+                                  : rat_count.avgRating.toFixed(1)
                                 : "0"}
                             </Typography>
                             <div className="ic-txt-wrap">
-                              <div className="star-icons d-flex">
+                              {/* <div className="star-icons d-flex">
                                 <Rating
                                   initialValue={rat_count?.avgRating}
                                   readonly
+                                  allowFraction={true}
                                 />
+                              </div> */}
+                              <div className="star-rate d-flex gap-2">
+                                {rat_count?.avgRating > 0 && (
+                                  <>
+                                    {Array.from(
+                                      {
+                                        length: Math.floor(
+                                          rat_count?.avgRating
+                                        ),
+                                      },
+                                      (_, i) => (
+                                        <img src={star} alt={i} key={i} />
+                                      )
+                                    )}
+                                    {hasDecimal(rat_count?.avgRating) ? (
+                                      <img src={FillStar} alt="half_star" />
+                                    ) : null}
+                                  </>
+                                )}
                               </div>
                               <Typography
                                 sx={{ fontSize: 14 }}
@@ -999,7 +1380,7 @@ const Dashboard = () => {
                             <span className="clickable" onClick={handleShow}>
                               +
                             </span>
-                            {/* <Tooltip title="Coming soon">
+                            {/* <Tooltip title="Launching soon">
                               <span className="clickable">+</span>
                             </Tooltip> */}
                           </Typography>
@@ -1035,6 +1416,11 @@ const Dashboard = () => {
                             </Button>
                             {openRecentActivity && (
                               <RecentActivityDF
+                                active={recentActivityState}
+                                setActive={setRecentActivityState}
+                                handleCloseRecentActivity={() =>
+                                  setOpenRecentActivity(false)
+                                }
                                 closeRecentActivity={handleCloseRecentActivity}
                                 recentActivityValues={handleRecentActivityValue}
                               />
@@ -1050,28 +1436,36 @@ const Dashboard = () => {
                                 >
                                   <DashBoardCardList
                                     contentId={
-                                      curr.hasOwnProperty("content_id") ?
-                                      curr?.content_id?._id : curr?.task_id?._id
+                                      curr.hasOwnProperty("content_id")
+                                        ? curr?.content_id?._id
+                                        : curr?.task_id?._id
                                     }
                                     listcard1={
                                       curr.hasOwnProperty("content_id")
                                         ? curr?.content_id?.heading
                                         : curr?.task_id?.heading
                                     }
-                                    listcard2={moment(curr?.updatedAt).format(
-                                      "hh:mm A, DD MMM YYYY"
-                                    )}
+                                    listcard2={moment(
+                                      curr?.content_id?.createdAt
+                                    ).format("hh:mm A, DD MMM YYYY")}
                                     // reviewType={contentCamera}curr.content[0].media_type === "audio" ? interviewic :  cameraic
                                     reviewType={
-                                      curr.hasOwnProperty("content_id")
-                                        ? curr.content_id?.content[0]
-                                          ?.media_type == "audio"
-                                          ? typeInterviewwt
-                                          : contentCamera
-                                        : curr?.task_id?.content?.[0]
-                                          ?.media_type == "audio"
-                                          ? typeInterviewwt
-                                          : contentCamera
+                                      // curr.hasOwnProperty("content_id")
+                                      // ? curr.content_id?.content[0]?.media_type == "audio"
+                                      //   ? typeInterviewwt
+                                      //   : contentCamera
+                                      // : curr?.task_id?.content?.[0]
+                                      //   ?.media_type == "video"
+                                      //   ? typeInterviewwt
+                                      //   : contentCamera
+
+                                      curr.content_id?.content[0]?.media_type ==
+                                      "audio"
+                                        ? typeInterviewwt
+                                        : curr.content_id?.content[0]
+                                            ?.media_type == "image"
+                                        ? contentCamera
+                                        : contentVideo
                                     }
                                     imgtype={
                                       curr?.content_details?.content[0]
@@ -1080,25 +1474,23 @@ const Dashboard = () => {
                                     imgl={
                                       curr.hasOwnProperty("content_id")
                                         ? curr?.content_id?.content[0]
-                                          ?.media_type === "video"
-                                          ? curr?.content_id?.content[0]
-                                            ?.watermark ||
-                                          process.env
-                                            .REACT_APP_CONTENT_MEDIA +
-                                          curr?.content_id?.content[0]
-                                            ?.thumbnail
-                                          : curr?.content_id?.content[0]
-                                            ?.media_type === "audio"
-                                            ? audioicbg :
+                                            ?.media_type === "video"
+                                          ? process.env
+                                              .REACT_APP_CONTENT_MEDIA +
                                             curr?.content_id?.content[0]
-                                            ?.media_type === "pdf"
-                                            ? docsic
-                                            : curr?.content_id?.content[0]
+                                              ?.thumbnail
+                                          : curr?.content_id?.content[0]
+                                              ?.media_type === "audio"
+                                          ? audioic
+                                          : curr?.content_id?.content[0]
+                                              ?.media_type === "pdf"
+                                          ? docsic
+                                          : curr?.content_id?.content[0]
                                               ?.watermark ||
                                             process.env
                                               .REACT_APP_CONTENT_MEDIA +
-                                            curr?.content_id?.content[0]
-                                              ?.media
+                                              curr?.content_id?.content[0]
+                                                ?.media
                                         : curr?.task_id?.content[0]?.media
                                     }
                                   />
@@ -1134,11 +1526,11 @@ const Dashboard = () => {
                         <div className="trendSearch_wrap mt-3">
                           {trading
                             ?.filter((el) => el._id !== "")
-                            ?.slice(0,7)
+                            ?.slice(0, 7)
                             ?.map((curr) => (
                               <span key={curr._id}>
                                 <Link to={`/content-search/${curr._id}`}>
-                                  {curr?._id}
+                                  {capitalizeWord(curr?._id)}
                                 </Link>
                               </span>
                             ))}

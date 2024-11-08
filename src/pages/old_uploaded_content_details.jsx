@@ -295,11 +295,11 @@ const UploadedContentDetails = () => {
                                     <MdOutlineWatchLater />
                                     {data
                                       ? moment(data?.createdAt).format(
-                                        "h:mm A, DD MMMM YY"
+                                        "h:mm A, DD MMMM YYYY"
                                       )
                                       : moment(
                                         fav?.content_id?.timestamp
-                                      ).format("h:mm A, DD MMMM YY")}
+                                      ).format("h:mm A, DD MMMM YYYY")}
                                   </span>
                                 </div>
                               </div>
@@ -339,7 +339,7 @@ const UploadedContentDetails = () => {
                             </div>
                             {/* <div className="sub-content">
                                                             <div className="item d-flex justify-content-between align-items-center">
-                                                                <span className="fnt-bold">Licence Type</span>
+                                                                <span className="fnt-bold">License</span>
                                                                 <div className="">
                                                                     <img src={data?.type === "exclusive" ? exclusive : shared} className="exclusive-img" alt="" />
                                                                     <span>{data ? capitalizeFirstLetter(data?.type) : capitalizeFirstLetter(fav?.content_id?.type)}</span>
@@ -841,7 +841,7 @@ const UploadedContentDetails = () => {
                           />
                         )}
                       </div>
-                      <Link to="/more-content" className="next_link">
+                      <Link to="/more-content/hopper_id" className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>

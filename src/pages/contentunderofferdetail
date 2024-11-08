@@ -57,7 +57,6 @@ const ContentunderofferdetailN = () => {
     value: ""
   })
   const handleRecentActivityValue = (value) => {
-    console.log("handleFavouriteComponentValues", value)
     setRecentActivityValues({ field: value.field, value: value.values })
   }
 
@@ -184,7 +183,7 @@ const ContentunderofferdetailN = () => {
                             </div>
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Licence Type</span>
+                                <span className="fnt-bold">License</span>
                                 <div className="">
                                   <img src={exclusive} className="exclusive-img" alt="" />
                                   <span className='txt_catg_licn'>Exlusive</span>

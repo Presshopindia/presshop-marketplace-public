@@ -508,11 +508,11 @@ const ContentunderofferdetailNew = () => {
                                     <MdOutlineWatchLater />
                                     {data
                                       ? moment(data?.timestamp).format(
-                                        "h:mm A, DD MMMM YY"
+                                        "h:mm A, DD MMM YYYY"
                                       )
                                       : moment(
                                         fav?.content_id?.timestamp
-                                      ).format("h:mm A, DD MMMM YY")}
+                                      ).format("h:mm A, DD MMM YYYY")}
                                   </span>
                                 </div>
                               </div>
@@ -559,7 +559,7 @@ const ContentunderofferdetailNew = () => {
                             </div>
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Licence Type</span>
+                                <span className="fnt-bold">License</span>
                                 <div className="">
                                   <img
                                     src={
@@ -748,7 +748,7 @@ const ContentunderofferdetailNew = () => {
                               </Row>
                             </div>
                           </Tab>
-                          <Tab eventKey="external" title="External Chat">
+                          <Tab eventKey="external" title="Hopper Chat">
                             <div className="tab-data active">
                               <Row>
                                 <Col md={9}>
@@ -1061,7 +1061,7 @@ const ContentunderofferdetailNew = () => {
                               // type_img={exclusive}
                               // type_tag={curr.status}
                               feedHead={curr.heading}
-                              feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")}
+                              feedTime={moment(curr?.updatedAt).format("DD MMM, YYYY")}
                               feedLocation={curr.location}
                               contentPrice={formatAmountInMillion(curr.ask_price || 0)}
                               feedTypeImg1={imageCount > 0 ? cameraic : null}
@@ -1108,7 +1108,7 @@ const ContentunderofferdetailNew = () => {
                           />
                         )}
                       </div>
-                      <Link to="/more-content" className="next_link">
+                      <Link to={`/more-content/${hopper?._id}`} className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>
@@ -1147,7 +1147,7 @@ const ContentunderofferdetailNew = () => {
                               // type_img={exclusive}
                               // type_tag={curr.status}
                               feedHead={curr.heading}
-                              feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")}
+                              feedTime={moment(curr?.updatedAt).format("DD MMM, YYYY")}
                               feedLocation={curr.location}
                               contentPrice={formatAmountInMillion(curr.ask_price || 0)}
                               feedTypeImg1={imageCount > 0 ? cameraic : null}

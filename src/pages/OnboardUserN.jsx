@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button';
 import { Link } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import HeaderN from '../component/HeaderN';
-import loginimg from "../assets/images/login-images/onbrdimg.svg";
+// import loginimg from "../assets/images/login-images/onbrdimg.svg";
 import { Checkbox, FormControlLabel, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import Footerlandingpage from '../component/Footerlandingpage';
 import user from "../assets/images/user.svg";
@@ -93,7 +93,7 @@ const OnboardUserN = () => {
                                     <span className='shape gr_tri pos_abs'></span>
                                     <span className='shape rd_crcl pos_abs'></span>
                                     <div className="">
-                                        <img src={loginimg} alt="" srcset="" />
+                                        <img src={"https://uat-presshope.s3.eu-west-2.amazonaws.com/public/user/1721377753819onbrdimg.svg"} alt="" srcset="" />
                                     </div>
                                     <div className="right_txt">
                                         <p>Let's start delivering  <span className="txt_bld">news</span>

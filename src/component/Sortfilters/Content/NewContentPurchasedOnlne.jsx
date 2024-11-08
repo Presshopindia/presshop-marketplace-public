@@ -7,31 +7,53 @@ import monthlyic from "../../../assets/images/sortIcons/monthly.svg";
 
 import Form from "react-bootstrap/Form";
 
-const NewContentPurchasedOnline = ({closeContPurchased, contentPurchasedSortFilterValues}) => {
-
+const NewContentPurchasedOnline = ({
+  closeContPurchased,
+  setActive,
+  active,
+  contentPurchasedSortFilterValues,
+}) => {
   const handleClose = (values) => {
-    closeContPurchased(values)
-  }
-  
-  const [active, setActive] = useState("")
+    if (values === false) {
+      contentPurchasedSortFilterValues({
+        field: "",
+        values: "",
+        type: "braodcast",
+      });
+      setActive("")
+    }
+    
+    closeContPurchased(values);
+  };
 
-  const [filterSort, setFilterSort] = useState({field : "", values: "", type: "braodcast"})
+  // const [active, setActive] = useState("");
+
+  const [filterSort, setFilterSort] = useState({
+    field: "",
+    values: "",
+    type: "braodcast",
+  });
 
   const handleClickTime = (field, values) => {
-    setFilterSort({field, values, type: "contentpurcahsedonline"})
-    setActive(values)
-  }
+    setFilterSort({ field, values, type: "contentpurcahsedonline" });
+    setActive(values);
+  };
 
   const handleFilter = () => {
-    contentPurchasedSortFilterValues(filterSort)
-  }
-
+    contentPurchasedSortFilterValues(filterSort);
+  };
 
   return (
     <>
       <div className="filter_wrap">
         <div className="srt_fltr_hdr">
-          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={() => handleClose(false)} />
+          <img
+            src={closeic}
+            height="17px"
+            className="icn close"
+            alt="Close"
+            onClick={() => handleClose(false)}
+          />
           <p className="hdng">Sort and filter</p>
           <div className="notf_icn_wrp" onClick={() => handleClose(false)}>
             <a className="link">Clear all</a>
@@ -43,24 +65,48 @@ const NewContentPurchasedOnline = ({closeContPurchased, contentPurchasedSortFilt
           </p>
         </div>
         <div className="sort_list">
-            <div className={`sort_item ${active === "daily" ? "active" : null}`} style={{cursor:"pointer"}} onClick={() => handleClickTime("type", "daily")}>
+          <div
+            className={`sort_item ${active === "daily" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("type", "daily")}
+          >
             <img src={dailyic} className="icn" alt="Daily" />
             <p className="sort_txt">View daily</p>
-            </div>
-            <div className={`sort_item ${active === "weekly" ? "active" : null}`} style={{cursor:"pointer"}} onClick={() => handleClickTime("type", "weekly")}>
-                <img src={weeklyic} className="icn" alt="Weekly" />
-                <p className="sort_txt">View weekly</p>
-            </div>
-            <div className={`sort_item ${active === "monthly" ? "active" : null}`} style={{cursor:"pointer"}} onClick={()=> handleClickTime("type", "monthly")}>
-                <img src={monthlyic} className="icn" alt="Monthly" />
-                <p className="sort_txt">View monthly</p>
-            </div>
-            <div className={`sort_item ${active === "yearly" ? "active" : null}`} style={{cursor:"pointer"}} onClick={()=> handleClickTime("type", "yearly")}>
-                <img src={calendaric} className="icn" alt="yearly" />
-                <p className="sort_txt">View yearly</p>
-            </div>
+          </div>
+          <div
+            className={`sort_item ${active === "weekly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("type", "weekly")}
+          >
+            <img src={weeklyic} className="icn" alt="Weekly" />
+            <p className="sort_txt">View weekly</p>
+          </div>
+          <div
+            className={`sort_item ${active === "monthly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("type", "monthly")}
+          >
+            <img src={monthlyic} className="icn" alt="Monthly" />
+            <p className="sort_txt">View monthly</p>
+          </div>
+          <div
+            className={`sort_item ${active === "yearly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("type", "yearly")}
+          >
+            <img src={calendaric} className="icn" alt="yearly" />
+            <p className="sort_txt">View yearly</p>
+          </div>
         </div>
-        <button className="fltr_btn mt-3" onClick={() => {handleFilter (); handleClose()}}>Apply</button>
+        <button
+          className="fltr_btn mt-3"
+          onClick={() => {
+            handleFilter();
+            handleClose();
+          }}
+        >
+          Apply
+        </button>
       </div>
     </>
   );

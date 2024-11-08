@@ -190,14 +190,14 @@ const TransactionDetail = () => {
                                                                             {moment(
                                                                                 transactionDetails?.content_id
                                                                                     ?.timestamp
-                                                                            ).format(`hh:mm A, DD MMMM YYYY`)}
+                                                                            ).format(`hh:mm A, DD MMM YYYY`)}
                                                                         </span>
                                                                     ) : (
                                                                         <span>
                                                                             <MdOutlineWatchLater />{" "}
                                                                             {moment(
                                                                                 transactionDetails?.task_id?.timestamp
-                                                                            ).format(`hh:mm A, DD MMMM YYYY`)}
+                                                                            ).format(`hh:mm A, DD MMM YYYY`)}
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -248,7 +248,7 @@ const TransactionDetail = () => {
                                                         </div>
                                                         <div className="sub-content">
                                                             <div className="item d-flex justify-content-between align-items-center">
-                                                                <span className="fnt-bold">Licence Type</span>
+                                                                <span className="fnt-bold">License</span>
 
                                                                 {transactionDetails?.type === "content" &&
                                                                     transactionDetails?.content_id?.type ===
@@ -302,7 +302,7 @@ const TransactionDetail = () => {
                                                 </div>
                                                 <div className="transactional_detail">
                                                     <div className="single_tranInfo">
-                                                        <h6>Invoice no.</h6>
+                                                        <h6>Invoice number</h6>
                                                         <h6>{transactionDetails?.invoiceNumber}</h6>
                                                     </div>
                                                 </div>
@@ -320,7 +320,7 @@ const TransactionDetail = () => {
                                                         <h6>Invoice date </h6>
                                                         <h6>
                                                             {moment(transactionDetails?.createdAt).format(
-                                                                `DD MMMM YYYY`
+                                                                `DD MMM YYYY`
                                                             )}
                                                         </h6>
                                                     </div>
@@ -364,7 +364,7 @@ const TransactionDetail = () => {
                                                                     <h6>
                                                                         {moment(
                                                                             transactionDetails?.createdAt
-                                                                        ).format(`DD MMMM YYYY`)}
+                                                                        ).format(`DD MMM YYYY`)}
                                                                     </h6>
                                                                 </div>
                                                             </div>
@@ -405,7 +405,7 @@ const TransactionDetail = () => {
                                                             <hr />
                                                             <div className="transactional_detail">
                                                                 <div className="single_tranInfo">
-                                                                    <h6>Company no.</h6>
+                                                                    <h6>Company number</h6>
                                                                     <h6>
                                                                         {
                                                                             transactionDetails?.payment_admin_id
@@ -416,7 +416,7 @@ const TransactionDetail = () => {
                                                             </div>
                                                             <div className="transactional_detail">
                                                                 <div className="single_tranInfo">
-                                                                    <h6>VAT no.</h6>
+                                                                    <h6>VAT number</h6>
                                                                     <h6>
                                                                         {
                                                                             transactionDetails?.payment_admin_id
@@ -471,7 +471,7 @@ const TransactionDetail = () => {
                                                                         <span className="icon_trnsctns">
                                                                             <img src={account} alt="" />
                                                                         </span>
-                                                                        Account no.
+                                                                        Account number
                                                                     </h6>
                                                                     <h6>
                                                                         {
@@ -521,7 +521,7 @@ const TransactionDetail = () => {
                                                                         <span className="icon_trnsctns">
                                                                             <img src={account} alt="" />
                                                                         </span>
-                                                                        Account no.
+                                                                        Account number
                                                                     </h6>
                                                                     <h6>
                                                                         {
@@ -622,7 +622,7 @@ const TransactionDetail = () => {
                                                             }
                                                             feedHead={curr?.description}
                                                             feedTime={moment(curr?.timestamp).format(
-                                                                `hh:mm A, DD MMMM YYYY`
+                                                                `hh:mm A, DD MMM YYYY`
                                                             )}
                                                             feedLocation={curr?.location}
                                                             contentPrice={`£${curr?.ask_price}`}
@@ -679,7 +679,7 @@ const TransactionDetail = () => {
                                                     />
                                                 )}
                                             </div>
-                                            <Link to="/more-content" className="next_link">
+                                            <Link to="/more-content/" className="next_link">
                                                 View all
                                                 <BsArrowRight className="text-pink" />
                                             </Link>

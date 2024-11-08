@@ -39,6 +39,7 @@ import NewContentPurchasedOnline from './Sortfilters/Content/NewContentPurchased
 import Loader from './Loader';
 import proIcn from "../assets/images/pro-icon.svg"
 import typeInterviewwt from "../assets/images/typeinterview-wt.svg";
+import { formatAmountInMillion } from './commonFunction';
 const Tasktables = () => {
 
   const param = useParams();
@@ -80,26 +81,45 @@ const Tasktables = () => {
       return "Invalid date input";
     }
 
-    const timeDifference = examDate - currentDate;
-    const diffInHours = timeDifference / (1000 * 60 * 60);
+    const timeDifference = currentDate - examDate;
+    const diffInMilliseconds = Math.abs(timeDifference);
 
-    return Math.abs(diffInHours).toFixed(2); // Always return a positive value
+    const days = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffInMilliseconds % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffInMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+
+    let sign = "";
+    if (timeDifference > 0) {
+      sign = "+";
+    } else {
+      sign = "-";
+    }
+
+    return {
+      sign: sign,
+      time: `${sign} ${" "} ${days}:${hours}:${minutes}`
+    };
   }
+
 
   const TaskDetails = async () => {
     setLoading(true)
     const resp = await Get(`mediaHouse/tasks/count?${sortingField && sortingField}=${sortingValue && sortingValue}`)
+    const totalFundInvested = await Get(`mediahouse/taskPurchasedOnlinesummary`);
+    console.log("Total fund", totalFundInvested)
     if (resp) {
       setTaskDetails(resp.data)
-      setTodayFund(resp.data.today_fund_sinvested)
+      setTodayFund(resp.data.today_fund_invested)
       setHopperUsedForTask(resp.data.hopper_used_for_tasks)
-      setTotalFund(resp.data.total_fund_invested)
+      setTotalFund(totalFundInvested?.data?.response)
       setdead(resp.data.deadline_met)
       setLoading(false)
 
     }
     setLoading(false)
   }
+
+
 
   const ContentCount = async () => {
     setLoading(true);
@@ -129,14 +149,26 @@ const Tasktables = () => {
 
 
 
-
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
 
 
 
   return (
     <>
-      {/* {console.log(taskDetails, `,-----taskDetails`)} */}
       {loading && <Loader />}
 
       <Header />
@@ -156,15 +188,6 @@ const Tasktables = () => {
                         <Typography className='tbl_hdng'>
                           Live Tasks
                         </Typography>
-                        <div className="tbl_rt">
-                          <div className="fltrs_prnt">
-                            <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                              Sort
-                              <BsChevronDown />
-                            </Button>
-                            {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                          </div>
-                        </div>
                       </div>
                       <div className="fix_ht_table">
                         <table width='100%' mx='20px' variant='simple' className="common_table">
@@ -178,13 +201,12 @@ const Tasktables = () => {
                               <th className='catgr_th'>Category</th>
                               <th className='price_th'>Price offered</th>
                               <th className='time_date_th'>Deadline</th>
-                              {/* <th className='trend_th'>Trend</th> */}
                             </tr>
                           </thead>
                           <tbody>
                             {taskDetails?.live_tasks_details?.task.map((curr) => {
                               return (
-                                <tr onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{cursor:"pointer"}}>
+                                <tr onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{ cursor: "pointer" }}>
                                   <td className="content_img_td">
                                     <Link>
                                       <div className="mapInput td_mp">
@@ -214,7 +236,7 @@ const Tasktables = () => {
                                   </td>
                                   <td className="timedate_wrap">
                                     <p className="timedate"><img src={watch} className="icn_time" />{moment(curr.createdAt).format("hh:mm A")}</p>
-                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.createdAt).format("DD MMMM, YYYY")}</p>
+                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.createdAt).format("DD MMM, YYYY")}</p>
                                   </td>
                                   <td className="description_td">
                                     <p className='desc_ht'>
@@ -241,23 +263,20 @@ const Tasktables = () => {
                                   <td className="">
                                     <div className="type_wrp d-flex flex-column">
                                       {curr.need_photos === true && <p className='txt'>
-                                        £ {curr.photo_price}
+                                        £{formatAmountInMillion(curr.photo_price)}
                                       </p>}
                                       {curr.need_interview === true && <p className='txt'>
-                                        £ {curr.interview_price}
+                                        £{formatAmountInMillion(curr.interview_price)}
                                       </p>}
                                       {curr.need_videos === true && <p className='txt'>
-                                        £ {curr.videos_price}
+                                        £{formatAmountInMillion(curr.videos_price)}
                                       </p>}
                                     </div>
                                   </td>
                                   <td className="timedate_wrap">
                                     <p className="timedate"><img src={watch} className="icn_time" />{moment(curr.deadline_date).format("hh:mm A")}</p>
-                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.deadline_date).format("DD MMMM, YYYY")}</p>
+                                    <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr.deadline_date).format("DD MMM, YYYY")}</p>
                                   </td>
-                                  {/* <td className="">
-                                    <p className="trend_success"><BsArrowUp />50%</p>
-                                  </td> */}
                                 </tr>
                               )
                             })}
@@ -272,15 +291,6 @@ const Tasktables = () => {
                           <Typography className='tbl_hdng'>
                             Broadcasted Tasks
                           </Typography>
-                          <div className="tbl_rt">
-                            <div className="fltrs_prnt">
-                              <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                Sort
-                                <BsChevronDown />
-                              </Button>
-                              {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                            </div>
-                          </div>
                         </div>
                         <div className="fix_ht_table">
                           <table width='100%' mx='20px' variant='simple' className="common_table">
@@ -290,26 +300,50 @@ const Tasktables = () => {
                                 <th >Period</th>
                                 <th >Number of tasks</th>
                                 <th >Funds Invested</th>
-                                {/* <th >Trend</th> */}
                               </tr>
                             </thead>
                             <tbody>
                               {taskDetails?.broad_casted_tasks_details?.task?.sort((a, b) => new Date(b.deadline_date) - new Date(a.deadline_date))?.map((curr) => {
 
-                                const content = (curr?.content.length === 0 ? usric : curr?.content[0]?.media_type === "image" ? curr?.content[0]?.media :
+                                const content = (curr?.content[0]?.media_type === "image" ? curr?.content[0]?.media :
                                   curr?.content[0]?.media_type === "video" ? curr?.content[0]?.videothubnail :
                                     curr?.content[0]?.media_type === "audio" ? audioic : "")
 
                                 return (
-                                  <tr key={curr?._id} onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{cursor:"pointer"}}>
+                                  <tr key={curr?._id} onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{ cursor: "pointer" }}>
                                     <td className="content_img_td">
                                       <div className="tbl_cont_wrp">
-                                        <img src={content} className="content_img" />
+                                        {
+                                          curr?.content?.length == 0 ?
+                                            <div className="mapInput1 td_mp1">
+                                              <style>{`
+                                                  .gm-style > div:first-child {
+                                                  cursor: pointer !important;
+                                                }
+                                              `}
+                                              </style>
+                                              <GoogleMap
+                                                googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+                                                center={{ lat: curr?.address_location?.coordinates[0], lng: curr?.address_location?.coordinates[1] }}
+                                                zoom={7}
+                                                mapContainerStyle={{ height: '58px', width: '58px', borderRadius: "12px" }}
+                                                options={{
+                                                  disableDefaultUI: true,
+                                                  mapTypeControl: false,
+                                                  streetViewControl: false,
+                                                }}>
+                                                <Marker
+                                                  key={curr._id}
+                                                  position={{ lat: curr?.address_location?.coordinates[0], lng: curr?.address_location?.coordinates[1] }}
+                                                />
+                                              </GoogleMap>
+                                            </div> : <img src={content} className="content_img" />
+                                        }
                                       </div>
                                     </td>
 
                                     <td className="timedate_wrap">
-                                      <p className="timedate"><img src={calendar} className="icn_time" />   {moment(curr?.deadline_date).format(`DD MMMM YYYY`)} {moment(curr?.deadline_date).format(`hh:mm A`)}</p>
+                                      <p className="timedate"><img src={calendar} className="icn_time" />   {moment(curr?.deadline_date).format(`DD MMM YYYY`)} {moment(curr?.deadline_date).format(`hh:mm A`)}</p>
                                     </td>
                                     <td >
                                       {curr.content?.length}
@@ -317,9 +351,6 @@ const Tasktables = () => {
                                     <td >
                                       £ {curr?.interview_price + curr?.photo_price + curr?.videos_price}
                                     </td>
-                                    {/* <td >
-                                      <p className="trend_success"><BsArrowUp />50%</p>
-                                    </td> */}
                                   </tr>
                                 )
                               })}
@@ -337,15 +368,6 @@ const Tasktables = () => {
                             <Typography className="tbl_hdng">
                               Content purchased from tasks
                             </Typography>
-                            <div className="tbl_rt">
-                              <div className="fltrs_prnt">
-                                <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                  Sort
-                                  <BsChevronDown />
-                                </Button>
-                                {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                              </div>
-                            </div>
                           </div>
                           <div className="fix_ht_table">
                             <table
@@ -365,7 +387,7 @@ const Tasktables = () => {
                                   <th>Funds invested</th>
                                 </tr>
                               </thead>
-                              <tbody>{console.log('sourcedContent---->', sourcedContent)}
+                              <tbody>
                                 {
                                   sourcedContent?.map((curr) => {
 
@@ -373,14 +395,10 @@ const Tasktables = () => {
                                       curr?.type === "video" ? curr?.videothubnail :
                                         curr?.type === "audio" ? audioic : "")
                                     return (
-                                      <tr key={curr?._id}>
+                                      <tr key={curr?._id} className="clickable" onClick={() => navigate(`/sourced-content-detail/${curr?._id}`)}>
                                         <td className="content_img_td">
                                           <div className="tbl_cont_wrp">
-                                            <Link to={`/sourced-content-detail/${curr?._id}`} >
-
-                                              <img src={process.env.REACT_APP_UPLOADED_CONTENT + content} className="content_img" />
-                                            </Link>
-                                            {/* <span className="cont_count">+2</span> */}
+                                            <img src={process.env.REACT_APP_UPLOADED_CONTENT + content} className="content_img" />
                                           </div>
                                         </td>
                                         <td className="timedate_wrap">
@@ -390,7 +408,7 @@ const Tasktables = () => {
                                           </p>
                                           <p className="timedate">
                                             <img src={calendar} className="icn_time" />
-                                            {moment(curr?.createdAt).format(`DD MMMM YYYY`)}
+                                            {moment(curr?.createdAt).format(`DD MMM YYYY`)}
                                           </p>
                                         </td>
 
@@ -417,10 +435,10 @@ const Tasktables = () => {
                                               </Tooltip> : curr?.type === "audio" ?
                                                 <Tooltip title="Interview">
                                                   <img
-                                                  src={typeInterviewwt}
-                                                  alt="Photo"
-                                                  className="icn"
-                                                />
+                                                    src={typeInterviewwt}
+                                                    alt="Photo"
+                                                    className="icn"
+                                                  />
                                                 </Tooltip>
                                                 : "N/A"
                                           }
@@ -428,7 +446,7 @@ const Tasktables = () => {
                                         </td>
 
                                         <td className="text-center">
-                                          <Tooltip title="Photo">
+                                          <Tooltip title={curr?.task_id?.category_id?.name}>
                                             <img
                                               src={curr?.task_id?.category_id?.icon}
                                               alt="Exclusive"
@@ -453,7 +471,7 @@ const Tasktables = () => {
                                             </p>
                                           </div>
                                         </td>
-                                        <td>£ {curr?.amount_paid}</td>
+                                        <td>£{formatAmountInMillion(+(curr?.amount_paid))}</td>
                                       </tr>
                                     )
                                   })
@@ -475,15 +493,6 @@ const Tasktables = () => {
                               <Typography className="tbl_hdng">
                                 Funds invested today
                               </Typography>
-                              <div className="tbl_rt">
-                                <div className="fltrs_prnt">
-                                  <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                    Sort
-                                    <BsChevronDown />
-                                  </Button>
-                                  {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                                </div>
-                              </div>
                             </div>
                             <div className="fix_ht_table">
                               <table
@@ -498,7 +507,6 @@ const Tasktables = () => {
                                     <th className='time_th_cstm'>Time & date</th>
                                     <th className="tsk_dlts">Task Details</th>
                                     <th className="tbl_icn_th">Type</th>
-                                    <th className="tbl_icn_th licnc">License</th>
                                     <th className="tbl_icn_th catgr">Category</th>
                                     <th>Location</th>
                                     <th>Published by</th>
@@ -513,11 +521,10 @@ const Tasktables = () => {
                                       curr?.type === "video" ? curr?.videothubnail :
                                         curr?.type === "audio" ? audioic : "")
                                     return (
-                                      <tr key={curr?._id}>
+                                      <tr key={curr?._id} className="clickable" onClick={() => navigate(`/sourced-content-detail/${curr?._id}`)} >
                                         <td className="content_img_td">
                                           <div className="tbl_cont_wrp">
                                             <img src={process.env.REACT_APP_UPLOADED_CONTENT + content} className="content_img" />
-                                            {/* <span className="cont_count">+2</span> */}
                                           </div>
                                         </td>
                                         <td className="timedate_wrap">
@@ -526,7 +533,7 @@ const Tasktables = () => {
                                             <p className="timedate"><img src={watch} className="icn_time" />{moment(curr?.createdAt).format("hh:mm A")}</p>
                                           </p>
                                           <p className="timedate">
-                                            <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr?.createdAt).format("DD MMMM, YYYY")}</p>
+                                            <p className="timedate"><img src={calendar} className="icn_time" />{moment(curr?.createdAt).format("DD MMM, YYYY")}</p>
                                           </p>
                                         </td>
                                         <td className="description_td">
@@ -549,7 +556,6 @@ const Tasktables = () => {
                                                   alt="Photo"
                                                   className="icn"
                                                 /> </Tooltip> : curr?.type === "audio" ?
-                                                // "audio"
                                                 <Tooltip title="Interview">
                                                   <img
                                                     src={interviewic}
@@ -561,29 +567,6 @@ const Tasktables = () => {
 
                                         </td>
                                         <td className="text-center">
-                                          {
-                                            curr?.task_id?.type === "shared" ?
-                                              <Tooltip title="Shared">
-                                                <img
-                                                  src={sharedic}
-                                                  alt="shared"
-                                                  className="icn"
-                                                />
-                                              </Tooltip>
-                                              :
-                                              <Tooltip title="Exclusive">
-                                                <img
-                                                  src={exclusiveic}
-                                                  alt="Exclusive"
-                                                  className="icn"
-                                                />
-                                              </Tooltip>
-                                          }
-
-                                        </td>
-                                        <td className="text-center">
-                                          {/* <Tooltip defaultValue={curr?.task_id?.category_id?.name}>
-                                              </Tooltip> */}
                                           <Tooltip title={curr?.task_id?.category_id?.name}>
                                             <img
                                               src={curr?.task_id?.category_id?.icon}
@@ -604,23 +587,19 @@ const Tasktables = () => {
                                               className="big_img"
                                             />
                                             <p className="hpr_nme">
-                                              {/* {`${curr?.hopper_id?.first_name} ${curr?.hopper_id?.last_name}`}
-                                              <br /> */}
                                               <span className="txt_light">
                                                 {curr?.hopper_id?.user_name}
                                               </span>
                                             </p>
                                           </div>
                                         </td>
-                                        <td>£ {curr?.totalamountpaid - curr?.Vat ?? "0"}</td>
-                                        <td>£ {curr?.Vat ?? "0"}</td>
-                                        <td>£ {curr?.totalamountpaid ?? "0"}</td>
+                                        <td>£{formatAmountInMillion(+(curr?.amount_paid - curr?.task_id?.Vat?.[0] ?? "0"))}</td>
+                                        <td>£{formatAmountInMillion(+(curr?.task_id?.Vat?.[0] ?? "0"))}</td>
+                                        <td>£{formatAmountInMillion(+(curr?.amount_paid ?? "0"))}</td>
                                       </tr>
                                     )
                                   })
                                   }
-
-
                                 </tbody>
                               </table>
                             </div>
@@ -637,15 +616,6 @@ const Tasktables = () => {
                                 <Typography className="tbl_hdng">
                                   Total funds invested
                                 </Typography>
-                                <div className="tbl_rt">
-                                  <div className="fltrs_prnt">
-                                    <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                      Sort
-                                      <BsChevronDown />
-                                    </Button>
-                                    {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                                  </div>
-                                </div>
                               </div>
                               <div className="fix_ht_table">
                                 <table
@@ -664,63 +634,73 @@ const Tasktables = () => {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    <tr>
-                                      <td className="content_wrap more_contnt_wrap">
-                                        <div className="content_imgs_wrap">
-                                          <div className="content_imgs">
-                                            {totalFund?.data && totalFund?.data.map((curr) => {
-                                              const content = (curr?.type === "image" ? curr?.imageAndVideo :
-                                                curr?.type === "video" ? curr?.videothubnail :
-                                                  curr?.type === "audio" ? audioic : "")
-                                              return (
-                                                <Link to="/Sourced-Content" >
-                                                  <img src={process.env.REACT_APP_UPLOADED_CONTENT + content} className="content_img" />
-                                                </Link>
-                                              )
+                                    {
+                                      totalFund?.map((curr) => {
+                                        return <tr>
+                                          <td className="content_wrap more_contnt_wrap">
+                                            <div className="content_imgs_wrap">
+                                              <div className="content_imgs">
+                                              </div>
 
-                                            })}
+                                              <div className="content_imgs">
+                                                {curr?.content_id.map((curr) => {
+                                                  return curr?.type === "image" ? (
+                                                    <img
+                                                      src={
+                                                        process.env
+                                                          .REACT_APP_UPLOADED_CONTENT +
+                                                        curr?.imageAndVideo
+                                                      }
+                                                      className="content_img"
+                                                    />
+                                                  ) : curr?.type === "audio" ? (
+                                                    <img
+                                                      src={interviewic}
+                                                      className="content_img"
+                                                    />
+                                                  ) : curr?.type === "video" ? (
+                                                    <img
+                                                      src={
+                                                        process.env
+                                                          .REACT_APP_UPLOADED_CONTENT +
+                                                        curr?.videothubnail
+                                                      }
+                                                      className="content_img"
+                                                    />
+                                                  ) : null;
+                                                })}
+                                                <span className="arrow_span">
+                                                  <svg
+                                                    stroke="currentColor"
+                                                    fill="currentColor"
+                                                    stroke-width="0"
+                                                    viewBox="0 0 16 16"
+                                                    height="1em"
+                                                    width="1em"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                  >
+                                                    <path
+                                                      fill-rule="evenodd"
+                                                      d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
+                                                    ></path>
+                                                  </svg>
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </td>
+                                          <td className="timedate_wrap">
+                                            <p className="timedate">
+                                              <img src={calendar} className="icn_time" />
+                                              {months[curr?._id?.month - 1]}{" "} {curr?._id?.year}
+                                            </p>
+                                          </td>
+                                          <td>£{formatAmountInMillion(curr?.total_price - curr?.total_vat)}</td>
+                                          <td>£{formatAmountInMillion(curr?.total_vat)}</td>
+                                          <td>£{formatAmountInMillion(curr?.total_price)}</td>
 
-
-
-                                            {/* <img src={contimg3} className="content_img" />
-                                            <img src={contimg3} className="content_img" /> */}
-                                          </div>
-
-                                          <div className="content_imgs">
-                                            {/* <img src={contimg3} className="content_img" />
-                                            <img src={contimg3} className="content_img" /> */}
-
-                                            <span className="arrow_span">
-                                              <svg
-                                                stroke="currentColor"
-                                                fill="currentColor"
-                                                stroke-width="0"
-                                                viewBox="0 0 16 16"
-                                                height="1em"
-                                                width="1em"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                              >
-                                                <path
-                                                  fill-rule="evenodd"
-                                                  d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
-                                                ></path>
-                                              </svg>
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="timedate_wrap">
-                                        <p className="timedate">
-                                          <img src={calendar} className="icn_time" />
-                                          March 2023
-                                        </p>
-                                      </td>
-
-                                      <td>£ {totalFund?.task && totalFund?.task[0]?.totalamountpaid - totalFund?.task[0]?.vat}</td>
-                                      <td>£ {totalFund?.task && totalFund?.task[0]?.vat}</td>
-                                      <td>£ {totalFund?.task && totalFund?.task[0]?.totalamountpaid}</td>
-
-                                    </tr>
+                                        </tr>
+                                      })
+                                    }
                                   </tbody>
                                 </table>
                               </div>
@@ -738,13 +718,6 @@ const Tasktables = () => {
                                     Hoppers used for tasks
                                   </Typography>
                                   <div className="tbl_rt">
-                                    <div className="fltrs_prnt">
-                                      <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                        Sort
-                                        <BsChevronDown />
-                                      </Button>
-                                      {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                                    </div>
                                   </div>
                                 </div>
                                 <div className="fix_ht_table">
@@ -757,19 +730,14 @@ const Tasktables = () => {
                                     <thead>
                                       <tr>
                                         <th className="">Hopper</th>
-                                        <th className="tsk_dlts">Task Details</th>
-                                        <th>Broadcasted time & date</th>
-                                        <th>Location</th>
                                         <th>Uploaded content</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-
-
                                       {
                                         taskDetails && taskDetails?.hopper_used_for_tasks?.task.map((curr) => {
                                           return (
-                                            <tr>
+                                            <tr className="clickable" onClick={() => navigate(`/Uploaded-Content/uploadedhopper_${curr?.task_details?.hopper_details[0]?._id}`)}>
                                               <td>
                                                 <div className="hpr_dt">
                                                   <img
@@ -778,47 +746,23 @@ const Tasktables = () => {
                                                     className="big_img"
                                                   />
                                                   <p className="hpr_nme">
-                                                    {/* {`${curr?.task_details?.hopper_details[0]?.first_name ?? ""} ${curr?.task_details?.hopper_details[0]?.last_name ?? ""}`}
-                                                    <br /> */}
                                                     {curr?.task_details?.hopper_details[0]?.user_name}
-                                                    {/* <span className="txt_light">
-                                                      ({curr?.task_details?.hopper_details[0]?.user_name})
-                                                    </span> */}
                                                     {
                                                       curr?.task_details?.hopper_details[0]?.category == "pro" ? <img src={proIcn} className='proIcn' alt="" srcset="" /> : null
                                                     }
                                                   </p>
                                                 </div>
                                               </td>
-
-                                              <td className="description_td">
-                                                <p className='desc_ht'>
-                                                  {curr?.task_details?.task_description}
-                                                </p>
-                                              </td>
-                                              <td className="timedate_wrap">
-                                                <p className="timedate">
-                                                  <img src={watchic} className="icn_time" />
-                                                  {moment(curr?.task_details?.createdAt).format(`hh:mm A`)}
-                                                </p>
-                                                <p className="timedate">
-                                                  <img src={calendar} className="icn_time" />
-                                                  {moment(curr?.task_details?.createdAt).format(`DD MMMM YYYY`)}
-                                                </p>
-                                              </td>
-                                              <td>
-                                                {curr?.task_details?.location}
-                                              </td>
                                               <td className="content_wrap more_contnt_wrap">
                                                 <div className="content_imgs_wrap">
-                                                  <div className="content_imgs" onClick={() => navigate(`/Uploaded-Content/uploadedhopper_${curr?.task_details?.hopper_details[0]?._id}`)}>
+                                                  <div className="content_imgs">
                                                     {
-                                                      curr?.records && curr?.records.slice(0, 4).map((curr) => {
+                                                      curr?.records?.slice(0, 3)?.map((curr) => {
                                                         return (
                                                           curr?.type === "image" ?
                                                             <img src={process.env.REACT_APP_UPLOADED_CONTENT + curr.imageAndVideo} className="content_img" />
                                                             : curr?.type === "video" ?
-                                                              <img src={process.env.REACT_APP_UPLOADED_CONTENT + curr.videothubnail} className="content_img" />
+                                                              <img src={curr.videothubnail} className="content_img" />
                                                               : curr?.type === "audio" ?
                                                                 <img src={audioic} className="content_img" />
                                                                 : "N/A"
@@ -858,15 +802,6 @@ const Tasktables = () => {
                                   mb="10px"
                                 >
                                   <Typography className="tbl_hdng">Deadline met</Typography>
-                                  <div className="tbl_rt">
-                                    <div className="fltrs_prnt">
-                                      <Button className='sort_btn' onClick={() => { setOpenContentPuchased(true); }}>
-                                        Sort
-                                        <BsChevronDown />
-                                      </Button>
-                                      {openContentPuchased && <NewContentPurchasedOnline closeContPurchased={handleCloseContentPurchased} contentPurchasedSortFilterValues={newContentPurchasedValueHandler} />}
-                                    </div>
-                                  </div>
                                 </div>
                                 <div className="fix_ht_table">
                                   <table
@@ -882,18 +817,17 @@ const Tasktables = () => {
                                         <th>Deadline</th>
                                         <th>Content uploaded time</th>
                                         <th>Delay (+/-)</th>
-                                        {/* <th>Trend</th> */}
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {
                                         taskDetails && taskDetails?.deadline_met?.data.map((curr) => {
                                           return (
-                                            <tr onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{cursor:"pointer"}} >
+                                            <tr onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{ cursor: "pointer" }} >
 
                                               <td className="content_img_td">
                                                 <Link>
-                                                  <div className="mapInput td_mp" onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{cursor:"pointer"}}>
+                                                  <div className="mapInput td_mp" onClick={() => navigate(`/broadcasted-taks/${curr?._id}`)} style={{ cursor: "pointer" }}>
                                                     <style>{`
                                                       .gm-style > div:first-child {
                                                         cursor: pointer !important;
@@ -927,7 +861,7 @@ const Tasktables = () => {
                                                 </p>
                                                 <p className="timedate">
                                                   <img src={calendar} className="icn_time" />
-                                                  {moment(curr.createdAt).format("DD MMMM, YYYY")}
+                                                  {moment(curr.createdAt).format("DD MMM, YYYY")}
                                                 </p>
                                               </td>
                                               <td className="timedate_wrap">
@@ -937,48 +871,33 @@ const Tasktables = () => {
                                                 </p>
                                                 <p className="timedate">
                                                   <img src={calendar} className="icn_time" />
-                                                  {moment(curr.deadline_date).format("DD MMMM, YYYY")}
+                                                  {moment(curr.deadline_date).format("DD MMM, YYYY")}
                                                 </p>
                                               </td>
 
                                               <td className="timedate_wrap">
                                                 <p className="timedate">
                                                   <img src={watchic} className="icn_time" />
-                                                  {curr?.content_details[0]?.createdAt ? moment(curr?.content_details[0]?.createdAt).format("hh:mm a") : 'deadline Not Met'}
+                                                  {curr?.content_details[0]?.createdAt ? moment(curr?.content_details[0]?.createdAt).format("hh:mm a") : ''}
                                                 </p>
                                                 <p className="timedate">
                                                   <img src={calendar} className="icn_time" />
-                                                  {/* {moment(curr?.content_details[0]?.createdAt).format("DD MMMM, YYYY")} */}
-                                                  {curr?.content_details[0]?.createdAt ? moment(curr?.content_details[0]?.createdAt).format("DD MMMM, YYYY") : " deadline Not Met"}
+                                                  {curr?.content_details[0]?.createdAt ? moment(curr?.content_details[0]?.createdAt).format("DD MMM, YYYY") : ""}
 
                                                 </p>
                                               </td>
                                               <td className="timedate_wrap">
                                                 <p className="timedate">
                                                   <img src={watchic} className="icn_time" />
-                                                  {/* <span className="text-green txt_mdm">
-                                                    {myFunction(curr?.deadline_date, curr?.content_details[0]?.createdAt)} hours
-                                                  </span> */}
-                                                  {(() => {
-                                                    const hoursDifference = myFunction(curr?.deadline_date, curr?.content_details[0]?.createdAt);
-                                                    if (hoursDifference > 0) {
-                                                      return <span className="text-green txt_mdm">{hoursDifference} hours</span>
-                                                    } else if (hoursDifference < 0) {
-                                                      return <span className="text-danger txt_mdm">{-hoursDifference} hours</span>
-                                                    } else {
-                                                      return null;
-                                                    }
-                                                  })()}
-
+                                                  {
+                                                    curr?.deadline_date && curr?.content_details[0]?.createdAt &&
+                                                    <span className={`${myFunction(curr?.deadline_date, curr?.content_details[0]?.createdAt)?.sign == "+" ? "text-green" : "text-red"} txt_mdm`}>
+                                                      {myFunction(curr?.deadline_date, curr?.content_details[0]?.createdAt)?.time}
+                                                    </span>
+                                                  }
 
                                                 </p>
                                               </td>
-                                              {/* <td>
-                                                <p className="trend_success">
-                                                  <BsArrowUp />
-                                                  {taskDetails?.deadline_met?.percentage}%
-                                                </p>
-                                              </td> */}
                                             </tr>
                                           )
                                         })
@@ -990,134 +909,8 @@ const Tasktables = () => {
                                 </div>
                               </div>
                             </Card>
-
                 }
               </div>
-
-              {/* <div> */}
-
-              {/* Content sourced from tasks Start */}
-              {/* <Card className="tbl_crd">
-                  <div className="">
-                    <div
-                      className="d-flex justify-content-between align-items-center tbl_hdr"
-                      px="20px"
-                      mb="10px"
-                    >
-                      <Typography className="tbl_hdng">
-                        Content sourced from tasks today
-                      </Typography>
-                      <div className="tbl_rt">
-                        <span className="tbl_rt_txt">Daily</span>
-                      </div>
-                    </div>
-                    <div className="fix_ht_table">
-                      <table
-                        width="100%"
-                        mx="20px"
-                        variant="simple"
-                        className="common_table"
-                      >
-                        <thead>
-                          <tr>
-                            <th className="">Content sourced from tasks</th>
-                            <th>Time & date</th>
-                            <th className="tsk_dlts">Task Details</th>
-                            <th className="tbl_icn_th">Type</th>
-                            <th className="tbl_icn_th licnc">License</th>
-                            <th className="tbl_icn_th catgr">Category</th>
-                            <th>Location</th>
-                            <th>Uploaded by</th>
-                            <th>Funds invested</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="content_img_td">
-                              <div className="tbl_cont_wrp">
-                                <img src={contimg3} className="content_img" />
-                                <span className="cont_count">+2</span>
-                              </div>
-                            </td>
-                            <td className="timedate_wrap">
-                              <p className="timedate">
-                                <img src={watchic} className="icn_time" />
-                                05:45 PM
-                              </p>
-                              <p className="timedate">
-                                <img src={calendar} className="icn_time" />
-                                10 Feb, 2023
-                              </p>
-                            </td>
-                            <td className="description_td">
-                              Lorem ipsum dolor sit amet consectetur adipisicing
-                              elit. Necessitatibus, praesentium!
-                            </td>
-                            <td className="text-center">
-                              <img src={cameraic} alt="Photo" className="icn" />
-                            </td>
-                            <td className="text-center">
-                              <img
-                                src={exclusiveic}
-                                alt="Exclusive"
-                                className="icn"
-                              />
-                            </td>
-                            <td className="text-center">
-                              <img
-                                src={celebrity}
-                                alt="Exclusive"
-                                className="icn"
-                              />
-                            </td>
-                            <td>
-                              5 Canada Square <br />
-                              Canary Wharf <br />
-                              London <br />
-                              E14 5AQ
-                            </td>
-                            <td>
-                              <div className="hpr_dt">
-                                <img
-                                  src={hprimg1}
-                                  alt="Hopper"
-                                  className="big_img"
-                                />
-                                <p className="hpr_nme">
-                                  Janet Morrison
-                                  <br />
-                                  <span className="txt_light">
-                                    (Pseudonymous)
-                                  </span>
-                                </p>
-                              </div>
-                            </td>
-                            <td>£ 700</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </Card> */}
-              {/* Content sourced from tasks End */}
-
-              {/* Funds invested today start */}
-
-              {/* Funds invested today End */}
-
-              {/* Total Funds invested start */}
-
-              {/* Total Funds invested End */}
-
-
-              {/* Hoppers used for tasks start */}
-
-              {/* Hoppers used for tasks End */}
-
-              {/* Deadline time Start */}
-
-              {/* Deadline time End */}
-              {/* </div> */}
             </Col>
           </Row>
         </Container>

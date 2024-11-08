@@ -59,8 +59,10 @@ const Header = () => {
   const [show, setShow] = useState(false);
   const [filter, setFilter] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("")
 
   const [sidebar, setSidebar] = useState(false);
+  const [basketItemsCount,setBasketItemsCount] = useState(0);
   const showSidebar = () => setSidebar(!sidebar);
 
   const handleShow = () => setModalShow(!modalShow);
@@ -103,7 +105,7 @@ const Header = () => {
       } else {
         setFilter([]);
       }
-    }, 500); // Adjust the debounce delay as needed
+    }, 1000); // Adjust the debounce delay as needed
   };
 
   const addTrendingSearch = async (tagName) => {
@@ -119,18 +121,30 @@ const Header = () => {
 
   const handleClose = () => {
     setShow(!show);
+    setSearchQuery("")
   };
 
   const [data, setData] = useState([]);
-  const [count, setCount] = useState("");
+  const [count, setCount] = useState(0);
 
   const getNotification = async () => {
     try {
       const res = await Get(`mediaHouse/notificationlisting`);
-      setData(res?.data?.data);
+      setData(res?.data?.data || []);
       setCount(res?.data?.count);
     } catch (err) { }
   };
+
+  const handelDeleteNotification = async () => {
+    try {
+      setData([]);
+      setCount(0);
+      const res = await Post('mediaHouse/updateNotification/ClearAll');
+    }
+    catch (error) {
+      console.log(error);
+    }
+  }
 
   const read = async (_id) => {
     try {
@@ -144,12 +158,10 @@ const Header = () => {
     } catch (err) { }
   };
 
-  useEffect(() => {
-    getNotification();
-  }, []);
+  
 
   // Dark Mode-
-  const { isDarkMode, toggleDarkMode, disableDarkMode, profileData } = useDarkMode();
+  const { isDarkMode, toggleDarkMode, disableDarkMode, profileData ,cartCount, setCartCount} = useDarkMode();
 
   useEffect(() => {
     const allDivs = document.querySelectorAll("div");
@@ -167,6 +179,37 @@ const Header = () => {
       });
     }
   }, [isDarkMode]);
+
+  const handleSearchChange = (e) => {
+    const searchQuery = e.target.value.toLowerCase(); // Convert search query to lowercase
+
+    // Filter notifications based on search query
+    const filteredNotifications = data.filter((notification) =>
+      notification.body.toLowerCase().includes(searchQuery)
+    );
+
+    console.log("Searching", searchQuery, filteredNotifications, data)
+    setData(data);
+  };
+ 
+
+  async function getCountOfBasketItems(){
+    try{
+      const res = await Get(`mediaHouse/getBasketDataCount`);
+
+              console.log("count",res?.data?.data);
+              setCartCount(res?.data?.data || 0)
+              // setBasketItemsCount(res?.data?.data || 0);
+
+    }catch(error){
+      console.log("basketcountError",error)
+    }
+  }
+
+  useEffect(() => {
+    getNotification();
+    getCountOfBasketItems();
+  }, []);
 
   return (
     <>
@@ -193,7 +236,7 @@ const Header = () => {
                       <FaIcons.FaBars onClick={showSidebar} />
                     </Link>
                   </div>
-                  <nav className={sidebar ? "nav-menu active" : "nav-menu"}>
+                  <nav className={sidebar || window.location.pathname.includes("content") ? "nav-menu active" : "nav-menu"}>
                     <ul className="nav-menu-items" onClick={showSidebar}>
                       <li className="navbar-toggle">
                         <Link to="#" className="menu-bars">
@@ -202,7 +245,7 @@ const Header = () => {
                       </li>
 
                       <li className="nav-text">
-                        <Link to={"/dashboard"}>
+                        <Link to={"/dashboard/exclusive"}>
                           <span>Dashboard</span>
                         </Link>
                       </li>
@@ -217,7 +260,7 @@ const Header = () => {
                         </Link>
                       </li>
                       <li className="nav-text">
-                        <Link to={"/content"}>
+                        <Link to={"/content/exclusive/published/favourited"}>
                           <span>Content</span>
                         </Link>
                       </li>
@@ -237,11 +280,16 @@ const Header = () => {
                         </Link>
                       </li>
                       <li className="nav-text">
-                        <Link to={"/reports"}>
+                        <Link to={"/reports/content"}>
                           <span>Reports</span>
                         </Link>
                       </li>
-                      <li className="nav-text">
+                      <li
+                        className="nav-text"
+                        onClick={() =>
+                          localStorage.removeItem("backBtnVisibility")
+                        }
+                      >
                         <Link to={"/accounts"}>
                           <span>Accounts</span>
                         </Link>
@@ -272,7 +320,7 @@ const Header = () => {
               {/* <Navbar.Toggle aria-controls="basic-navbar-nav" /> */}
               <Navbar id="basic-navbar-nav" className="dash_header_links">
                 <Nav className="me-auto center-links nav_inn align-items-center">
-                  <NavLink to={"/dashboard"} className="nav-link dashboard">
+                  <NavLink to={"/dashboard/exclusive"} className="nav-link dashboard">
                     Dashboard
                   </NavLink>
                   <NavLink
@@ -282,7 +330,7 @@ const Header = () => {
                   >
                     Feed
                   </NavLink>
-                  <NavLink to={"/content"} className="nav-link">
+                  <NavLink to={"/content/exclusive/published/favourited"} className="nav-link">
                     Content
                   </NavLink>
                   <NavLink to={"/broadcasted-taks"} className="nav-link">
@@ -300,10 +348,13 @@ const Header = () => {
                   >
                     Chat
                   </NavLink>
-                  <NavLink to={"/reports"} className="nav-link">
+                  <NavLink to={"/reports/content"} className="nav-link">
                     Reports
                   </NavLink>
-                  <NavLink to={"/accounts"} className="nav-link">
+                  <NavLink to={"/accounts"} className="nav-link"
+                    onClick={() =>
+                      localStorage.removeItem("backBtnVisibility")
+                    }>
                     Accounts
                   </NavLink>
                   <NavLink className="nav-link position-relative usr_lg_name eml">
@@ -376,7 +427,7 @@ const Header = () => {
                         <img src={notifyic} alt="notifications" />
                       </span>
                     </Tooltip>
-                    <span className="msg-count">+{count}</span>
+                    <span className="msg-count">{count}</span>
                     {show && (
                       <div className="notifications_wrap">
                         <div className="ntf_hdr">
@@ -398,66 +449,147 @@ const Header = () => {
                             />
                           </span>
                         </div>
-                        {/* <div className="notf_srch">
+                        <div className="notf_srch">
                           <FiSearch className="searchIcon" />
                           <input
                             type="text"
                             className="notf_srch_inp"
                             placeholder="Search"
+                            onChange={(e) => setSearchQuery(e.target.value.toLowerCase())}
                           />
-                          <img src={fltric} className="icn filter" alt="" />
-                        </div> */}
+                          {/* <img src={fltric} className="icn filter" alt="" /> */}
+                        </div>
+                        <div className="notify_clear" onClick={() => handelDeleteNotification()}>
+                          <button className="clear-btn">Clear all</button>
+                        </div>
                         {/* notfication content Start */}
                         <div className="notfs_list">
-                          {data &&
-                            data.map((curr) => {
-                              return (
-                                <div
-                                  className="notf_wrp"
-                                  onClick={() => read(curr?._id)}
-                                >
-                                  <div className={`notf_item ${!curr?.is_read ? "active" : null}`}>
-                                    {curr?.sender_id?.role === "Hopper" ? (
-                                      <img
-                                        src={
-                                          process.env.REACT_APP_AVATAR_IMAGE +
-                                          curr?.sender_id?.avatar_id?.avatar
-                                        }
-                                        className="notf_img"
-                                        alt=""
-                                      />
-                                    ) : (
-                                      <img
-                                        src={
-                                          process.env.REACT_APP_ADMIN_IMAGE +
-                                          curr?.sender_id?.profile_image
-                                        }
-                                        className="notf_img"
-                                        alt=""
-                                      />
-                                    )}
-                                    <div className="notf_cont_rt">
-                                      <p className="notf_usr d-flex align-items-center justify-content-between">
-                                        {curr?.sender_id?.role === "Hopper"
-                                          ? curr?.sender_id?.user_name
-                                          : curr?.sender_id?.name}
-                                        <span className="notf_time_txt">
-                                          {moment(curr?.createdAt).format("DD MMMM, YYYY")}-
-                                          {moment(curr?.createdAt).format(
-                                            `hh:mm A`
-                                          )}
-                                        </span>
-                                      </p>
-                                      <p className="notf_txt">{curr?.body}</p>
-                                    </div>
+                          {searchQuery ? data?.filter((el) => el?.body?.toLowerCase().includes(searchQuery) || el?.sender_id?.user_name?.toLowerCase().includes(searchQuery) || el?.sender_id?.name?.toLowerCase().includes(searchQuery))?.map((curr) => {
+                            return (
+                              <div
+                                className="notf_wrp"
+                                onClick={() => read(curr?._id)}
+                              >
+                                <div className={`notf_item ${!curr?.is_read ? "active" : null}`}>
+                                  {curr?.sender_id?.role === "Hopper" ? (
+                                    <img
+                                      src={
+                                        process.env.REACT_APP_AVATAR_IMAGE +
+                                        curr?.sender_id?.avatar_ids?.[0]?.avatar
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  ) : curr?.sender_id?.role == "MediaHouse" ? (
+                                    <img
+                                      src={
+                                        curr?.sender_id?.profile_image
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  ) : (
+                                    <img
+                                      src={
+                                        process.env.REACT_APP_ADMIN_IMAGE +
+                                        curr?.sender_id?.profile_image
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  )}
+                                  <div className="notf_cont_rt">
+                                    <p className="notf_usr d-flex align-items-center justify-content-between">
+                                      {curr?.sender_id?.role === "Hopper"
+                                        ? curr?.sender_id?.user_name
+                                        : curr?.sender_id?.name}
+                                      <span className="notf_time_txt">
+                                        {/* {moment(curr?.createdAt).format("hh:mm A DD MMMM YYYY")} */}
+                                        {moment(curr?.createdAt).format("hh:mm A, DD MMM YYYY")}
+
+                                        {/* , {" "} */}
+                                        {/* {moment(curr?.createdAt).format(
+                                          `hh:mm A`
+                                        )} */}
+                                      </span>
+                                    </p>
+                                    <p className="notf_txt">{curr?.title}</p>
+                                    <p className="notf_txt">{curr?.body}</p>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              </div>
+                            );
+                          }) : data?.map((curr) => {
+                            return (
+                              <div
+                                className="notf_wrp"
+                                onClick={() => read(curr?._id)}
+                              >
+                                <div className={`notf_item ${!curr?.is_read ? "active" : null}`}>
+                                  {curr?.sender_id?.role === "Hopper" ? (
+                                    <img
+                                      src={
+                                        process.env.REACT_APP_AVATAR_IMAGE +
+                                        curr?.sender_id?.avatar_ids?.[0]?.avatar
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  ) : curr?.sender_id?.role == "MediaHouse" ? (
+                                    <img
+                                      src={
+                                        curr?.sender_id?.profile_image
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  ) : (
+                                    <img
+                                      src={
+                                        process.env.REACT_APP_ADMIN_IMAGE +
+                                        curr?.sender_id?.profile_image
+                                      }
+                                      className="notf_img"
+                                      alt=""
+                                    />
+                                  )}
+                                  <div className="notf_cont_rt">
+                                    <p className="notf_usr d-flex align-items-center justify-content-between">
+                                      {curr?.sender_id?.role === "Hopper"
+                                        ? curr?.sender_id?.user_name
+                                        : curr?.sender_id?.name}
+                                      <span className="notf_time_txt">
+                                        {/* {moment(curr?.createdAt).format("DD MMMM YYYY")}, {" "}
+                                        {moment(curr?.createdAt).format(
+                                          `hh:mm A`
+                                        )} */}
+                                        {moment(curr?.createdAt).format("hh:mm A, DD MMM YYYY")}
+
+                                      </span>
+                                    </p>
+                                    <p className="notf_txt">{curr?.title}</p>
+                                    <p className="notf_txt">{curr?.body}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
                   </div>
+                  <div className="cart-wrap position-relative" onClick={() => Navigate("/basket")}>
+                    <Tooltip title="Cart">
+                      <span>
+                        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M0.910156 1.32617H5.03467C5.25712 1.32617 5.45282 1.47314 5.51485 1.68677L7.00693 6.82617M7.00693 6.82617L9.80547 16.4656C9.86749 16.6792 10.0632 16.8262 10.2856 16.8262H22.5198C22.7492 16.8262 22.9492 16.67 23.0048 16.4474L25.2548 7.44744C25.3337 7.13187 25.0951 6.82617 24.7698 6.82617H7.00693ZM11.9102 19.8262C13.4289 19.9642 14.5482 21.3074 14.4102 22.8262C14.2852 24.2012 13.2852 25.2012 11.9102 25.3262C10.3914 25.4642 9.04823 24.345 8.91016 22.8262C8.76015 21.1761 10.2601 19.6762 11.9102 19.8262ZM21.4102 19.8262C22.9289 19.9642 24.0482 21.3074 23.9102 22.8262C23.7852 24.2012 22.7852 25.2012 21.4102 25.3262C19.8914 25.4642 18.5482 24.345 18.4102 22.8262C18.2602 21.1761 19.7601 19.6762 21.4102 19.8262Z" stroke="white" />
+                        </svg>
+
+                      </span>
+                    </Tooltip>
+                    <span className="msg-count">{cartCount}</span>
+                  </div>
+
                   <Tooltip title="Dark mode" onClick={toggleDarkMode}>
                     <span>
                       {isDarkMode ? <IoMoon /> : <IoMoonOutline color="#fff" />}
@@ -533,7 +665,7 @@ const Header = () => {
                       </Dropdown.Item>
                       <Dropdown.Item
                         className="d-flex justify-content-between align-items-center"
-                        onClick={() => Navigate("/upload-docs")}
+                        onClick={() => Navigate("/upload-doc-post")}
                       >
                         <div className="menu_itm_wrp d-flex align-items-center">
                           <img
@@ -603,7 +735,7 @@ const Header = () => {
                         </div>
                         <MdKeyboardArrowRight />
                       </Dropdown.Item>
-                      <Dropdown.Item className="d-flex justify-content-between align-items-center">
+                      {/* <Dropdown.Item className="d-flex justify-content-between align-items-center">
                         <div
                           className="menu_itm_wrp d-flex align-items-center"
                           onClick={() => Navigate("/accounts")}
@@ -616,7 +748,7 @@ const Header = () => {
                           Manage payment methods
                         </div>
                         <MdKeyboardArrowRight />
-                      </Dropdown.Item>
+                      </Dropdown.Item> */}
                       <Dropdown.Item
                         className="d-flex justify-content-between align-items-center"
                         to={"/rating-and-review"}
@@ -647,7 +779,7 @@ const Header = () => {
                             alt="my profile"
                             className="menu_img"
                           />
-                          Contact presshop
+                          Contact Presshop
                         </div>
                         <MdKeyboardArrowRight />
                       </Dropdown.Item>

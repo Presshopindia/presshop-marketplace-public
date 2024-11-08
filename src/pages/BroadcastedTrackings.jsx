@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { usePosition } from "use-position";
 import img1 from "../assets/images/img1.png";
 import img2 from "../assets/images/img2.png";
 import img3 from "../assets/images/img4.png";
@@ -23,11 +22,10 @@ import Loader from "../component/Loader";
 import bullseye from "../assets/images/bullseye.svg";
 import calendaric from "../assets/images/calendarnic.svg";
 import timeic from "../assets/images/watch.svg";
+import { formatAmountInMillion } from "../component/commonFunction";
 const BroadcastedTrackings = (props) => {
   const param = useParams();
   const navigate = useNavigate();
-
-  const { latitude, longitude } = usePosition();
   const [liveTasks, setLiveTasks] = useState();
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState("map");
@@ -379,7 +377,7 @@ const BroadcastedTrackings = (props) => {
                             }
                           >
                             {taskDetails?.need_photos === true
-                              ? "£ " + taskDetails?.photo_price
+                              ? "£" + formatAmountInMillion(taskDetails?.photo_price)
                               : "-"}
                           </span>
                         </div>
@@ -393,7 +391,7 @@ const BroadcastedTrackings = (props) => {
                             }
                           >
                             {taskDetails?.need_interview === true
-                              ? "£ " + taskDetails?.interview_price
+                              ? "£" + formatAmountInMillion(taskDetails?.interview_price)
                               : "-"}
                           </span>
                         </div>
@@ -407,14 +405,14 @@ const BroadcastedTrackings = (props) => {
                             }
                           >
                             {taskDetails?.need_videos === true
-                              ? "£ " + taskDetails?.videos_price
+                              ? "£ " + formatAmountInMillion(taskDetails?.videos_price)
                               : "-"}
                           </span>
                         </div>
                       </div>
                     </Col>
                     <Col md={6} className="d-flex justify-content-end">
-                      <div className="taskUploads_media" onClick={() => navigate(`/Uploaded-Content/${taskDetails?._id}`)}>
+                      <div className="taskUploads_media" onClick={() => taskDetails?.content?.length > 0 && navigate(`/Uploaded-Content/${taskDetails?._id}`)}>
                         <div className="mediaWrap uploaded_mda">
                           {taskDetails?.content &&
                             taskDetails?.content.map((curr) => {

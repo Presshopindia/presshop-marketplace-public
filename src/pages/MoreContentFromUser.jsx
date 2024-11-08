@@ -38,46 +38,54 @@ import Loader from "../component/Loader";
 import videoic from "../assets/images/video.svg";
 import interviewic from "../assets/images/interview.svg";
 import cameraic from "../assets/images/camera.svg";
+import favic from "../assets/images/star.svg";
+import favouritedic from "../assets/images/favouritestar.svg";
+import { PaginationComp } from "../component/Pagination";
 
 const MoreContentFromUser = () => {
-  // Sort and Filter-
-  const [openSortComponent, setOpenSortComponent] = useState(false);
-  const [openFilterComponent, setOpenFilterComponent] = useState(false);
-  const [morecontent, moreContentset] = useState([]);
-  const [loading, setLoading] = useState(false)
+  const [moreContent, setMoreContent] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { hopper_id } = useParams()
 
-  const handleCloseFilterComponent = (values) => {
-    setOpenFilterComponent(values);
-  };
+  // Pagination-
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(0);
+  const [limit, setLimit] = useState(8)
+
   const ContentByID = async () => {
     try {
       setLoading(true)
       const resp1 = await Post(`mediaHouse/MoreContent`, {
-        hopper_id: localStorage.getItem("hopperid"),
+        hopper_id: localStorage.getItem("hopperid") || hopper_id,
+        limit: limit,
+        offset: (+(page-1)) * limit
       });
-      moreContentset(resp1.data.content);
-
-      if (resp) {
+      setMoreContent(resp1.data.content);
+      setTotalPage(Math.ceil(resp1.data?.totalCount / limit))
+      if (resp1) {
         setLoading(false)
       }
     } catch (error) {
       // console.log(error);
-        setLoading(false)
+      setLoading(false)
     }
   };
-  const handleCloseSortComponent = (values) => {
-    setOpenSortComponent(values);
-  };
 
-  const timeValuesHandler = (values) => {
-    setTimeValues(values);
-  };
   useEffect(() => {
     ContentByID();
-  }, []);
+  }, [page]);
+
+  const handleFavourite = (i) => {
+    setMoreContent((prev) => {
+      const allContent = [...prev];
+      allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+      return allContent
+    })
+  }
+
   return (
     <>
-    {loading && <Loader />}
+      {loading && <Loader />}
       <Header />
       <div className="feedTags_search">
         <Container fluid>
@@ -104,23 +112,79 @@ const MoreContentFromUser = () => {
                     <h1>More content </h1>
                   </div>
                   <Row className="">
-                    {morecontent &&
-                      morecontent.map((curr) => {
-                        return (
-                          <Col md={3}>
-                              <ContentFeedCard  postcount={curr?.content?.length}
-                                                        feedImg={curr.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail : curr.content[0].media_type === "image" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].media : audioic} feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera} feedTag={"Most Viewed"} userAvatar={imgs} authorName={"pseudonymous"}
+                    {moreContent?.map((curr, index) => {
+
+                      const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
+                      const Video = curr?.content?.filter((curr) => curr?.media_type === "video");
+                      const Image = curr?.content?.filter((curr) => curr?.media_type === "image");
+                      const Pdf = curr?.content?.filter((curr) => curr?.media_type === "pdf");
+                      const Doc = curr?.content?.filter((curr) => curr?.media_type === "doc");
+                      const imageCount = Image.length;
+                      const videoCount = Video.length;
+                      const audioCount = Audio.length;
+                      const pdfCount = Pdf.length;
+                      const docCount = Doc.length;
+
+                      return (
+                        <Col md={3}>
+                          <ContentFeedCard
+                            feedImg={curr.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail : curr.content[0].media_type === "image" ? (curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].media) : audioic} feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
+                            userAvatar={imgs}
+                            authorName={"pseudonymous"}
                             lnkto={`/Feeddetail/content/${curr._id}`}
-                            type_img={exclusive} type_tag={curr.status}
+                            type_img={
+                              curr?.type === "shared" ? shared : exclusive
+                            }
                             feedHead={curr.heading}
-                             
-                            feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")} feedLocation={curr.location} contentPrice={curr.ask_price}
-                            feedTypeImg={curr.content[0].media_type === "audio" ? interviewic :  cameraic} 
+                            feedTime={moment(curr?.createdAt).format("DD MMMM, YYYY")} feedLocation={curr.location} contentPrice={curr.ask_price}
+                            feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                            user_avatar={
+                              process.env.REACT_APP_AVATAR_IMAGE +
+                              curr?.hopper_id?.avatar_id?.avatar
+                            }
+                            author_Name={curr.hopper_id?.user_name}
+                            fvticns={
+                              curr?.favourite_status === "true"
+                                ? favouritedic
+                                : favic
+                            }
+                            content_id={curr?._id}
+                            allContent={curr?.content}
+                            basketValue={curr?.basket_status}
+                            basket={()=>{console.log("myData");
+
+                              setMoreContent((prev) => {
+                                const allContent = [...prev];
+                                allContent[index]["basket_status"] = allContent[index]["basket_status"] === "true" ? "false" : "true";
+                                return allContent
+                              })
+                            }}
+
+                            bool_fav={
+                              curr?.favourite_status === "true"
+                                ? "false"
+                                : "true"
+                            }
+                            favourite={() => handleFavourite(index)}
+                            viewTransaction={"View details"}
+                            viewDetail={`/Feeddetail/content/${curr._id}`}
+                            feedTypeImg1={imageCount > 0 ? cameraic : null}
+                            postcount={imageCount > 0 ? imageCount : null}
+                            feedTypeImg2={videoCount > 0 ? videoic : null}
+                            postcount2={videoCount > 0 ? videoCount : null}
+                            feedTypeImg3={audioCount > 0 ? interviewic : null}
+                            postcount3={audioCount > 0 ? audioCount : null}
+                            feedTypeImg4={pdfCount > 0 ? pdfic : null}
+                            postcount4={pdfCount > 0 ? pdfCount : null}
+                            feedTypeImg5={docCount > 0 ? docsic : null}
+                            postcount5={docCount > 0 ? docCount : null}
+                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
                           />
-                          </Col>
-                        );
-                      })}
+                        </Col>
+                      );
+                    })}
                   </Row>
+                  <PaginationComp totalPage={totalPage} path={`more-content/${hopper_id}`} type="fav" setPage={setPage} page={page} />
                 </div>
               </div>
             </Col>

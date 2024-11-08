@@ -19,7 +19,8 @@ import contactic from "../assets/images/chat-icons/contactus.svg";
 import externalchatic from "../assets/images/chat-icons/externalchat.svg";
 import internalchatic from "../assets/images/chat-icons/internalchat.svg";
 import presshopchatic from "../assets/images/chat-icons/presshoplogo.svg";
-import cameraic from "../assets/images/typeCam.svg";
+import cameraic from "../assets/images/camera.svg";
+import interviewic from "../assets/images/interview.svg";
 import ChatCard from "../component/ChatCard";
 import TopSearchesTipsCard from "../component/card/TopSearchesTipsCard";
 
@@ -35,32 +36,34 @@ import GroupContentDtlChat from "./GroupContentDtlChat";
 
 import io from "socket.io-client";
 import { useDarkMode } from "../context/DarkModeContext";
+import Loader from "../component/Loader";
 const socket = io.connect('https://uat.presshop.live:3005');
 const Chat = () => {
-  const [groupIds, setGroupIds] = useState({
-    contentId: localStorage.getItem("contentId") && JSON.parse(localStorage.getItem("contentId")) || '',
-    room_id: (localStorage.getItem("roomId")) && JSON.parse(localStorage.getItem("roomId")) || '',
-    taskId: ''
-    ,
-  });
-
   const [liveTasks, setLiveTasks] = useState();
   const [loading, setLoading] = useState(false);
   const [taskId, setTaskId] = useState("");
   const [adminList, setAdminList] = useState([]);
   const [userList, setUserList] = useState([]);
-  const [senderId, setSenderId] = useState(localStorage.getItem("receiverId") && JSON.parse(localStorage.getItem("receiverId")) || "");
+  const [senderId, setSenderId] = useState(localStorage.getItem("receiverId") && JSON.parse(localStorage.getItem("receiverId")) || "64bfa693bc47606588a6c807");
   const [fav, setFav] = useState(false);
   const [PublishedData, setPublishedData] = useState([]);
   const [hopperList, setHopperList] = useState([]);
   const [contentList, setContentlist] = useState([]);
   const [admins, setAdmins] = useState([]);
 
+  const [groupIds, setGroupIds] = useState({
+    contentId: ((localStorage.getItem("tabName")) && JSON.parse(localStorage.getItem("tabName")) == "internal" ? JSON.parse(localStorage.getItem("contentId")) : JSON.parse(localStorage.getItem("tabName")) == "external" ? localStorage.getItem("hopperid") : ""),
+    type: localStorage.getItem("type") == "task" ? "task" : "content",
+    room_id: localStorage.getItem("roomId") || '',
+    taskId: '',
+    _id: ""
+  });
+
   const [show, setShow] = useState({
-    content: false,
-    task: false,
-    presshop: ((localStorage.getItem("receiverId"))) ? true : false,
-    internal: ((localStorage.getItem("contentId")) && (localStorage.getItem("roomId"))) ? true : false,
+    content: (localStorage.getItem("tabName") && JSON.parse(localStorage.getItem("tabName")) == "external" && localStorage.getItem("type") == "content") ? true : false,
+    task: (localStorage.getItem("tabName") && JSON.parse(localStorage.getItem("tabName")) == "external" && localStorage.getItem("type") == "task") ? true : false,
+    presshop: (!localStorage.getItem("tabName") || JSON.parse(localStorage.getItem("tabName")) == "presshop") ? true : false,
+    internal: (localStorage.getItem("tabName") && JSON.parse(localStorage.getItem("tabName")) == "internal")  ? true : false,
   });
 
   const { profileData } = useDarkMode();
@@ -89,14 +92,19 @@ const Chat = () => {
     try {
       const resp = await Post(`mediaHouse/internalGroupChatMH`, { type: "is_group_exists" })
       if (resp) {
-        setGroup(resp?.data?.data, `<<<<<this is the resp of groups`)
+        let updatedResp = resp?.data?.data;
+        if(profileData?.role !== "MediaHouse"){
+          updatedResp = updatedResp?.filter((el) => el?.user_details?.map((e) => e?._id)?.includes(profileData?._id))
+        }
+        console.log("HELLO", updatedResp, profileData?.role)
+        setGroup(updatedResp)
       }
     } catch (eror) {
     }
   }
   useEffect(() => {
     getGroups()
-  }, [])
+  }, [profileData])
 
   const LiveTasks = async () => {
     setLoading(true);
@@ -136,7 +144,7 @@ const Chat = () => {
 
     try {
       const resp = await Get(`mediahouse/getallhopperlist`);
-      localStorage.setItem("hopperList", JSON.stringify(resp?.data?.response))
+      // localStorage.setItem("hopperList", JSON.stringify(resp?.data?.response))
       setHopperList(resp.data.response);
       if (resp) {
         setLoading(false);
@@ -147,7 +155,7 @@ const Chat = () => {
   };
 
   const ContentList = async (hopper_id) => {
-    setLoading(true);
+    // setLoading(true);
 
     try {
       const resp = await Get(
@@ -156,6 +164,21 @@ const Chat = () => {
       setContentlist(resp.data.response);
       if (resp) {
         setLoading(false);
+      }
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+
+  const handleUnseenMsg = async (payload) => {
+    setLoading(true);
+
+    try {
+      const resp = await Post(`mediahouse/updateseenforInternalchat`, { room_id: payload?.room_id });
+      if (resp) {
+        setLoading(false);
+        getGroups()
       }
     } catch (error) {
       setLoading(false);
@@ -175,34 +198,20 @@ const Chat = () => {
     HopperList();
 
 
-    if (localStorage.getItem('hopper_is')) {
-      ContentList(localStorage.getItem('hopper_is'));
-      setShow({
-        content: true,
-        task: false,
-        presshop: false,
-      });
-
-      localStorage.removeItem('hopper_is')
+    if (localStorage.getItem('hopperid')) {
+      ContentList(localStorage.getItem('hopperid'));
+      GetUserList()
+      // localStorage.removeItem('hopperid')
 
     }
+
+    window.scrollTo(0, 0);
   }, []);
 
-  const [openRecentActivity, setOpenRecentActivity] = useState(false);
-  const handleCloseRecentActivity = (values) => {
-    setOpenRecentActivity(values);
-  };
-
-  const [recentActivityValues, setRecentActivityValues] = useState({
-    field: "",
-    value: "",
-  });
-  const handleRecentActivityValue = (value) => {
-    setRecentActivityValues({ field: value.field, value: value.values });
-  };
 
   return (
     <>
+      {loading && <Loader />}
       <Header />
       <div className="chat_wrap">
         {
@@ -213,24 +222,11 @@ const Chat = () => {
         }
         <Container fluid className="p-0">
           <div className="d-flex cht_cards_wrap">
-            {/* <div className="d-flex cht_cards_wrap flex-wrap"> */}
             <Card className="cht_lft_card">
-              {/* <div className="cht_lft_tp">
-                <img src={chataddic} alt="Chat" className="icn" />
-              </div> */}
-              {/* <div className="cht_srch">
-                <FiSearch className="searchIcon" />
-                <input
-                  type="text"
-                  className="cht_srch_inp"
-                  placeholder="Search chats"
-                />
-              </div> */}
               <Accordion defaultActiveKey={JSON.parse(localStorage.getItem("tabName")) || "presshop"} className="cht_accrdn">
                 <Accordion.Item className="cht_accdn_item" eventKey="external">
                   <Accordion.Header>
-                    <img src={externalchatic} alt="external chat" /> External
-                    Chat
+                    <img src={externalchatic} alt="external chat" /> Hopper Chat
                   </Accordion.Header>
                   <Accordion.Body>
                     <div className="external_tbs">
@@ -241,15 +237,18 @@ const Chat = () => {
                       >
                         <Tab eventKey="content" title="Content">
                           <div className="chat_list">
-                            {hopperList &&
-                              hopperList.map((curr) => {
+                            {hopperList?.map((curr) => {
                                 return (
                                   <div
-                                    className="chat_usr_itm d-flex align-items-center"
+                                    className={`chat_usr_itm d-flex align-items-center clickable ${show?.content && groupIds?.contentId === curr._id ? 'active' : ''}`}
                                     onClick={() => {
                                       ContentList(curr._id);
                                       setShow({
                                         content: true, task: false, presshop: false,
+                                      });
+                                      setGroupIds({
+                                        ...groupIds,
+                                        contentId: curr._id
                                       });
                                     }}
                                   >
@@ -290,7 +289,7 @@ const Chat = () => {
                               liveTasks.map((curr) => {
                                 return (
                                   <div
-                                    className="chat_usr_itm d-flex align-items-center"
+                                    className={`chat_usr_itm d-flex align-items-center ${show.task && taskId === curr._id ? 'active' : ''}`}
                                     onClick={() => {
                                       setTaskId(curr._id);
                                       setShow({
@@ -298,11 +297,16 @@ const Chat = () => {
                                         task: true,
                                         presshop: false,
                                       });
-                                      // GetHoppers(curr._id, curr.mediahouse_id)
                                     }}
                                   >
                                     <div className="cht_inn w-100 d-flex align-items-center">
                                       <div className="mapInput">
+                                        <style>{`
+                                            .gm-style > div:first-child {
+                                            cursor: pointer !important;
+                                          }
+                                        `}
+                                        </style>
                                         <GoogleMap
                                           googleMapsApiKey={
                                             process.env
@@ -345,12 +349,6 @@ const Chat = () => {
                                             <a> {curr.location}</a>
                                           </p>
                                         </div>
-                                        {/* <div className="cht_time d-flex flex-column align-items-end">
-                                        <span className="msg_count">
-                                          3
-                                        </span>
-                                        <span className='msg_time'>03:41 PM</span>
-                                      </div> */}
                                       </div>
                                     </div>
                                   </div>
@@ -370,11 +368,11 @@ const Chat = () => {
                   </Accordion.Header>
                   <Accordion.Body>
                     <div className="chat_list">
-                      {group &&
-                        group.map((curr) => {
+                      {group?.sort((a, b) => new Date(b?.latest_messege[0]?.createdAt) - new Date(a?.latest_messege[0]?.createdAt))?.map((curr, index) => {
                           return (
                             <div
-                              className="chat_usr_itm d-flex align-items-center"
+                              className={`chat_usr_itm d-flex align-items-center ${groupIds?.contentId === curr?.content_id ? "active" : ""}`}
+                              style={{ cursor: "pointer" }}
                               onClick={() => {
                                 setShow(
                                   {
@@ -388,8 +386,11 @@ const Chat = () => {
                                   ...pre,
                                   contentId: curr?.content_id,
                                   room_id: curr?.room_id,
-                                  taskId: ""
+                                  taskId: "",
+                                  _id: index
                                 }));
+
+                                handleUnseenMsg(curr)
 
                               }}
                             >
@@ -407,7 +408,7 @@ const Chat = () => {
                                   </div>
                                 </div>
                                 <div className="cht_dtl d-flex justify-content-between w-100">
-                                  <div className="cht_txt d-flex flex-column">
+                                  <div className="cht_txt d-flex flex-column auto-width">
                                     <p className="usr_nme mb-0">
                                       <a>
                                         {" "}
@@ -417,14 +418,14 @@ const Chat = () => {
                                       </a>
                                     </p>
                                     <p className="msg_dlt mb-0">
-                                      <a>{curr?.latest_messege[0]?.type === 'text' ? curr?.latest_messege[0]?.message : curr?.latest_messege[0]?.type === 'image' ? <img scr={lastmsgImage} className="lastmsgImg" /> : ''}</a>
+                                      <a>{curr?.latest_messege[0]?.type === 'text' ? curr?.latest_messege[0]?.message : curr?.latest_messege[0]?.type === 'image' ? <img className="lastmsgcamera" src={cameraic} alt="last msg" /> : <img className="lastmsgcamera" src={interviewic} alt="last msg" />}</a>
                                     </p>
                                   </div>
                                   <div className="cht_time d-flex flex-column align-items-end">
-                                    <span className="msg_count">
-                                      {curr?.datofUnreadmessege}
-                                    </span>
-                                    <span className='msg_time'>{moment(curr?.createdAt).format(`hh:mm A`)} </span>
+                                    {
+                                      curr?.datofUnreadmessege != 0 && index != 0 && <span className="msg_count">{curr?.datofUnreadmessege}</span>
+                                    }
+                                    <span className='msg_time'>{moment(curr?.latest_messege[0]?.createdAt).format( "h:mm A, D MMM YYYY" )}</span>
                                   </div>
                                 </div>
                               </div>
@@ -450,7 +451,6 @@ const Chat = () => {
                             <div
                               className="chat_usr_itm d-flex align-items-center"
                               onClick={() => {
-                                // { console.log("curr._id", curr._id) }
                                 setSenderId(curr._id);
                                 setShow({
                                   content: false,
@@ -480,52 +480,48 @@ const Chat = () => {
                                         )}
                                       </a>
                                     </p>
-                                    <p className="msg_dlt mb-0 d-flex align-items-center">
-                                      <span className="cont_type">
-                                        <a>
-                                          {" "}
-                                          <img src={cameraic} alt="Video" />
-                                        </a>
-                                      </span>
-                                      <a> Photo</a>
-                                    </p>
                                   </div>
-                                  {/* <div className="cht_time d-flex flex-column align-items-end">
-                                  <span className="msg_count">
-                                    1
-                                  </span>
-                                  <span className='msg_time'>03:41 PM</span>
-                                </div>*/}
                                 </div>
                               </div>
                             </div>
                           );
-                        })}
-                      {/* <div className="chat_usr_itm active d-flex align-items-center">
-                        <div className="cht_inn w-100 d-flex align-items-center">
-                          <div className="usr_img_wrp position-relative">
-                            <img src={usrimg11} alt="user image" />
-                            <div className="status">
-                              <span className="active">
-                              </span>
+                        })
+                      }
+                      {admins.length === 0 &&
+                        adminList.filter(
+                          (obj1) => obj1.role === "admin"
+                        ).map((curr) => {
+                          return (
+                            <div
+                              className={`chat_usr_itm d-flex align-items-center ${curr?._id === senderId ? "active" : ""}`}
+                              onClick={() => {
+                                setSenderId(curr._id);
+                                setShow({
+                                  content: false,
+                                  task: false,
+                                  presshop: true,
+                                });
+                              }}
+                            >
+                              <div className="cht_inn w-100 d-flex align-items-center">
+                                <div className="usr_img_wrp position-relative">
+                                  <img src={process.env.REACT_APP_ADMIN_IMAGE + curr?.profile_image} alt="user image" />
+                                  <div className="status">
+                                    <span className="active"></span>
+                                  </div>
+                                </div>
+                                <div className="cht_dtl d-flex justify-content-between w-100">
+                                  <div className="cht_txt d-flex flex-column">
+                                    <p className="usr_nme mb-0">
+                                      <a> {curr?.name}</a>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="cht_dtl d-flex justify-content-between w-100">
-                            <div className="cht_txt d-flex flex-column">
-                              <p className="usr_nme mb-0">
-                                Seema kumar
-                                <img src={presshopchatic} alt="Presshop logo" className='ms-1' />
-                              </p>
-                              <p className="msg_dlt mb-0 d-flex align-items-center">
-                                Thankyou, i will get back to you.
-                              </p>
-                            </div>
-                            <div className="cht_time d-flex flex-column align-items-end">
-                              <span className='msg_time'>03:41 PM</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div> */}
+                          );
+                        })
+                      }
                     </div>
                   </Accordion.Body>
                 </Accordion.Item>
@@ -543,295 +539,14 @@ const Chat = () => {
               )}
               <div className="cht_tsk_cht d-flex flex-column">
                 {show.presshop && <ChatCard senderId={senderId} />}
-
-                {show.internal &&
-                  <GroupContentDtlChat params={groupIds} />
-                }
-
-                {/* <Chatinternal senderId={senderId} /> */}
-
+                {show.internal && <GroupContentDtlChat params={groupIds} />}
                 {show.task && <ChatCardSocket id={taskId} />}
-
-                {show.content && (
-                  <ContentDtlChat contents={contentList} users={userList} />
-                )}
-
-                {/* <ChatParticipants id={taskId} senderId={senderId} /> */}
+                {show.content && <ContentDtlChat contents={contentList} users={userList} />}
               </div>
             </div>
           </div>
-          {/* Start feed  */}
-          <Row>
-            <Col md={12}>
-              <div className="feedsMain_wrap content_tp_m">
-                {/* <div className="feedsContainer">
-                  <div className="feedContent_header">
-                    <h1>Latest content</h1>
-                    <Link to="/Uploaded-Content/all">View all<BsArrowRight className='text-pink' /></Link>
-                  </div>
-                  <Row className=''>
-                    {PublishedData && PublishedData.map((curr, index) => {
-                      if (index > (PublishedData.length - 5)) {
-                        return (
-                          <Col md={3}>
-                            <ContentFeedCard feedImg={curr.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail :curr.content[0].media_type === "audio"
-                                ? audioic :  process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].media} feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera} feedTag={"Most Viewed"} userAvatar={imgs} authorName={"pseudonymous"}
-                              lnkto={`/Feeddetail/content/${curr._id}`}
-                              fvticns={curr?.favourite_status === "true" ? favouritedic : favic}
-                              content_id={curr._id}
-                              bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                              favourite={handleFavourite}
-                              type_img={shared} type_tag={curr.type}
-                              feedHead={curr.description}
-                              feedTime={moment(curr.timestamp).format("hh:mm A , DD MMMM YY")} feedLocation={curr.location} contentPrice={`£${curr.ask_price}`}
-                            />
-                          </Col>
-                        )
-                      }
-                    })}
-                  </Row>
-                </div> */}
 
-                {/* <div className="feedsContainer">
-                  <div className="feedContent_header">
-                    <h1>Related content</h1>
-                    <div className="d-flex align-items-center">
-                      <div className="fltrs_prnt me-3 ht_sort">
-                        <Button
-                          className="sort_btn"
-                          onClick={() => {
-                            setOpenRecentActivity(true);
-                          }}
-                        >
-                          Sort
-                          <BsChevronDown />
-                        </Button>
-                        {openRecentActivity && (
-                          <RecentActivityDF
-                            closeRecentActivity={handleCloseRecentActivity}
-                            recentActivityValues={handleRecentActivityValue}
-                          />
-                        )}
-                      </div>
-                      <Link to="/related-content" className="next_link">
-                        View all
-                        <BsArrowRight className="text-pink" />
-                      </Link>
-                    </div>
-                  </div>
-                  <Row className="">
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"lorem ipsum"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={interviewic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"500"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"lorem ipsum"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={interviewic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£500"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"lorem ipsum"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={videoic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£500"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"lorem ipsum"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={interviewic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£500"}
-                      />
-                    </Col>
-                  </Row>
-                </div> */}
-
-                {/* <div className="feedsContainer mb-0">
-                  <div className="feedContent_header">
-                    <h1>More content from Pseudynoumos</h1>
-                    <div className="d-flex align-items-center">
-                      <div className="fltrs_prnt me-3 ht_sort">
-                        <Button
-                          className="sort_btn"
-                          onClick={() => {
-                            setOpenRecentActivity(true);
-                          }}
-                        >
-                          Sort
-                          <BsChevronDown />
-                        </Button>
-                        {openRecentActivity && (
-                          <RecentActivityDF
-                            closeRecentActivity={handleCloseRecentActivity}
-                            recentActivityValues={handleRecentActivityValue}
-                          />
-                        )}
-                      </div>
-                      <Link to="/more-content" className="next_link">
-                        View all
-                        <BsArrowRight className="text-pink" />
-                      </Link>
-                    </div>
-                  </div>
-                  <Row className="">
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"Heading"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={videoic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£328"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"Heading"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={interviewic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£328"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"Heading"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={videoic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£328"}
-                      />
-                    </Col>
-
-                    <Col md={3}>
-                      <ContentFeedCard
-                        lnkto={""}
-                        feedImg={audioic}
-                        feedType={contentVideo}
-                        feedTag={"Most Viewed"}
-                        userAvatar={imgs}
-                        authorName={"Pseudonymous"}
-                        type_img={exclusive}
-                        type_tag={"Exclusive"}
-                        feedHead={"Heading"}
-                        fvticns={favic}
-                        feedTypeImg={cameraic}
-                        postcount={2}
-                        feedTypeImg2={interviewic}
-                        postcount2={3}
-                        feedTime={"12:36 PM, 10 Oct 2022"}
-                        feedLocation={"Grenfell Tower, London"}
-                        contentPrice={"£328"}
-                      />
-                    </Col>
-                  </Row>
-                </div> */}
-              </div>
-            </Col>
-          </Row>
-
-          <div className="mt-0">
+          <div className="mt-4">
             <TopSearchesTipsCard />
           </div>
 

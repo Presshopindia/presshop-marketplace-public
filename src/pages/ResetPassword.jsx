@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 // import usrLoginbg from "../assets/images/usrLoginbg.jpg"
 import Form from 'react-bootstrap/Form';
 // import Email from "../assets/images/mail.svg"
-import forgotrtimg from "../assets/images/forgotrtimg.svg";
+// import forgotrtimg from "../assets/images/forgotrtimg.svg";
 import OtpInput from 'react-otp-input';
 import timeout from "../assets/images/timeout.svg";
 import user from "../assets/images/user.svg"
@@ -135,14 +135,14 @@ const UserForgetPassword = () => {
                         <div className="inputs_wrap d-flex justify-content-between log_inputs">
                           <Form.Group className="position-relative" controlId="formBasicPassword">
                             <img src={lock} className="frnt_ic" alt="" />
-                            <Form.Control type={!visibility1 ? 'password' : 'text'} className="rnd grey" placeholder="Choose new password" onChange={(e) => setPassword(e.target.value)} required />
+                            <Form.Control type={!visibility1 ? 'password' : 'text'} autoComplete="off" className="rnd grey" placeholder="Choose new password" onChange={(e) => setPassword(e.target.value)} required />
                             {!visibility1 && <div color='#000' className="pass_ic_wrap" onClick={() => { setVisibility1(true) }}><BsEyeSlash /></div>}
                             {visibility1 && <div color='#000' className="pass_ic_wrap" onClick={() => { setVisibility1(false) }}><BsEye /></div>}
                             {/* <img className='view_pass' src={eye} alt="" /> */}
                           </Form.Group>
                           <Form.Group className="position-relative" controlId="formBasicPassword">
                             <img src={lock} className="frnt_ic" alt="" />
-                            <Form.Control type={!visibility2 ? 'password' : 'text'} className="rnd grey" placeholder="Confirm password" onChange={(e) => setConfirm_Password(e.target.value)} required />
+                            <Form.Control type={!visibility2 ? 'password' : 'text'} className="rnd grey" placeholder="Confirm password" autoComplete="off" onChange={(e) => setConfirm_Password(e.target.value)} required />
                             {!visibility2 && <div color='#000' className="pass_ic_wrap" onClick={() => { setVisibility2(true) }}><BsEyeSlash /></div>}
                             {visibility2 && <div color='#000' className="pass_ic_wrap" onClick={() => { setVisibility2(false) }}><BsEye /></div>}
                             {/* <img className='view_pass' src={eye} alt="" /> */}
@@ -159,7 +159,7 @@ const UserForgetPassword = () => {
                 </Col>
                 <Col lg="6" className="">
                   <div className="left-side">
-                    <img src={forgotrtimg} className='w-100' alt="" />
+                    <img src={"https://uat-presshope.s3.eu-west-2.amazonaws.com/public/user/1721378348137forgotrtimg.svg"} className='w-100' alt="" />
                     <h2 className="mt-3 text-center">We are here to <span className='txt_bold'>help</span></h2>
                   </div>
                 </Col>

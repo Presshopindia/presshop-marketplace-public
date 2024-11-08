@@ -40,12 +40,12 @@ import "swiper/css";
 // import interviewic from "../assets/images/interview.svg";
 // import videoic from "../assets/images/video.svg";
 import { Pagination } from "swiper";
+import { formatAmountInMillion } from "../component/commonFunction";
 
 const SourcedContentDetail = () => {
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
   const [transactionDetails, setTransactionDetails] = useState();
-  const [exclusiveContent, setExclusiveContent] = useState([]);
   const [taskId, setTaskId] = useState(null);
 
   const getTransactionDetails = async () => {
@@ -53,7 +53,6 @@ const SourcedContentDetail = () => {
     try {
       const res = await Post(`mediahouse/getSourcedContentbytask`, { _id: id });
       if (res) {
-        // console.log(res, `<----there is a response of detail`)
         setTransactionDetails(res?.data?.data[0]);
         setTaskId(res?.data?.data[0]?.task_id?._id)
         setLoading(false);
@@ -64,60 +63,12 @@ const SourcedContentDetail = () => {
     }
   };
 
-  // recent activity
-  const recentActivity = async () => {
-    try {
-      if (taskId) {
-        const response = await Post('mediaHouse/recentactivityformediahouse', {
-          task_id: taskId,
-        });
-      }
-    } catch (err) {
-      console.error(err); 
-    }
-  };
-
-  useEffect(() => {
-    recentActivity();
-  }, [taskId]);
-
-
-  const ExclusiveContnetLists = async () => {
-    setLoading(true);
-    try {
-      const res = await Get(`mediaHouse/get/exclusive/content`);
-      if (res) {
-        setExclusiveContent(res?.data?.data);
-        setLoading(false);
-      }
-    } catch (er) {
-      // console.log(er, `<------erors`);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     getTransactionDetails();
-    ExclusiveContnetLists();
   }, []);
-
-  const [openRecentActivity, setOpenRecentActivity] = useState(false);
-  const handleCloseRecentActivity = (values) => {
-    setOpenRecentActivity(values);
-  };
-
-  const [recentActivityValues, setRecentActivityValues] = useState({
-    field: "",
-    value: "",
-  });
-  const handleRecentActivityValue = (value) => {
-    // console.log("handleFavouriteComponentValues", value);
-    setRecentActivityValues({ field: value.field, value: value.values });
-  };
 
   return (
     <>
-      {/* {console.log(transactionDetails, `<----whar is `)} */}
       {loading && <Loader />}
       <Header />
       <div className="page-wrap feed-detail">
@@ -143,13 +94,6 @@ const SourcedContentDetail = () => {
                               alt=""
                             />
                           </div>
-                          {/* <div className="post_itm_icns right dtl_icns">
-                            <img
-                              className="feedMediaType iconBg"
-                              src={favic}
-                              alt=""
-                            />
-                          </div> */}
                           {/* <img src={data ? (data.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + data.content[0].thumbnail : (data?.paid_status === "paid" ? process.env.REACT_APP_CONTENT_MEDIA + data.content[0].media : data.content[0].watermark)) : (fav?.content_id.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + fav?.content_id.content[0].thumbnail : process.env.REACT_APP_CONTENT_MEDIA + fav?.content_id.content[0].media)} alt="" /> */}
                           <Swiper
                             spaceBetween={50}
@@ -160,8 +104,6 @@ const SourcedContentDetail = () => {
                             slidesPerGroupSkip={1}
                             focusableElements="pagination"
                             nested={true}
-                            // onSlideChange={() => console.log("slide change")}
-                            // onSwiper={(swiper) => console.log(swiper)}
                           >
                             {
 
@@ -185,9 +127,6 @@ const SourcedContentDetail = () => {
                                     </SwiperSlide>
                                     : null
                             }
-
-                            {/* )
-                            })} */}
                           </Swiper>
 
                           <div className="feedTitle_content">
@@ -198,16 +137,8 @@ const SourcedContentDetail = () => {
                               {transactionDetails?.task_id?.task_description}
                             </p>
                           </div>
-                          {/* <div className="text-end my-3 mx-4">
-                            <Link className="txt_bold text-dark">
-                              View more{" "}
-                              <BsArrowRight className="text-pink ms-1" />
-                            </Link>
-                          </div> */}
                         </CardContent>
                       </Card>
-
-
                     </Col>
                     <Col md={4}>
                       <Card className="feeddetail-card h-100 content-info trnsc_info_crd">
@@ -224,7 +155,6 @@ const SourcedContentDetail = () => {
                                 )}
                             </div>
                           </div>
-                          {/* <hr /> */}
                           <div className="content">
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
@@ -274,38 +204,19 @@ const SourcedContentDetail = () => {
                                     <span>
                                       <MdOutlineWatchLater />
                                       {moment(
-                                        transactionDetails?.task_id?.timestamp).format(`hh:mm A, DD MMMM YYYY`)}
+                                        transactionDetails?.createdAt).format(`hh:mm A, DD MMMM YYYY`)}
                                     </span>
                                   ) : (
                                     <span>
                                       <MdOutlineWatchLater />{" "}
                                       {moment(
-                                        transactionDetails?.task_id?.updatedAt
+                                        transactionDetails?.createdAt
                                       ).format(`hh:mm A, DD MMMM YYYY`)}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
-                            {/* 
-                            <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Hashtags</span>
-                                <div>
-
-                                  <div className="item-in-right hashtag-wrap">
-                                    {transactionDetails?.content_id?.tag_ids
-                                      .slice(0, 3)
-                                      .map((curr) => (
-                                        <span key={curr?._id} className="mr">
-                                          {curr?.name}
-                                        </span>
-                                      ))}
-                                  </div>
-                                </div>
-                              </div>
-
-                            </div> */}
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
                                 <span className="fnt-bold">Category</span>
@@ -322,40 +233,9 @@ const SourcedContentDetail = () => {
                                 </div>
                               </div>
                             </div>
-                            {/* <div className="sub-content">
-                              <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Licence Type</span>
-
-                                {transactionDetails?.type === "content" &&
-                                transactionDetails?.content_id?.type ===
-                                  "shared" ? (
-                                  <div className="">
-                                    <img
-                                      src={sharedic}
-                                      className="exclusive-img"
-                                      alt=""
-                                    />
-                                    <span className="txt_catg_licn">
-                                      Shared
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="">
-                                    <img
-                                      src={exclusive}
-                                      className="exclusive-img"
-                                      alt=""
-                                    />
-                                    <span className="txt_catg_licn">
-                                      Exclusive
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div> */}
                             <div className="foot cont-info-actions d-flex justify-content-between align-items-center">
                               <span className="greyBtn">
-                                £{transactionDetails?.amount_paid}
+                                £{formatAmountInMillion(+(transactionDetails?.amount_paid))}
                               </span>
                             </div>
                           </div>
@@ -378,7 +258,7 @@ const SourcedContentDetail = () => {
                         </div>
                         <div className="transactional_detail">
                           <div className="single_tranInfo">
-                            <h6>Invoice no.</h6>
+                            <h6>Invoice number</h6>
                             <h6>{transactionDetails?.transictions?.invoiceNumber}</h6>
                           </div>
                         </div>
@@ -438,7 +318,7 @@ const SourcedContentDetail = () => {
                                   <h6>Payment date</h6>
                                   <h6>
                                     {moment(
-                                      transactionDetails?.createdAt
+                                      transactionDetails?.payment_detail[0]?.purchased_time
                                     ).format(`DD MMMM YYYY`)}
                                   </h6>
                                 </div>
@@ -448,7 +328,7 @@ const SourcedContentDetail = () => {
                                   <h6>Payment time</h6>
                                   <h6>
                                     {moment(
-                                      transactionDetails?.createdAt
+                                      transactionDetails?.payment_detail[0]?.purchased_time
                                     ).format(`hh:mm A`)}
                                   </h6>
                                 </div>
@@ -479,7 +359,7 @@ const SourcedContentDetail = () => {
                               <hr />
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>Company no.</h6>
+                                  <h6>Company number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.admin_details
@@ -490,7 +370,7 @@ const SourcedContentDetail = () => {
                               </div>
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>VAT no.</h6>
+                                  <h6>VAT number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.admin_details
@@ -545,7 +425,7 @@ const SourcedContentDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {
@@ -594,7 +474,7 @@ const SourcedContentDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {

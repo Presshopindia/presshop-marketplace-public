@@ -5,73 +5,18 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import { MdOutlineWatchLater } from "react-icons/md";
 import { Row, Button, Col } from 'react-bootstrap';
-import { useState } from "react";
-import { useEffect } from "react";
-import moment from "moment/moment";
 import { useNavigate } from 'react-router-dom';
-import { UserDetails } from "./../Utils";
-import { Post } from "../../services/user.services";
 
 function DashBoardTabCards(props) {
     const navigate = useNavigate()
-    const usernew = UserDetails
-
-    const paymentintent = async (curr) => {
-        // console.log(curr)
-        const obj = {
-            // image_id: curr.image_id,
-            amount: curr.contentPrice,
-            type: "content",
-            customer_id: UserDetails.stripe_customer_id
-        }
-        const resp = await Post('mediahouse/createPayment', obj)
-        window.open(resp.data.url, '_blank')
-
-    }
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-
-        // getCurrentTimeDifference()
-
-        return () => {
-            clearInterval(timer);
-        };
-    }, []);
-
-    const getCurrentTimeDifference = () => {
-
-        const uploadedTime = new Date(props.tabcard4 && props.tabcard4);
-        const timeDifference = Math.abs(currentTime - uploadedTime);
-        const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24)); // 1 day = 24 hours = 24 * 60 * 60 * 1000 milliseconds
-        const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
-
-        if (days > 0) {
-            return {
-                days,
-                hours,
-                minutes
-            };
-        } else {
-            return {
-                hours,
-                minutes,
-            };
-        }
-    };
-
 
     return (
         <>
             <Card className="exclusive_shrd_wrap list-card tabs-wrap mb-3">
                 <CardContent className="dash-c-body dash-tabs" onClick={() => navigate(props.lnkto)}>
                     <div className="list-in tab-card-wrap">
-                        <Row className="align-items-center" onClick={() => paymentintent(props)} >
-                            <Col md={5}>
+                        <Row className="align-items-center" >
+                            <Col md={props?.before_discount_value ? 4 : 5}>
                                 <div className="d-flex align-items-center">
                                     {props.image_type === "audio" ?
                                         <div div className="cstm_icn_wrpr">
@@ -108,7 +53,7 @@ function DashBoardTabCards(props) {
                                     {props.tabcard4}
                                 </Typography>
                             </Col>}
-                            <Col>
+                            {/* <Col>
                                 <div className=" bid-txt">
                                     <span className="feedtype_icon"
                                         style={{
@@ -120,12 +65,33 @@ function DashBoardTabCards(props) {
                                         {props.feedType}
                                     </span>
                                 </div>
-                            </Col>
-                            <Col>
-                                <div className="buyFeed_opt text-center">
-                                    <Button className="theme-btn" >{props.tabcard3}</Button>
+                            </Col> */}
+                                <Col md={2}>
+                                <div className="d-flex flex-column align-items-center">
+                                    <img className="list-card-img img2 me-0" src={props?.imgtab1} alt="1" />
+                                    <Typography
+                                        sx={{ fontSize: 14 }}
+                                        color="text.secondary"
+                                        gutterBottom className="usr_nme mb-0 txt-inline"
+                                    >
+                                        {props?.tabcard5}
+                                    </Typography>
                                 </div>
                             </Col>
+                            {
+                                props?.before_discount_value ?
+                                    <Col md={3}>
+                                        <div className={`buyFeed_opt text-center btn-grp`}>
+                                            <span className="contentPrice_text dash-cntnt-price">£{props?.before_discount_value}</span>
+                                            <Button className="theme-btn">{props.tabcard3}</Button>
+                                        </div>
+                                    </Col> :
+                                    <Col>
+                                        <div className="buyFeed_opt text-center">
+                                            <Button className="theme-btn">{props.tabcard3}</Button>
+                                        </div>
+                                    </Col>
+                            }
                         </Row>
                     </div>
 

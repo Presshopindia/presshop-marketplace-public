@@ -7,13 +7,17 @@ import monthlyic from "../../../assets/images/sortIcons/monthly.svg";
 
 import Form from "react-bootstrap/Form";
 
-const NewFavourite = ({ closeFav, favouriteSortValues }) => {
+const NewFavourite = ({ closeFav, favouriteSortValues,active,setActive }) => {
 
   const handleClose = (values) => {
+    if (values === false) {
+      favouriteSortValues({ field: "", values: "", type: "favourite" });
+      setActive("")
+    }
     closeFav(values)
   }
 
-  const [active, setActive] = useState("")
+  // const [active, setActive] = useState("")
 
   const [filterSort, setFilterSort] = useState({ field: "", values: "", type: "favourite" })
 

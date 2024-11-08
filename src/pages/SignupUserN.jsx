@@ -36,6 +36,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import Header from "../component/Header";
 import { useDarkMode } from "../context/DarkModeContext";
+import Loader from "../component/Loader";
 
 const SignupUserN = () => {
   // Parse data from local storage
@@ -43,6 +44,7 @@ const SignupUserN = () => {
   const localOffice = JSON.parse(localStorage.getItem("OfficeDetails"));
 
   // React state variables
+  const [loading, setLoading] = useState(false);
   const [officetypes, setOfficeTypes] = useState([]);
   const [departmentTypes, setDepartmentTypes] = useState([]);
   const [officeNames, setOfficeNames] = useState([]);
@@ -71,31 +73,36 @@ const SignupUserN = () => {
       city: "",
       country: "",
       post_code: "",
-      website: "",
+      website: `https://${""}`,
       office_type_id: "option1",
     },
   });
-  const { name, number, vat } = useParams();
+  const { name, number, vat, email, first_name, last_name, user_id } = useParams();
 
   // Define the initial state for onboardingUser
   const [onboardingUser, setOnboardingUser] = useState({
-    full_name: "",
+    full_name: `${first_name} ${last_name}` || "",
     designation_id: "",
     profile_image: "",
-    office_name: "",
+    office_id: "",
     department_id: "",
     phone: "",
     country_code: "",
-    email: "",
-    admin_rights: {
-      allowed_to_complete_access: "",
-      allowed_to_broadcase_task: "",
-      allowed_to_purchase_content: "",
-    },
-    price_range: {
-      minimum_price: "no_min",
-      maximum_price: "no_max",
-    },
+    email: email || "",
+    admin_rignts: {
+      allowed_to_onboard_users: false,
+      allowed_to_deregister_users: false,
+      allowed_to_assign_users_rights: false,
+      allowed_to_set_financial_limit: false,
+      allowed_complete_access: false,
+      allowed_to_broadcast_tasks: false,
+      allowed_to_purchase_content: false,
+      allow_to_chat_externally: false,
+      price_range: {
+        minimum_price: 0,
+        maximum_price: 0
+      }
+    }
   });
   // Function to handle adding office details
   const AddOfficeDetails = async (e) => {
@@ -141,11 +148,21 @@ const SignupUserN = () => {
     const name = event.target.name;
     const value = event.target.value;
 
-    // console.log("name, value12312", name, value);
-    setAddOffice((prev) => ({
-      ...prev,
-      office_details: { ...prev.office_details, [name]: value },
-    }));
+    // console.log("name, value12312", name, value, value.length);
+    if (name === "phone") {
+      if (value.length <= 15) {
+        setAddOffice((prev) => ({
+          ...prev,
+          office_details: { ...prev.office_details, [name]: value },
+        }));
+      }
+    }
+    else {
+      setAddOffice((prev) => ({
+        ...prev,
+        office_details: { ...prev.office_details, [name]: value },
+      }));
+    }
   };
 
   // console.log("addOffice123123", addOffice);
@@ -156,7 +173,7 @@ const SignupUserN = () => {
     const value = event.target.checked;
     setOnboardingUser((prev) => ({
       ...prev,
-      admin_rights: { ...prev.admin_rights, [name]: value },
+      admin_rignts: { ...prev.admin_rignts, [name]: value },
     }));
   };
 
@@ -166,7 +183,12 @@ const SignupUserN = () => {
     const value = event.target.value;
     setOnboardingUser((prev) => ({
       ...prev,
-      price_range: { ...prev.price_range, [name]: value },
+      admin_rignts: {
+        ...prev.admin_rignts,
+        price_range: { 
+          ...prev.admin_rignts.price_range, [name]: value 
+        },
+      }
     }));
   };
 
@@ -255,25 +277,44 @@ const SignupUserN = () => {
     setDesignation(list.data?.data);
   };
 
+  const getProfile = async (user_id) => {
+    const data = await Post(`mediaHouse/getProfileAccordingUserId`, { user_id });
+    console.log("data-->", data?.data?.profile)
+    setOnboardingUser({
+      ...onboardingUser,
+      designation_id: data?.data?.profile?.designation_id?._id,
+      department_id: data?.data?.profile?.department_id?._id,
+      office_id: data?.data?.profile?.office_id?._id,
+      profile_image: data?.data?.profile?.profile_image,
+      phone: data?.data?.profile?.phone,
+      country_code: data?.data?.profile?.country_code,
+    })
+  };
+
+
   useEffect(() => {
     getOfficeType();
     getDepartmentType();
     getDesignation();
     getOfficeDetails(vat);
+    getProfile(user_id)
   }, []);
 
   const addUser = async (event) => {
     event.preventDefault();
     try {
+      setLoading(true);
       const res = await Patch(
         `mediaHouse/complete/onboard/user/details`,
-        onboardingUser
+        { ...onboardingUser, number, vat, first_name, last_name, status: "approved" }
       );
       if (res) {
         navigate("/login");
+        setLoading(false);
         // console.log(res, `,<<<<<<<after onboard`);
       }
     } catch (error) {
+      setLoading(false);
       // console.log(error);
       // Handle errors here
     }
@@ -338,9 +379,40 @@ const SignupUserN = () => {
     });
   };
 
+
+  const phoneInputRef1 = useRef(null);
+  useEffect(() => {
+    const phoneInput = document.querySelector('.p_1');
+    const inputElement = phoneInputRef1.current;
+
+    const handleFocus = () => {
+      inputElement.focus();
+    };
+    phoneInput.addEventListener('click', handleFocus);
+
+    return () => {
+      phoneInput.removeEventListener('click', handleFocus);
+    };
+  }, []);
+
+  const phoneInputRef2 = useRef(null);
+  useEffect(() => {
+    const phoneInput = document.querySelector('.p_2');
+    const inputElement = phoneInputRef2.current;
+
+    const handleFocus = () => {
+      inputElement.focus();
+    };
+    phoneInput.addEventListener('click', handleFocus);
+
+    return () => {
+      phoneInput.removeEventListener('click', handleFocus);
+    };
+  }, []);
+
   return (
     <>
-
+      {loading && <Loader />}
       <Header />
       <div className="page-wrap login-page sign p-0">
         <Container fluid className="pdng">
@@ -348,7 +420,6 @@ const SignupUserN = () => {
             <Row className="row-w-m m-0 position-relative">
               <Col lg="6" className="bg-white p-0">
                 <div className="login_stepsWrap left-pdng">
-                  {/* {currentStep === 1 && ( */}
                   <div className="onboardMain">
                     <div className="onboardIntro">
                       <h1 className="mb-0">Onboard new user</h1>
@@ -360,17 +431,11 @@ const SignupUserN = () => {
                       </div>
                     </div>
                     <div className="onboardStep">
-                      {/* <form onSubmit={(e) => {
-                                                AddOffice(e)
-                                                e.preventDefault()
-                                            }}> */}
                       <div className="companyDetails sign_section">
                         <p className="onbrdheading sign_hdng">
                           Company Details
                         </p>
                         <Row>
-                          {/* <Col md={9}>
-                                                        <Row> */}
                           <Col md={4} className="mb-4">
                             <Form.Group className="form-group">
                               <img src={follower} alt="company" />
@@ -413,23 +478,11 @@ const SignupUserN = () => {
                               />
                             </Form.Group>
                           </Col>
-                          {/* </Row>
-                                                    </Col> */}
-                          {/* <Col md={3}>
-                                                        <div className="currentPic logo_inp position-relative text-center">
-                                                            {AdminDetails.company_details.profile_image === "" && <img src={addPic} alt="" />}
-                                                            {AdminDetails.company_details.profile_image !== "" && <img className="uploaded" src={AdminDetails.company_details.profile_image} alt="" />}
-                                                            {AdminDetails.company_details.profile_image === "" && <span className='mt-2 d-block'>Add company logo</span>}
-                                                            <input type="file" disabled={onboard} required onChange={(e) => {
-                                                                AddCompanyLogo(e.target.files[0])
-                                                            }} />
-                                                        </div>
-                                                    </Col> */}
                         </Row>
                       </div>
 
                       <div className="officeDetails sign_section">
-                        <Form>
+                        <Form onSubmit={(e) => { e.preventDefault(); toast.success("Office added successfully") }}>
                           <p className="onbrdheading sign_hdng">
                             Office details
                           </p>
@@ -479,28 +532,14 @@ const SignupUserN = () => {
                                 </Select>
                               </Form.Group>
                             </Col>
-                            <Col md={12}>
+                            <Col md={6}>
                               <Form.Group className="mb-4 form-group">
                                 <img src={location} alt="" />
-                                {/* <Autocomplete className="addr_custom_inp w-100"
-                                                                    apiKey={"AIzaSyApYpgGb1pLhudPj9EBdMxd8tArd0nGp5M"}
-                                                                    placeholder=' Enter office address'
-                                                                    value={addOffice.office_details.complete_address}
-                                                                    // onPlaceSelected={(place) => {
-                                                                    //     handleAddress(place)
-                                                                    // }}
-                                                                    // onInput={(place) => {
-                                                                    // }}
-                                                                /> */}
                                 <Form.Control
                                   type="text"
                                   className=""
-                                  placeholder="Apartment number/House name *"
+                                  placeholder="Apartment number/Bulding name *"
                                   name="pincode"
-                                  // value={addOffice.office_details.post_code}
-                                  //  onFocus={handlePopupOpen}
-                                  //  onClick={handlePopupOpen}
-                                  //  ref={searchBoxRefStreet}
                                   value={
                                     addOffice.office_details.complete_address
                                   }
@@ -510,18 +549,13 @@ const SignupUserN = () => {
                                       office_details: {
                                         ...prev.office_details,
                                         complete_address: e.target.value,
-                                        //   city,
-                                        //   country,
-                                        //   latitude,
-                                        //   longitude,
-                                        //   post_code: postalCode,
                                       },
                                     }));
                                   }}
                                 />
                               </Form.Group>
                             </Col>
-                            <Col md={3} className="">
+                            <Col md={6} className="">
                               <Form.Group className="mb-4 form-group">
                                 <img src={location} alt="" />
                                 <Form.Control
@@ -529,7 +563,6 @@ const SignupUserN = () => {
                                   className=""
                                   placeholder="Post code"
                                   name="pincode"
-                                  // value={addOffice.office_details.post_code}
                                   onFocus={handlePopupOpen}
                                   onClick={handlePopupOpen}
                                   ref={searchBoxRefStreet}
@@ -543,7 +576,7 @@ const SignupUserN = () => {
                                 )}
                               </Form.Group>
                             </Col>
-                            <Col md={4}>
+                            <Col md={6}>
                               <Form.Group className="mb-4 form-group">
                                 <img src={location} alt="" />
                                 <Form.Control
@@ -556,7 +589,7 @@ const SignupUserN = () => {
                                 />
                               </Form.Group>
                             </Col>
-                            <Col md={5}>
+                            <Col md={6}>
                               <Form.Group className="mb-4 form-group">
                                 <img src={location} alt="" />
                                 <Form.Control
@@ -571,20 +604,20 @@ const SignupUserN = () => {
                             </Col>
                             <Col md={6}>
                               <div className="number_inp_wrap">
-                                {/* Phone start */}
                                 <input
                                   type="number"
                                   className="input_nmbr"
                                   name="phone"
                                   placeholder="Phone"
                                   required
-                                  value={addOffice?.phone}
+                                  value={addOffice?.office_details?.phone}
                                   onChange={(e) => {
                                     handleOfficeChange(e);
                                   }}
+                                  ref={phoneInputRef1}
                                 />
                                 <PhoneInput
-                                  className="f_1 cntry_code"
+                                  className="f_1 cntry_code p_1"
                                   international
                                   required
                                   countryCallingCodeEditable={true}
@@ -598,10 +631,8 @@ const SignupUserN = () => {
                                       },
                                     }));
                                   }}
-                                //   readOnly
                                 />
                               </div>
-                              {/* <h6 className='text-pink cursor-pointer'>Add another phone number</h6> */}
                             </Col>
                             <Col md={6}>
                               <Form.Group className="mb-4 form-group">
@@ -615,14 +646,12 @@ const SignupUserN = () => {
                                   onChange={(e) => {
                                     handleOfficeChange(e);
                                   }}
+                                  value={addOffice.office_details.website || ""}
                                 />
                               </Form.Group>
                             </Col>
                           </Row>
-
-                          {/* <FormControlLabel className='anthr_office_check'
-                                                        control={<Checkbox />} label="Onboard another office" /> */}
-                          <Button className="w-100 theme_btn" variant="primary">
+                          <Button className="w-100 theme_btn" variant="primary" type="submit">
                             Save
                           </Button>
                         </Form>
@@ -654,19 +683,9 @@ const SignupUserN = () => {
                                     />
                                   </Form.Group>
                                 </Col>
-                                {/* <Col md={6}>
-                                                                <Form.Group className="mb-4 form-group">
-                                                                    <img src={office} alt="" />
-                                                                    <Form.Control type="text" className="" value={localAdmin?.last_name} placeholder='Enter last name' name='last_name' />
-                                                                </Form.Group>
-                                                            </Col> */}
                                 <Col md={6}>
-                                  {/* {filteredDesignation && filteredDesignation.map((item) => {
-                                                                        return ( */}
                                   <Form.Group className="mb-4 form-group">
                                     <img src={chair} alt="" />
-                                    {/* <Form.Control type="text" className="" value={""} placeholder='Designation' name='designation_id' /> */}
-
                                     <Select
                                       className="w-100 slct_sign"
                                       name="designation"
@@ -700,8 +719,6 @@ const SignupUserN = () => {
                                         ))}
                                     </Select>
                                   </Form.Group>
-                                  {/* )
-                                                                    })} */}
                                 </Col>
                                 <Col md={6}>
                                   <Form.Group className="mb-4 form-group">
@@ -709,13 +726,13 @@ const SignupUserN = () => {
                                     <Select
                                       className="w-100 slct_sign"
                                       value={
-                                        onboardingUser?.office_name || "option1"
+                                        onboardingUser?.office_id || "option1"
                                       }
-                                      name="office_name"
+                                      name="office_id"
                                       onChange={(e) =>
                                         setOnboardingUser((pre) => ({
                                           ...pre,
-                                          office_name: e.target.value,
+                                          office_id: e.target.value,
                                         }))
                                       }
                                     >
@@ -734,7 +751,6 @@ const SignupUserN = () => {
                                             </MenuItem>
                                           );
                                         })}
-                                      {/* <MenuItem value="option3">Option 3</MenuItem> */}
                                     </Select>
                                   </Form.Group>
                                 </Col>
@@ -805,7 +821,6 @@ const SignupUserN = () => {
 
                             <Col md={6} className="admn_numb_wrap">
                               <div className="number_inp_wrap w-100">
-                                {/* Phone start */}
                                 <input
                                   type="number"
                                   required
@@ -814,25 +829,27 @@ const SignupUserN = () => {
                                   placeholder=" phone"
                                   name="phone"
                                   onChange={(e) =>
-                                    setOnboardingUser((pre) => ({
+                                    e.target.value?.length <= 15 ? setOnboardingUser((pre) => ({
                                       ...pre,
                                       phone: e.target.value,
-                                    }))
+                                    })) : ""
                                   }
+                                  ref={phoneInputRef2}
                                 />
                                 <PhoneInput
-                                  className="f_1 cntry_code"
+                                  className="f_1 cntry_code p_2"
                                   international
                                   countryCallingCodeEditable={true}
                                   required
                                   name="country_code"
+                                  value={onboardingUser?.country_code}
+                                  // defaultCountry={`${onboardingUser?.country_code + onboardingUser?.phone}`}
                                   onChange={(e) => {
                                     setOnboardingUser((pre) => ({
                                       ...pre,
                                       country_code: e,
                                     }));
                                   }}
-                                //   readOnly
                                 />
                               </div>
                             </Col>
@@ -876,24 +893,15 @@ const SignupUserN = () => {
                         <div className="adminDetails sign_section">
                           <p className="onbrdheading sign_hdng">User rights</p>
                           <Row>
-                            {/* <Col md={4} className='mb-3'>
-                                                            <FormControlLabel className='check_label'
-                                                                control={<Checkbox />}
-                                                                checked={AdminDetails.admin_rights.allowed_to_complete_access}
-                                                                name='allowed_to_complete_access'
-                                                                label="Allowed complete access"
-                                                            />
-                                                        </Col> */}
-
                             <Col md={4} className="mb-3">
                               <FormControlLabel
                                 className="check_label"
                                 control={<Checkbox />}
                                 checked={
-                                  onboardingUser?.admin_rights
-                                    ?.allowed_to_complete_access
+                                  onboardingUser?.admin_rignts
+                                    ?.allowed_complete_access
                                 }
-                                name="allowed_to_complete_access"
+                                name="allowed_complete_access"
                                 onChange={handleAdminRights}
                                 label="Allowed complete access"
                               />
@@ -903,23 +911,20 @@ const SignupUserN = () => {
                                 className="check_label"
                                 control={<Checkbox />}
                                 checked={
-                                  onboardingUser?.admin_rights
-                                    .allowed_to_broadcase_task
+                                  onboardingUser?.admin_rignts
+                                    .allowed_to_broadcast_tasks
                                 }
-                                name="allowed_to_broadcase_task"
+                                name="allowed_to_broadcast_tasks"
                                 onChange={handleAdminRights}
                                 label="Allowed to broadcast tasks"
                               />
                             </Col>
-                            {/* <Col md={4} className='mb-3'>
-                                                            <FormControlLabel className='check_label' control={<Checkbox disabled />} checked={AdminDetails.admin_rights.allowed_to_broadcast_tasks} name='allowed_to_broadcast_tasks' onChange={handleAdminRights} label="Allowed to chat externally" />
-                                                        </Col> */}
                             <Col md={4} className="mb-3">
                               <FormControlLabel
                                 className="check_label"
                                 control={<Checkbox />}
                                 checked={
-                                  onboardingUser?.admin_rights
+                                  onboardingUser?.admin_rignts
                                     .allowed_to_purchase_content
                                 }
                                 name="allowed_to_purchase_content"
@@ -935,25 +940,17 @@ const SignupUserN = () => {
                                 <div className="row">
                                   <div className="col-lg-6">
                                     <Form.Group className="mb-4 form-group">
-                                      {/* <Select className="w-100" value={AdminDetails.admin_rights.price_range.minimum_price} disabled={!AdminDetails.admin_rights.allowed_to_purchase_content ? true : false} name='minimum_price'
-                                                                        onChange={(e) => {
-                                                                            setAdminDetails((prev) => ({ ...prev, admin_rights: { ...prev.admin_rights, price_range: { ...prev.admin_rights.price_range, "minimum_price": e.target.value } } }))
-                                                                        }}
-                                                                    >
-                                                                        <MenuItem className="selectPlaceholder" value="no_min">No min</MenuItem>
-                                                                        <MenuItem value="0">0</MenuItem>
-                                                                        <MenuItem value="10">10</MenuItem>
-                                                                    </Select> */}
                                       <input
                                         type="number"
                                         className="w-100"
                                         name="minimum_price"
                                         placeholder="No min"
                                         value={
-                                          onboardingUser?.price_range
-                                            ?.minimum_price
+                                          onboardingUser?.admin_rignts?.price_range?.minimum_price
                                         }
                                         onChange={handlePriceRange}
+                                        disabled={!onboardingUser?.admin_rignts
+                                          .allowed_to_purchase_content}
                                       />
                                     </Form.Group>
                                   </div>
@@ -965,19 +962,17 @@ const SignupUserN = () => {
                                         name="maximum_price"
                                         placeholder="No max"
                                         value={
-                                          onboardingUser?.price_range
-                                            ?.maximum_price
+                                          onboardingUser?.admin_rignts?.price_range?.maximum_price
                                         }
                                         onChange={handlePriceRange}
+                                        disabled={!onboardingUser?.admin_rignts
+                                          .allowed_to_purchase_content}
                                       />
                                     </Form.Group>
                                   </div>
                                 </div>
                               </div>
                             </Col>
-                            {/* <Col md={4} className='mb-3'>
-                                                                <FormControlLabel className='check_label' control={<Checkbox defaultChecked desabled />} label="Onboard another user" />
-                                                            </Col> */}
                           </Row>
                         </div>
                         <div className="stepFooter">
@@ -1001,10 +996,10 @@ const SignupUserN = () => {
                   <span className="shape bl_crcl pos_abs"></span>
                   <span className="shape gr_tri pos_abs"></span>
                   <span className="shape rd_crcl pos_abs"></span>
-                  {/* <div className="left-side text-center">
-                                        <img src={accessCenter} alt="" />
-                                        <h2>Let's start delivering <span className="txt_bld">news</span></h2>
-                                    </div> */}
+                  <div className="left-side text-center news-img">
+                    <img src={accessCenter} alt="" />
+                    <h2>Let's start delivering <span className="txt_bld">news</span></h2>
+                  </div>
                 </div>
               </Col>
             </Row>

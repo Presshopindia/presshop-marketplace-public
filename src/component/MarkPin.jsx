@@ -22,7 +22,6 @@ const MarkPin = ({setstreet_address, setDetails}) => {
     const [markerPosition, setMarkerPosition] = useState(null);
   
     const handleMapClick = (event) => {
-      console.log("event ----->", event)
       const lat = event.latLng.lat();
       const lng = event.latLng.lng();
       setMarkerPosition({ lat, lng });
@@ -32,14 +31,10 @@ const MarkPin = ({setstreet_address, setDetails}) => {
       const lat = event.latLng.lat();
       const lng = event.latLng.lng();
       setMarkerPosition({ lat, lng });
-  
-      console.log("Marker dragged to:", event);
     };
   
     if (loadError) return 'Error loading maps';
     if (!isLoaded) return 'Loading Maps';
-
-    console.log('markerPosition', markerPosition)
   
     return (
       <GoogleMap

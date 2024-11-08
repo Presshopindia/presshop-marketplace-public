@@ -1,44 +1,67 @@
 // DarkModeContext.js
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Get } from '../services/user.services';
+import { createContext, useContext, useEffect, useState } from "react";
+import { Get } from "../services/user.services";
 
 const DarkModeContext = createContext();
 
 export const DarkModeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(
-    localStorage.getItem('darkMode') === 'enabled'
+    localStorage.getItem("darkMode") === "enabled"
   );
   const [profileData, setProfileData] = useState({});
   const [profileChange, setProfileChange] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [onBoardData, setOnBoardData] = useState({});
+
+  const [registrationDetails, setRegistrationDetails] = useState({
+    first_name: "",
+    last_name: "",
+    designation_id: "",
+    password: "",
+    cnfm_password: "",
+  });
 
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode ? 'enabled' : 'disabled');
+    localStorage.setItem("darkMode", newMode ? "enabled" : "disabled");
   };
 
   const disableDarkMode = () => {
     const newMode = false;
     setIsDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode ? 'enabled' : 'disabled');
+    localStorage.setItem("darkMode", newMode ? "enabled" : "disabled");
   };
 
-  const getProfileData = async() => {
-    try{
-      const data = await Get('mediahouse/getProfile')
-      setProfileData(data.data.profile)
-    }
-    catch(error){
+  const getProfileData = async () => {
+    try {
+      const data = await Get("mediahouse/getProfile");
+      setProfileData(data.data.profile);
+    } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-  useEffect(() =>{
+  useEffect(() => {
     getProfileData();
-  }, [isDarkMode, profileChange])
+  }, [isDarkMode, profileChange]);
 
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode, disableDarkMode, profileData, setProfileChange }}>
+    <DarkModeContext.Provider
+      value={{
+        isDarkMode,
+        toggleDarkMode,
+        disableDarkMode,
+        profileData,
+        setProfileChange,
+        registrationDetails,
+        setRegistrationDetails,
+        cartCount,
+        setCartCount,
+        onBoardData,
+        setOnBoardData,
+      }}
+    >
       {children}
     </DarkModeContext.Provider>
   );

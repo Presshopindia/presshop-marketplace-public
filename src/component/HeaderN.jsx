@@ -11,9 +11,10 @@ import { IconContext } from "react-icons";
 
 // STYLES
 import "../Navbar.scss";
-const HeaderN = ({ scrollToDiv }) => {
+const HeaderN = ({ scrollToDiv,activeHeader}) => {
   const [sidebar, setSidebar] = useState(false);
   const showSidebar = () => setSidebar(!sidebar);
+  console.log("activeHeader",activeHeader)
   return (
     <>
       <Navbar className="headerNav pre_nav">
@@ -46,12 +47,17 @@ const HeaderN = ({ scrollToDiv }) => {
                   </li>
 
                   <li className="nav-text">
-                    <Link onClick={() => scrollToDiv("div1")}>
+                    <Link
+                    className={activeHeader=="div1"?"bg-red":""} 
+                     onClick={() => scrollToDiv("div1")}>
                       <span>About Presshop</span>
                     </Link>
                   </li>
                   <li className="nav-text">
-                    <Link onClick={() => scrollToDiv("div2")}>
+                    <Link 
+                    className={activeHeader=="div2"?"bg-red":""} 
+
+                    onClick={() => scrollToDiv("div2")}>
                       <span>Platform</span>
                     </Link>
                   </li>
@@ -100,31 +106,40 @@ const HeaderN = ({ scrollToDiv }) => {
               <Nav className="me-auto center-links lndg_nav_links">
                 <NavLink
                   onClick={() => scrollToDiv("div1")}
-                  className="active nav-link"
+                  // className="active nav-link"
+                  className={activeHeader=="div1"?"nav-linkActiveNav":"nav-link"} 
+
                 >
                   About Presshop
                 </NavLink>
                 <NavLink
+                  className={activeHeader=="div2"?"nav-linkActiveNav":"nav-link"} 
                   onClick={() => scrollToDiv("div2")}
-                  className="nav-link"
+                  // className="nav-link"
                 >
                   Platform
                 </NavLink>
                 <NavLink
                   onClick={() => scrollToDiv("div3")}
-                  className="nav-link"
+                  // className="nav-link"
+                  className={activeHeader=="div3"?"nav-linkActiveNav":"nav-link"} 
+
                 >
                   Features
                 </NavLink>
                 <NavLink
                   onClick={() => scrollToDiv("div4")}
-                  className="nav-link"
+                  // className="nav-link"
+                  className={activeHeader=="div4"?"nav-linkActiveNav":"nav-link"} 
+
                 >
                   Reports
                 </NavLink>
                 <NavLink
                   onClick={() => scrollToDiv("div5")}
-                  className="nav-link"
+                  // className="nav-link"
+                  className={activeHeader=="div5"?"nav-linkActiveNav":"nav-link"} 
+
                 >
                   FAQs
                 </NavLink>

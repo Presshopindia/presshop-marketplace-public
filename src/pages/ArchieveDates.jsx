@@ -6,20 +6,32 @@ import { Link } from "react-router-dom"
 import { BsArrowLeft } from "react-icons/bs"
 import { DateRangePicker } from 'react-date-range';
 
+const startDate = new Date();
+startDate.setDate(startDate.getDate() - 31);
+// startDate.setMonth(startDate.getMonth() - 1);
 
+const endDate = new Date();
+endDate.setDate(endDate.getDate() - 31);
+
+// endDate.setMonth(endDate.getMonth() - 1);
+
+console.log("startdate",startDate)
+console.log("enddate",endDate)
 const ArchieveDates = () => {
 
     const [selectionRange, setSelectionRange] = useState({
-        startDate: new Date(),
-        endDate: new Date(),
+        startDate,
+        endDate,
         key: 'selection',
     });
 
     const handleSelect = (ranges) => {
-        // console.log("ranges123123", ranges);
         setSelectionRange({ startDate: ranges?.selection?.startDate, endDate: ranges?.selection?.endDate, key: "selection" })
     };
 
+
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() - 31);
 
     return (
         <>
@@ -46,6 +58,10 @@ const ArchieveDates = () => {
                         <DateRangePicker
                             ranges={[selectionRange]}
                             onChange={handleSelect}
+                            maxDate={maxDate}
+                            staticRanges={[]}
+                            inputRanges={[]}
+
                         />
                         <div className="text-center">
                             <Link className="btn MuiButton-primary" to={`/archieve-items/:${new Date(selectionRange.startDate).toISOString()}/:${new Date(selectionRange.endDate).toISOString()}`}>Check Archived Items</Link>

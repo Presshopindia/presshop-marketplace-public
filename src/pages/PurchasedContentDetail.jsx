@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from "react";
+import { React, useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 // import HeaderN from "../component/HeaderN"
 import imgs from "../assets/images/imgn6.jpg";
@@ -21,7 +21,7 @@ import { MdOutlineWatchLater, MdAdd } from "react-icons/md";
 import contentCamera from "../assets/images/contentCamera.svg";
 import contentVideo from "../assets/images/contentVideo.svg";
 import TopSearchesTipsCard from "../component/card/TopSearchesTipsCard";
-import { SlLocationPin } from "react-icons/sl";
+import { SlLocationPin, SlMagnifierAdd } from "react-icons/sl";
 import DbFooter from "../component/DbFooter";
 import Header from "../component/Header";
 import { Get, Patch, Post } from "../services/user.services";
@@ -45,6 +45,8 @@ import shared from "../assets/images/share.png";
 // import videoic from "../assets/images/video.svg";
 
 import { Pagination } from "swiper";
+import { formatAmountInMillion } from "../component/commonFunction";
+import ViewContent from "../component/ViewContent";
 
 const PurchasedContentDetail = () => {
   const [morecontent, setmoreContentset] = useState([]);
@@ -56,6 +58,10 @@ const PurchasedContentDetail = () => {
   const [exclusiveContent, setExclusiveContent] = useState([]);
   const [contentId, setContentId] = useState(null);
 
+  const [openContent, setOpenContent] = useState(false);
+  const [showContent, setShowContent] = useState({});
+  const [imageSize, setImageSize] = useState({ height: 0, width: 0 });
+
   const getTransactionDetails = async () => {
     setLoading(true);
     try {
@@ -63,6 +69,16 @@ const PurchasedContentDetail = () => {
       setContentId(res?.data?.resp?.content_id?._id);
       if (res) {
         setTransactionDetails(res?.data?.resp);
+        setShowContent(res?.data?.resp?.content_id?.content?.[0])
+
+        if (res?.data?.resp?.content_id?.content?.[0]?.media_type == "image") {
+          const img = new Image();
+          img.src = res?.data?.resp?.content_id?.content?.[0]?.watermark;
+          img.onload = function () {
+            setImageSize({ height: img.height, width: img.width })
+          };
+        }
+
         const resp1 = await Post(`mediaHouse/MoreContent`, {
           hopper_id: res?.data?.resp?.hopper_id?._id,
         });
@@ -71,6 +87,7 @@ const PurchasedContentDetail = () => {
         const resp2 = await Post(`mediaHouse/relatedContent`, {
           tag_id: [res?.data?.resp.content_id?.tag_ids[0]?._id],
           hopper_id: res?.data?.resp?.hopper_id?._id,
+          category_id: res?.data?.resp?.category_id?._id
         });
         setRelatedContent(resp2.data.content);
 
@@ -97,6 +114,8 @@ const PurchasedContentDetail = () => {
   useEffect(() => {
     getTransactionDetails();
     ExclusiveContnetLists();
+    // For dynamic scrolling
+    // window.scrollTo(0, 950)
   }, []);
 
   const [openRecentActivity, setOpenRecentActivity] = useState(false);
@@ -111,11 +130,6 @@ const PurchasedContentDetail = () => {
   const handleRecentActivityValue = (value) => {
     setRecentActivityValues({ field: value.field, value: value.values });
   };
-
-  const formatAmountInMillion = (amount) =>
-    amount?.toLocaleString("en-US", {
-      maximumFractionDigits: 0,
-    });
 
   const Audio = transactionDetails?.content_id?.content?.filter(
     (item) => item?.media_type === "audio"
@@ -147,7 +161,7 @@ const PurchasedContentDetail = () => {
       if (resp) {
         getTransactionDetails();
       }
-    } catch (error) {}
+    } catch (error) { }
   };
 
   // recent activity
@@ -169,9 +183,26 @@ const PurchasedContentDetail = () => {
     recentActivity();
   }, [contentId]);
 
+
+  const audioRef = useRef(null);
+
+  const toggleAudio = () => {
+    const audio = audioRef.current;
+    if (audio.paused) {
+      audio.play().catch((error) => {
+        console.error("Error playing audio:", error);
+      });
+    } else {
+      audio.pause();
+    }
+  };
+
+  const DownloadContent = async (id) => {
+    window.open(`${process.env.REACT_APP_BASE_URL}mediahouse/image_pathdownload?image_id=${id}&type=content`, "_blank");
+  };
+
   return (
     <>
-      {/* {console.log(transactionDetails, `<-----------transaction details`)} */}
       {loading && <Loader />}
       <Header />
       <div className="page-wrap feed-detail">
@@ -189,197 +220,194 @@ const PurchasedContentDetail = () => {
                     <Col md={8}>
                       <Card className="feeddetail-card left-card">
                         <CardContent className="card-content position-relative">
-                          <div className="post_icns_cstm_wrp">
-                            {Audio && Audio.length > 0 && (
-                              <div className="post_itm_icns dtl_icns">
-                                {Audio && Audio.length > 0 && (
-                                  <span className="count">
-                                    {Audio && Audio.length > 0 && Audio.length}
-                                  </span>
-                                )}
+                          <div className="photo-resize">
+                            <div className="post_icns_cstm_wrp">
+                              {Audio && Audio.length > 0 && (
+                                <div className="post_itm_icns dtl_icns">
+                                  {Audio && Audio.length > 0 && (
+                                    <span className="count">
+                                      {Audio && Audio.length > 0 && Audio.length}
+                                    </span>
+                                  )}
 
-                                {Audio && Audio.length > 0 && (
-                                  <img
-                                    className="feedMediaType iconBg"
-                                    src={interviewic}
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                            )}
-
-                            {Video && Video.length > 0 && (
-                              <div className="post_itm_icns dtl_icns">
-                                {Video && Video.length > 0 && (
-                                  <span className="count">
-                                    {Video && Video.length > 0 && Video.length}
-                                  </span>
-                                )}
-                                {Video && Video.length > 0 && (
-                                  <img
-                                    className="feedMediaType iconBg"
-                                    src={videoic}
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                            )}
-
-                            {images && images.length > 0 && (
-                              <div className="post_itm_icns dtl_icns">
-                                {images && images.length > 0 && (
-                                  <span className="count">
-                                    {images &&
-                                      images.length > 0 &&
-                                      images.length}
-                                  </span>
-                                )}
-
-                                {images && images.length > 0 && (
-                                  <img
-                                    className="feedMediaType iconBg"
-                                    src={cameraic}
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                            )}
-                            {Pdf && Pdf.length > 0 && (
-                              <div className="post_itm_icns dtl_icns">
-                                {Pdf && Pdf.length > 0 && (
-                                  <span className="count">
-                                    {Pdf && Pdf.length > 0 && Pdf.length}
-                                  </span>
-                                )}
-
-                                {Pdf && Pdf.length > 0 && (
-                                  <img
-                                    className="feedMediaType iconBg"
-                                    src={pdfic}
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                            )}
-
-                            {Doc && Doc.length > 0 && (
-                              <div className="post_itm_icns dtl_icns">
-                                {Doc && Doc.length > 0 && (
-                                  <span className="count">
-                                    {Doc && Doc.length > 0 && Doc.length}
-                                  </span>
-                                )}
-
-                                {Doc && Doc.length > 0 && (
-                                  <img
-                                    className="feedMediaType iconBg"
-                                    src={docsic}
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {/* {console.log(transactionDetails?.content_id?.favourite_status, `<-----status`)} */}
-                          <div
-                            className="post_itm_icns right dtl_icns"
-                            onClick={Favourite}
-                          >
-                            {transactionDetails?.content_id
-                              ?.favourite_status === "true" ? (
-                              <img
-                                className="feedMediaType iconBg"
-                                src={favouritedic}
-                                alt=""
-                              />
-                            ) : (
-                              <img
-                                className="feedMediaType iconBg"
-                                src={favic}
-                                alt=""
-                              />
-                            )}
-                          </div>
-                          {/* <img src={data ? (data.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + data.content[0].thumbnail : (data?.paid_status === "paid" ? process.env.REACT_APP_CONTENT_MEDIA + data.content[0].media : data.content[0].watermark)) : (fav?.content_id.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + fav?.content_id.content[0].thumbnail : process.env.REACT_APP_CONTENT_MEDIA + fav?.content_id.content[0].media)} alt="" /> */}
-                          <Swiper
-                            spaceBetween={50}
-                            slidesPerView={1}
-                            // navigation
-                            pagination={{ clickable: true }}
-                            modules={[Pagination]}
-                            slidesPerGroupSkip={1}
-                            focusableElements="pagination"
-                            nested={true}
-                          >
-                            {transactionDetails &&
-                              transactionDetails?.content_id?.content?.map(
-                                (curr) => {
-                                  return curr?.media_type === "image" ? (
-                                    <SwiperSlide>
-                                      <img
-                                        src={
-                                          process.env.REACT_APP_CONTENT_MEDIA +
-                                          curr?.media
-                                        }
-                                        className="sld_cont"
-                                      ></img>
-                                    </SwiperSlide>
-                                  ) : curr?.media_type === "video" ? (
-                                    <SwiperSlide>
-                                      <video
-                                        id="video-element"
-                                        className="sld_cont"
-                                        controls
-                                      >
-                                        <source
-                                          src={
-                                            process.env
-                                              .REACT_APP_CONTENT_MEDIA +
-                                            curr?.media
-                                          }
-                                          type="video/mp4"
-                                        />
-                                      </video>
-                                    </SwiperSlide>
-                                  ) : curr?.media_type === "audio" ? (
-                                    <SwiperSlide>
-                                      <img src={audioic} className="aud_icn" />
-                                      <audio
-                                        id="audio-element"
-                                        className="sld_cont"
-                                        controls
-                                      >
-                                        <source
-                                          src={
-                                            process.env
-                                              .REACT_APP_CONTENT_MEDIA +
-                                            curr?.media
-                                          }
-                                          type="audio/mpeg"
-                                        />
-                                      </audio>
-                                    </SwiperSlide>
-                                  ) : null;
-                                }
+                                  {Audio && Audio.length > 0 && (
+                                    <img
+                                      className="feedMediaType iconBg"
+                                      src={interviewic}
+                                      alt=""
+                                    />
+                                  )}
+                                </div>
                               )}
 
-                            {/* )
-                            })} */}
-                          </Swiper>
+                              {Video && Video.length > 0 && (
+                                <div className="post_itm_icns dtl_icns">
+                                  {Video && Video.length > 0 && (
+                                    <span className="count">
+                                      {Video && Video.length > 0 && Video.length}
+                                    </span>
+                                  )}
+                                  {Video && Video.length > 0 && (
+                                    <img
+                                      className="feedMediaType iconBg"
+                                      src={videoic}
+                                      alt=""
+                                    />
+                                  )}
+                                </div>
+                              )}
 
+                              {images && images.length > 0 && (
+                                <div className="post_itm_icns dtl_icns">
+                                  {images && images.length > 0 && (
+                                    <span className="count">
+                                      {images &&
+                                        images.length > 0 &&
+                                        images.length}
+                                    </span>
+                                  )}
+
+                                  {images && images.length > 0 && (
+                                    <img
+                                      className="feedMediaType iconBg"
+                                      src={cameraic}
+                                      alt=""
+                                    />
+                                  )}
+                                </div>
+                              )}
+                              {Pdf && Pdf.length > 0 && (
+                                <div className="post_itm_icns dtl_icns">
+                                  {Pdf && Pdf.length > 0 && (
+                                    <span className="count">
+                                      {Pdf && Pdf.length > 0 && Pdf.length}
+                                    </span>
+                                  )}
+
+                                  {Pdf && Pdf.length > 0 && (
+                                    <img
+                                      className="feedMediaType iconBg"
+                                      src={pdfic}
+                                      alt=""
+                                    />
+                                  )}
+                                </div>
+                              )}
+
+                              {Doc && Doc.length > 0 && (
+                                <div className="post_itm_icns dtl_icns">
+                                  {Doc && Doc.length > 0 && (
+                                    <span className="count">
+                                      {Doc && Doc.length > 0 && Doc.length}
+                                    </span>
+                                  )}
+
+                                  {Doc && Doc.length > 0 && (
+                                    <img
+                                      className="feedMediaType iconBg"
+                                      src={docsic}
+                                      alt=""
+                                    />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <div
+                              className="post_itm_icns right dtl_icns magnifier-icn-2"
+                              onClick={() => {
+                                setOpenContent(!openContent);
+                              }}
+                            >
+                              <div className="feedMediaType iconBg view-icon">
+                                <SlMagnifierAdd />
+                              </div>
+                            </div>
+                            <ViewContent openContent={openContent} setOpenContent={setOpenContent} showContent={showContent} imageSize={imageSize} />
+                            <Swiper
+                              spaceBetween={50}
+                              slidesPerView={1}
+                              // navigation
+                              pagination={{ clickable: true }}
+                              modules={[Pagination]}
+                              slidesPerGroupSkip={1}
+                              focusableElements="pagination"
+                              nested={true}
+                              onSlideChange={(e) => {
+                                setShowContent(transactionDetails?.content_id?.content[e.activeIndex])
+                                if (transactionDetails?.content_id?.content[e.activeIndex]?.media_type == "image") {
+                                  const img = new Image();
+                                  img.src = transactionDetails?.content_id?.content[e.activeIndex]?.watermark;
+                                  img.onload = function () {
+                                    setImageSize({ height: img.height, width: img.width })
+                                  };
+                                }
+                              }}
+                            >
+                              {transactionDetails &&
+                                transactionDetails?.content_id?.content?.map(
+                                  (curr) => (
+                                    <SwiperSlide key={curr._id}>
+                                      <div className="swiper-slide-content">
+                                        {/* Media content based on type */}
+                                        {curr?.media_type === "image" && (
+                                          <img
+                                            src={curr?.watermark}
+                                            alt={`Image ${curr._id}`}
+                                          />
+                                        )}
+                                        {curr?.media_type === "audio" && (
+                                          <div className="audio-wrapper">
+                                            <img
+                                              src={audioic}
+                                              alt={`Audio ${curr._id}`}
+                                              className="slider-img"
+                                              onClick={toggleAudio}
+                                            />
+                                            <audio
+                                              controls
+                                              src={curr?.watermark || process.env.REACT_APP_CONTENT_MEDIA + curr?.media}
+                                              type="audio/mpeg"
+                                              className="slider-audio"
+                                              ref={audioRef}
+                                            />
+                                          </div>
+                                        )}
+                                        {curr?.media_type === "video" && (
+                                          <video
+                                            controls
+                                            className="slider-video"
+                                            src={curr?.media}
+                                          />
+                                        )}
+                                        {curr?.media_type === "pdf" && (
+                                          <embed
+                                            src={`${process.env.REACT_APP_CONTENT_MEDIA + curr?.media}`}
+                                            type="application/pdf"
+                                            width="100%"
+                                            height="500"
+                                          />
+                                        )}
+                                      </div>
+                                    </SwiperSlide>
+                                  )
+                                )}
+
+                              {/* )
+                            })} */}
+                            </Swiper>
+                          </div>
                           <div className="feedTitle_content">
                             <h1 className="feedTitle">
                               {transactionDetails?.content_id?.heading}
                             </h1>
-                            <p className="feed_descrptn">
-                              {transactionDetails?.content_id?.description}
-                            </p>
-                          </div>
-                          <div className="text-end my-3 mx-4">
-                            <Link className="txt_bold text-dark">
-                              View more{" "}
-                              <BsArrowRight className="text-pink ms-1" />
-                            </Link>
+                            <textarea
+                              className="form-control custom_textarea"
+                              readOnly
+                              value={
+                                transactionDetails?.content_id?.description
+                              }
+                            ></textarea>
                           </div>
                         </CardContent>
                       </Card>
@@ -455,7 +483,7 @@ const PurchasedContentDetail = () => {
                                     <span>
                                       <MdOutlineWatchLater />
                                       {moment(
-                                        transactionDetails?.createdAt
+                                        transactionDetails?.content_id?.createdAt
                                       ).format(`hh:mm A, DD MMMM YYYY`)}
                                     </span>
                                   ) : (
@@ -480,7 +508,7 @@ const PurchasedContentDetail = () => {
                                         .slice(0, 3)
                                         .map((curr) => (
                                           <span key={curr?._id} className="mr">
-                                            {curr?.name}
+                                            {`#${curr?.name}`}
                                           </span>
                                         ))}
                                   </div>
@@ -495,16 +523,14 @@ const PurchasedContentDetail = () => {
                                   <div className="">
                                     <img
                                       src={
-                                        transactionDetails?.content_id
-                                          ?.category_id?.icon
+                                        transactionDetails?.content_id?.category_id?.icon
                                       }
                                       className="exclusive-img"
                                       alt=""
                                     />
                                     <span className="txt_catg_licn">
                                       {
-                                        transactionDetails?.content_id
-                                          ?.category_id?.name
+                                        transactionDetails?.content_id?.category_id?.name
                                       }
                                     </span>
                                   </div>
@@ -530,10 +556,10 @@ const PurchasedContentDetail = () => {
                             </div>
                             <div className="sub-content">
                               <div className="item d-flex justify-content-between align-items-center">
-                                <span className="fnt-bold">Licence Type</span>
+                                <span className="fnt-bold">License</span>
 
                                 {transactionDetails?.type === "content" &&
-                                transactionDetails?.content_id?.type ===
+                                  transactionDetails?.content_id?.Vat?.find((el) => el?.purchased_mediahouse_id == JSON.parse(localStorage.getItem("user"))?._id)?.purchased_content_type ==
                                   "shared" ? (
                                   <div className="">
                                     <img
@@ -559,10 +585,26 @@ const PurchasedContentDetail = () => {
                                 )}
                               </div>
                             </div>
-                            <div className="foot cont-info-actions d-flex justify-content-between align-items-center">
+                            {/* <div className="foot cont-info-actions d-flex justify-content-between align-items-center">
                               <span className="greyBtn">
-                                £{transactionDetails?.amount}
+                                £{formatAmountInMillion(+(transactionDetails?.amount))}
                               </span>
+                            </div> */}
+                            <div className="foot d-flex gap-5 justify-content-between align-items-center foot-button">
+                              <Link to={``}>
+                                <Button disabled={true} className="greyBtn custm_grey_btn">
+                                  £{formatAmountInMillion(+(transactionDetails?.amount))}
+                                </Button>
+                              </Link>
+                              <Link to={``}>
+                                <Button variant="primary" onClick={() =>
+                                  DownloadContent(
+                                    transactionDetails?.content_id?._id
+                                  )
+                                }>
+                                  Download
+                                </Button>
+                              </Link>
                             </div>
                           </div>
                         </CardContent>
@@ -584,8 +626,16 @@ const PurchasedContentDetail = () => {
                         </div>
                         <div className="transactional_detail">
                           <div className="single_tranInfo">
-                            <h6>Invoice no.</h6>
-                            <h6>{transactionDetails?.invoiceNumber}</h6>
+                            <h6>Invoice number</h6>
+                            <h6>
+                              <Link
+                                to={`/invoice/${id}`}
+                                // className="link view_link"
+                                className="text-danger"
+                                style={{color:"red"}}
+                              >
+                                {transactionDetails?.invoiceNumber}
+                              </Link></h6>
                           </div>
                         </div>
                         <hr />
@@ -613,8 +663,7 @@ const PurchasedContentDetail = () => {
                             <h6>Amount</h6>
                             <h6>
                               £
-                              {transactionDetails?.amount -
-                                transactionDetails?.Vat}
+                              {formatAmountInMillion(transactionDetails?.amount - (transactionDetails?.Vat != 0 ? transactionDetails?.Vat : transactionDetails?.original_Vatamount))}
                             </h6>
                           </div>
                         </div>
@@ -624,7 +673,7 @@ const PurchasedContentDetail = () => {
                             <h6>
                               £
                               {formatAmountInMillion(
-                                transactionDetails?.Vat || 0
+                                transactionDetails?.Vat != 0 ? transactionDetails?.Vat : transactionDetails?.original_Vatamount
                               )}
                             </h6>
                           </div>
@@ -697,7 +746,7 @@ const PurchasedContentDetail = () => {
                               <hr />
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>Company no.</h6>
+                                  <h6>Company number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.admin_id
@@ -708,7 +757,7 @@ const PurchasedContentDetail = () => {
                               </div>
                               <div className="transactional_detail">
                                 <div className="single_tranInfo">
-                                  <h6>VAT no.</h6>
+                                  <h6>VAT number</h6>
                                   <h6>
                                     {
                                       transactionDetails?.admin_id
@@ -763,7 +812,7 @@ const PurchasedContentDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {
@@ -813,7 +862,7 @@ const PurchasedContentDetail = () => {
                                     <span className="icon_trnsctns">
                                       <img src={account} alt="" />
                                     </span>
-                                    Account no.
+                                    Account number
                                   </h6>
                                   <h6>
                                     {
@@ -835,7 +884,7 @@ const PurchasedContentDetail = () => {
                   <div className="feedContent_header">
                     <h1>Related content</h1>
                     <div className="d-flex align-items-center">
-                      <div className="fltrs_prnt me-3 ht_sort">
+                      {/* <div className="fltrs_prnt me-3 ht_sort">
                         <Button
                           className="sort_btn"
                           onClick={() => {
@@ -851,9 +900,10 @@ const PurchasedContentDetail = () => {
                             recentActivityValues={handleRecentActivityValue}
                           />
                         )}
-                      </div>
-                      <Link>
-                        View all <BsArrowRight className="text-pink" />
+                      </div> */}
+                      <Link to={`/related-content/tags/${transactionDetails?.hopper_id?._id}/${transactionDetails?.content_id?.category_id?._id}`} className="next_link">
+                        View all
+                        <BsArrowRight className="text-pink" />
                       </Link>
                     </div>
                   </div>
@@ -884,16 +934,18 @@ const PurchasedContentDetail = () => {
                           <Col md={3}>
                             <ContentFeedCard
                               lnkto={`/Feeddetail/content/${curr._id}`}
+                              viewTransaction={"View details"}
+                              viewDetail={`/Feeddetail/content/${curr._id}`}
                               feedImg={
                                 curr?.content[0]?.media_type === "video"
                                   ? curr?.content[0]?.watermark ||
-                                    process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr?.content[0]?.thumbnail
+                                  process.env.REACT_APP_CONTENT_MEDIA +
+                                  curr?.content[0]?.thumbnail
                                   : curr?.content[0]?.media_type === "audio"
-                                  ? audioic
-                                  : curr?.content[0]?.watermark ||
+                                    ? audioic
+                                    : curr?.content[0]?.watermark ||
                                     process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr?.content[0]?.media
+                                    curr?.content[0]?.media
                               }
                               // feedType={contentVideo}
                               feedTag={"Most Viewed"}
@@ -915,8 +967,20 @@ const PurchasedContentDetail = () => {
                               feedTime={moment(curr?.updatedAt).format(
                                 "DD MMMM, YYYY"
                               )}
+
+                              content_id={curr._id}
+                              basket={() =>{
+
+                                //  handleBasket(index, i)
+                                // console.log("success")
+                                getTransactionDetails();
+                              }
+
+                              }
+                              basketValue={curr.basket_status}
+                              allContent={curr?.content}
                               feedLocation={curr.location}
-                              contentPrice={curr?.ask_price}
+                              contentPrice={formatAmountInMillion(curr?.ask_price)}
                               feedTypeImg1={imageCount > 0 ? cameraic : null}
                               postcount={imageCount > 0 ? imageCount : null}
                               feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -940,7 +1004,7 @@ const PurchasedContentDetail = () => {
                       {transactionDetails?.hopper_id?.user_name}
                     </h1>
                     <div className="d-flex align-items-center">
-                      <div className="fltrs_prnt me-3 ht_sort">
+                      {/* <div className="fltrs_prnt me-3 ht_sort">
                         <Button
                           className="sort_btn"
                           onClick={() => {
@@ -956,8 +1020,8 @@ const PurchasedContentDetail = () => {
                             recentActivityValues={handleRecentActivityValue}
                           />
                         )}
-                      </div>
-                      <Link to="/more-content" className="next_link">
+                      </div> */}
+                      <Link to={`/more-content/${transactionDetails?.hopper_id?._id}`} className="next_link">
                         View all
                         <BsArrowRight className="text-pink" />
                       </Link>
@@ -992,23 +1056,25 @@ const PurchasedContentDetail = () => {
                           <Col md={3}>
                             <ContentFeedCard
                               lnkto={`/Feeddetail/content/${curr._id}`}
+                              viewTransaction={"View details"}
+                              viewDetail={`/Feeddetail/content/${curr._id}`}
                               feedImg={
                                 curr?.content[0]?.media_type === "video"
                                   ? process.env.REACT_APP_CONTENT_MEDIA +
-                                    curr?.content[0]?.thumbnail
+                                  curr?.content[0]?.thumbnail
                                   : curr?.content[0]?.media_type === "audio"
-                                  ? audioic
-                                  : curr?.content[0]?.watermark ||
+                                    ? audioic
+                                    : curr?.content[0]?.watermark ||
                                     process.env.REACT_APP_CONTENT_MEDIA +
-                                      curr?.content[0]?.media
+                                    curr?.content[0]?.media
                               }
                               // postcount={curr?.content?.length}
-
+                            
                               feedType={contentVideo}
-                              feedTag={"Most Viewed"}
+                              feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
                               user_avatar={
                                 process.env.REACT_APP_AVATAR_IMAGE +
-                                  curr?.hopper_id?.avatar_id?.avatar ||
+                                curr?.hopper_id?.avatar_id?.avatar ||
                                 authorimg
                               }
                               author_Name={curr.hopper_id?.user_name}
@@ -1017,17 +1083,30 @@ const PurchasedContentDetail = () => {
                               }
                               type_tag={curr?.type}
                               feedHead={curr.heading}
-                              feedTime={moment(curr?.updatedAt).format(
+                              feedTime={moment(curr?.published_time_date).format(
                                 "DD MMMM, YYYY"
                               )}
                               feedLocation={curr.location}
-                              contentPrice={curr.ask_price}
+                              contentPrice={formatAmountInMillion(curr.ask_price)}
                               // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
                               fvticns={
                                 curr?.favourite_status === "true"
                                   ? favouritedic
                                   : favic
                               }
+
+
+                              content_id={curr._id}
+                              basket={() =>{
+
+                                //  handleBasket(index, i)
+                                console.log("success")
+                                getTransactionDetails();
+                              }
+
+                              }
+                              basketValue={curr.basket_status}
+                              allContent={curr?.content}
                               feedTypeImg1={imageCount > 0 ? cameraic : null}
                               postcount={imageCount > 0 ? imageCount : null}
                               feedTypeImg2={videoCount > 0 ? videoic : null}

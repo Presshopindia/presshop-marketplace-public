@@ -55,14 +55,21 @@ import "swiper/css";
 import DbFooter from "../component/DbFooter";
 import HeaderNPost from "../component/HeaderNPost";
 import { Get } from "../services/user.services";
-import { useNavigate } from "react-router-dom";
+import { useNavigate ,useLocation } from "react-router-dom";
 
 const LandingPage = () => {
   const token = localStorage.getItem("token");
   const [faqs, setFaqs] = useState([]);
   const [faqSearch, setFaqSearch] = useState("");
+  const [queryObject, setqueryObject] = useState({});
+  const [activeHeader, setActiveHeader] = useState("");
   const navigate = useNavigate();
+  const mylocation=useLocation();
 
+
+
+  // const params = new URLSearchParams(mylocation?.search);
+  console.log("myLocation",queryObject)
   const targetRefs = {
     div1: useRef(null),
     div2: useRef(null),
@@ -72,9 +79,35 @@ const LandingPage = () => {
   };
 
   const scrollToDiv = (divName) => {
-    targetRefs[divName].current.scrollIntoView({ behavior: "smooth" });
+      console.log("divname",divName);
+      setActiveHeader(divName);
+      targetRefs[divName].current.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(()=>{
+    const params = new URLSearchParams(mylocation.search);
+     const queryObject1 = {};
+    console.log("keyVal",params.name);
+    for (const [key, value] of params.entries()) {
+  
+      queryObject1[key] = value;
+    }
+    // Object.keys(object1).length
+    if(Object.keys(queryObject1).length>0){
+      setActiveHeader(queryObject1?.q)
+      console.log("queryObject1?.q",(queryObject1?.q).toString());
+      scrollToDiv((queryObject1?.q).toString());
+    }
+
+    setqueryObject(queryObject1)
+    
+  },[mylocation])
+  // console.log("queryObject123",queryObject)
+  useEffect(() => {
+  if(queryObject?.q){
+    scrollToDiv(queryObject?.q);
+  }
+  },[queryObject])
   const FAQ = async () => {
     // console.log(faqSearch);
     const resp = await Get(
@@ -84,13 +117,17 @@ const LandingPage = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
+  useEffect(() => {
     FAQ();
   }, [faqSearch]);
 
   return (
     <>
       {!token ? (
-        <HeaderN scrollToDiv={scrollToDiv} />
+        <HeaderN scrollToDiv={scrollToDiv} activeHeader={activeHeader} Navigate={navigate}/>
       ) : (
         <HeaderNPost scrollToDiv={scrollToDiv} />
       )}
@@ -380,7 +417,7 @@ const LandingPage = () => {
               <Col lg={6} className="p-0">
                 <div className="contentSourceText position-relative">
                   <h2 className="">
-                    Source genuine content from ~64 mn users across the UK
+                    Source instant content from thousands of users across the UK
                   </h2>
                   <div className="taskAssignViewFeed">
                     <Row>

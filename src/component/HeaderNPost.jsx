@@ -21,7 +21,7 @@ const HeaderNPost = ({ scrollToDiv }) => {
                         <Navbar.Toggle aria-controls="basic-navbar-nav" />
                         <Navbar.Collapse id="basic-navbar-nav">
                             <Nav className="me-auto center-links lndg_nav_links">
-                                <NavLink to={'/dashboard'} className="active nav-link">
+                                <NavLink to={'/dashboard/exclusive'} className="active nav-link">
                                     Dashboard
                                 </NavLink>
                                 <NavLink onClick={() => scrollToDiv('div1')} className="active nav-link">

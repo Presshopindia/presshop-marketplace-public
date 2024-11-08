@@ -11,7 +11,7 @@ import BroadcastedTasks from "../BroadcastedTasks";
 import SignupSuccess from "../SignupSuccess";
 // import Forgotpassword from '../Forgotpassword';
 // import Resetpassword from '../Resetpassword';
-import Feeddetail from "../Feeddetail";
+// import Feeddetail from "../Feeddetail";
 //import Contentunderofferdetail from '../contentunderofferdetail';
 
 import TransactionDetail from "../TransactionDetail";
@@ -54,7 +54,7 @@ import RatingReview from "../RatingReview";
 import OnboardUserN from "../OnboardUserN";
 import SignupUserN from "../SignupUserN";
 import AutoInvoice from "../AutoInvoice";
-import LoginUserN from "../LoginUserN";
+// import LoginUserN from "../LoginUserN";
 import FAQPostLogin from "../postlogin/FAQPostLogin";
 import ManagePaymentslogin from "../ManagePaymentslogin";
 import ManagePaymentMethod from "../ManagePaymentMethod";
@@ -75,6 +75,17 @@ import PrePrivacyPolicy from "../PrePrivacyPolicy";
 import ArchieveDates from "../ArchieveDates";
 import ArchieveItems from "../Archieve";
 import GooglePay from "../TestGooglePay";
+import Invoice from "../Invoice";
+import HopperContent from "../HopperContent";
+import MoreContentFromUserForTask from "../MoreContentFromUserForTask";
+import RelatedContentTask from "../RelatedContentForTask";
+import NewPublishedContent from "../NewPublishedContent";
+import Feeddetail from "../Feeddetail";
+import Basket from "../Basket";
+import FeeddetailCopy from "../FeeddetailCopy";
+import BroadcastedTasksSoon from "../BroadcastedTasksSoon";
+import UploadDocPost from "../UploadDocPost";
+import TandcPre from "../TandcPre";
 function RouteAll() {
   const token = localStorage.getItem("token");
 
@@ -89,6 +100,7 @@ function RouteAll() {
           <Route path="/onboard-user-n" element={<OnboardUserN />} />
           <Route path="/Signup" element={<Signup />} />
           <Route path="/upload-docs" element={<Uploaddocs />} />
+          <Route path="/upload-doc-post" element={<UploadDocPost />} />
           <Route path="/add-payment-details" element={<Addpaymentdetails />} />
           <Route path="/terms-and-conditions" element={<Tandc />} />
           <Route path="/pre-privacy-policy" element={<PrePrivacyPolicy />} />
@@ -107,7 +119,7 @@ function RouteAll() {
               !token ? (
                 <Navigate to="/landing-page" />
               ) : (
-                <Navigate to="/dashboard" />
+                <Navigate to="/dashboard/exclusive" />
               )
             }
           />
@@ -115,10 +127,12 @@ function RouteAll() {
           <Route path="/Success" element={<Success />} />
           {/* <Route path="/Success" element={<PrivateRoute Component={Success} />} /> */}
 
-          <Route exact path="/dashboard" element={<PrivateRoute Component={Dashboard} />} />
+          <Route exact path="/dashboard/:type" element={<PrivateRoute Component={Dashboard} />} />
           <Route path="/all-contents" element={<PrivateRoute Component={AllContents} />} />
           <Route path="/broadcasted-taks" element={<PrivateRoute Component={BroadcastedTasks} />} />
-          <Route path="/content" element={<PrivateRoute Component={Content} />} />
+          {/* <Route path="/broadcasted-taks" element={<PrivateRoute Component={BroadcastedTasksSoon} />} /> */}
+          {/* <Route path="/broadcasted-taks-soon" element={<PrivateRoute Component={BroadcastedTasksSoon} />} /> */}
+          <Route path="/content/:tab1/:tab2/:tab3" element={<PrivateRoute Component={Content} />} />
           {/* <Route path="/feed" element={<PrivateRoute Component={Feed} />} /> */}
           {/* <Route path="/Forgotpassword" element={<PrivateRoute Component={<Forgotpassword />} /> */}
           {/* <Route path="/Resetpassword" element={<PrivateRoute Component={<Resetpassword />} /> */}
@@ -127,6 +141,10 @@ function RouteAll() {
             path="/Feeddetail/:type/:id"
             element={<PrivateRoute Component={Feeddetail} />}
           />
+          <Route
+            path="/FeeddetailCopy/:type/:id"
+            element={<PrivateRoute Component={FeeddetailCopy} />}
+          />
 
           <Route
             path="/transactionDetail/:id"
@@ -134,7 +152,7 @@ function RouteAll() {
           />
           {/* <Route path="/Other" element={<PrivateRoute Component={Other} />} /> */}
           <Route
-            path="/reports"
+            path="/reports/:type"
             element={<PrivateRoute Component={Reports} />}
           />
           {/* <Route path="/Myprofile" element={<PrivateRoute Component={Myprofile} />} /> */}
@@ -166,13 +184,21 @@ function RouteAll() {
 
           {/* <Route path="/Success" element={<PrivateRoute Component={PostTandc} />} /> */}
 
-          <Route
+          {/* <Route
             path="/published-content"
             element={<PrivateRoute Component={PublishedContent} />}
+          /> */}
+          <Route
+            path="/published-content"
+            element={<PrivateRoute Component={NewPublishedContent} />}
           />
           <Route
             path="/post-login-tandc"
             element={<PrivateRoute Component={PostTandc} />}
+          />
+          <Route
+            path="/pre-login-tandc"
+            element={<TandcPre />}
           />
           <Route
             path="/my-profile"
@@ -206,9 +232,11 @@ function RouteAll() {
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/all-tutorials" element={<AllTutorials />} />
           {/* new routes */}
-          <Route path="/signup-user-n/:name/:number/:vat" element={<SignupUserN />} />
-          <Route path="/login-user-n" element={<LoginUserN />} />
+          <Route path="/signup-user-n/:name/:number/:vat/:email/:first_name/:last_name/:user_id" element={<SignupUserN />} />
+          {/* <Route path="/login-user-n" element={<LoginUserN />} /> */}
           <Route path="/auto-invoice/:id" element={<AutoInvoice />} />
+          <Route path="/basket" element={<Basket />} />
+          <Route path="/invoice/:id" element={<Invoice />} />
           <Route path="/faq-post" element={<FAQPostLogin />} />
           <Route
             path="/manage-payment-login"
@@ -232,13 +260,16 @@ function RouteAll() {
           <Route path="/accounts-tables/:type" element={<AccountsTables />} />
           <Route path="/broadcasted-taks/:id" element={<PrivateRoute Component={BroadcastedTasks} />} />
 
-          <Route path="/related-content" element={<RelatedContent />} />
-          <Route path="/more-content" element={<MoreContentFromUser />} />
+          <Route path="/related-content/:tag_id/:hopper_id/:category_id" element={<RelatedContent />} />
+          <Route path="/related-content-task/:tag_id/:hopper_id/:category_id" element={<RelatedContentTask />} />
+          <Route path="/more-content/:hopper_id" element={<MoreContentFromUser />} />
+          <Route path="/more-content-task/:hopper_id/:task_id" element={<MoreContentFromUserForTask />} />
           <Route
             path="/content-under-offer-detail/:id"
             element={<ContentunderofferdetailNew />}
           />
           <Route path="/content-search/:type" element={<ContentSearch />} />
+          <Route path="/hopper-content/:hopper_id" element={<HopperContent />} />
           <Route path="/sourced-content-detail/:id" element={<SourcedContentDetail />} />
           <Route path="/purchased-content-detail/:id" element={<PurchasedContentDetail />} />
           <Route path="/archieve-dates" element={<ArchieveDates />} />

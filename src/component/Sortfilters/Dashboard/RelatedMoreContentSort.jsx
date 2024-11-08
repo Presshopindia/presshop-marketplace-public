@@ -151,7 +151,7 @@ const RelatedMoreContentSort = ({ closeRelatedMoreContentSort, RelatedMoreConten
           </div>
           <div className="sort_item">
             <img src={taskic} className="icn" alt="Under offer" />
-            <p className="sort_txt">Content sourced from tasks</p>
+            <p className="sort_txt">Content purchased from tasks</p>
           </div>
           <div className="sort_item">
             <img src={exclusiveic} className="icn" alt="Exclusive" />

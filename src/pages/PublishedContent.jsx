@@ -30,20 +30,24 @@ import cameraic from "../assets/images/camera.svg";
 import DbFooter from '../component/DbFooter';
 import docsic from "../assets/images/docsic.svg";
 import pdfic from "../assets/images/pdf-icn-card.png";
+import { formatAmountInMillion } from '../component/commonFunction';
+import ContentUnderOfferFilter from '../component/Sortfilters/Content/ContentUnderOfferFilter';
+import UnderOfferSort from '../component/Sortfilters/Content/UnderOfferSort';
+import { initStateOfFeed } from '../component/staticData';
+import ViewContent from '../component/ViewContent';
 
 const PublishedContent = (props) => {
     // console.log("props.locations", props.location)
-    const [fav, setFav] = useState(false);
     const [loading, setLoading] = useState(false);
     const [crime, setCrime] = useState();
     const [cel, setCel] = useState();
-    const handleFavourite = () => {
-        setFav(!fav);
-        PublishContent();
-    }
-    // Sort and Filter Open and Close Component
+    const [activeFilter, setActiveFilter] = useState("");
+    const [multiFilterState, setMultiFilterState] = useState([])
+    const [activeSort, setActiveSort] = useState("")
+    const [contentPurchaseState, setContentPurchaseState] = useState("")
     const [openSortComponent, setOpenSortComponent] = useState(false);
     const [openFilterComponent, setOpenFilterComponent] = useState(false);
+    const [contentUnderOffer, setContentUnderOffer] = useState(initStateOfFeed);
 
     const handleCloseFilterComponent = (values) => {
         setOpenFilterComponent(values);
@@ -147,7 +151,7 @@ const PublishedContent = (props) => {
                             celebrity: celebrityData,
                             crime: crimeData,
                         });
-                        setLoading(false)
+                    setLoading(false)
                 }
             }
         } catch (error) {
@@ -156,6 +160,14 @@ const PublishedContent = (props) => {
             setLoading(false)
         }
     };
+
+    const handleFavourite = (i, type) => {
+        setPublishedData((prev) => {
+            const allContent = { ...prev };
+            allContent[type][i]["favourite_status"] = allContent[type][i]["favourite_status"] === "true" ? "false" : "true";
+            return allContent
+        })
+    }
 
 
     useEffect(() => {
@@ -177,15 +189,8 @@ const PublishedContent = (props) => {
         getCategory();
     }, [])
 
-    const formatAmountInMillion = (amount) =>
-        amount?.toLocaleString('en-US', {
-            maximumFractionDigits: 2,
-        });
-
     return (
         <>
-            {/* {console.log(sortValues, `<<<<<<<sort values`)} */}
-
             {loading && <Loader />}
             <Header />
             <div className="feedTags_search">
@@ -193,46 +198,27 @@ const PublishedContent = (props) => {
                     <Row>
                         <Col sm={12}>
                             <div className="feedPreviews d-flex justify-content-between flex-wrap">
-                                {/* <div className="feedHdTags_wrap">
-                                    <span className='tag_select'>
-                                        <img src={map} className="me-3" alt="" />
-                                        Map View</span>
-                                </div> */}
-
                                 {
                                     localStorage.getItem("backBtnVisibility") ? <Link onClick={() => history.back()}
                                         className='back_link mb-3'><BsArrowLeft className='text-pink' />
                                         Back
                                     </Link> : <div></div>
                                 }
-
                                 <div className="sorting_wrap d-flex">
-
-
                                     <div className="feedSorting me-4">
-
                                         <div className="fltrs_prnt top_fltr">
-                                            {/* <p className="lbl_fltr">
-                                                Filter
-                                            </p> */}
-                                            <button className='sortTrigger' onClick={() => { setOpenFilterComponent(true); }}>Filter <AiFillCaretDown /></button>
+                                            <button className='sortTrigger' onClick={() => setContentUnderOffer({ ...contentUnderOffer, filter: { ...contentUnderOffer.filter, filter: contentUnderOffer.filter.filter == "true" ? "false" : "true" } })} >Filter <AiFillCaretDown /></button>
                                             {
-                                                openFilterComponent && <TopFilterComn
-                                                    closeFilterComponent={handleCloseFilterComponent}
-                                                    feedMultiFilter={handleMultiFilter}
-                                                />
+                                                contentUnderOffer?.filter?.filter == "true" && <ContentUnderOfferFilter setContentUnderOffer={setContentUnderOffer} contentUnderOffer={contentUnderOffer} />
                                             }
                                         </div>
                                     </div>
                                     <div className="feedSorting">
                                         <div className="fltrs_prnt top_fltr">
-                                            {/* <p className="lbl_fltr">Sort</p> */}
-                                            <button className='sortTrigger' onClick={() => { setOpenSortComponent(true); }}>Sort <AiFillCaretDown /></button>
+                                            <p className="lbl_fltr">Sort</p>
+                                            <button className='sortTrigger' onClick={() => setContentUnderOffer({ ...contentUnderOffer, sort: { ...contentUnderOffer.sort, sort: contentUnderOffer.sort.sort == "true" ? "false" : "true" } })}>Sort <AiFillCaretDown /></button>
                                             {
-                                                openSortComponent && <Fundsinvested
-                                                    rangeTimeValues={handleSortValues}
-                                                    closeSortComponent={handleCloseSortComponent}
-                                                />
+                                                contentUnderOffer?.sort?.sort == "true" && <UnderOfferSort setContentUnderOffer={setContentUnderOffer} contentUnderOffer={contentUnderOffer} />
                                             }
                                         </div>
                                     </div>
@@ -255,7 +241,6 @@ const PublishedContent = (props) => {
                                         </div>
                                     }
                                     <Row className=''>
-                                        {/* {console.log("PublishedData?.all", PublishedData?.all)} */}
                                         {PublishedData?.all?.map((curr, index) => {
 
                                             const Audio = curr?.content?.filter((curr) => curr?.media_type === "audio");
@@ -269,7 +254,6 @@ const PublishedContent = (props) => {
                                             const pdfCount = Pdf.length;
                                             const docCount = Doc.length;
                                             if (index < 4) {
-                                                // { console.log("index12312", index, curr) }
                                                 return (
                                                     <Col lg={3} md={4} sm={6} key={index}>
                                                         <ContentFeedCard
@@ -280,11 +264,10 @@ const PublishedContent = (props) => {
                                                                         curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].media
                                                                         : curr.content[0].media_type === "audio" ?
                                                                             audioic
-                                                                            : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''}
-                                                            // feedImg={pdfic}
-
+                                                                            : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''
+                                                            }
                                                             feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
-                                                            feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
                                                             userAvatar={imgs}
                                                             authorName={"pseudonymous"}
                                                             lnkto={`/Feeddetail/content/${curr._id}`}
@@ -294,14 +277,15 @@ const PublishedContent = (props) => {
                                                             fvticns={curr?.favourite_status === "true" ? favouritedic : favic}
                                                             content_id={curr._id}
                                                             bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                                            favourite={() => handleFavourite()} // Call the function directly
+                                                            favourite={() => handleFavourite(index, "all")}
                                                             type_img={curr?.type === "shared" ? shared : exclusive}
                                                             type_tag={curr.type === "shared" ? "Shared" : "Exclusive"}
                                                             feedHead={curr.heading}
-                                                            feedTime={moment(curr.published_time_date).format("hh:mm A , DD MMMM YY")}
+                                                            feedTime={moment(curr.createdAt).format("hh:mm A , DD MMMM YYYY")}
                                                             feedLocation={curr.location}
                                                             contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-
+                                                            viewTransaction={"View details"}
+                                                            viewDetail={`/Feeddetail/content/${curr._id}`}
                                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                                             postcount={imageCount > 0 ? imageCount : null}
                                                             feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -316,7 +300,7 @@ const PublishedContent = (props) => {
                                                     </Col>
                                                 );
                                             }
-                                            return null; // Return null for items outside of the condition
+                                            return null;
                                         })}
                                     </Row>
 
@@ -347,7 +331,6 @@ const PublishedContent = (props) => {
                                                 return (
                                                     <Col lg={3} md={4} sm={6}>
                                                         <ContentFeedCard
-                                                            //  postcount={curr?.content?.length}
                                                             feedImg={
                                                                 curr.content[0].media_type === "video" ?
                                                                     curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail
@@ -356,23 +339,23 @@ const PublishedContent = (props) => {
                                                                         : curr.content[0].media_type === "audio" ?
                                                                             audioic
                                                                             : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''}
-                                                            feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera} 
-                                                            feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null} 
-                                                            userAvatar={imgs} 
+                                                            feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
+                                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
+                                                            userAvatar={imgs}
                                                             authorName={"pseudonymous"}
                                                             lnkto={`/Feeddetail/content/${curr._id}`}
                                                             fvticns={curr.favourite_status === "true" ? favouritedic : favic}
                                                             content_id={curr._id}
                                                             user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
-                                                            // most_viewed={true}
                                                             author_Name={curr?.hopper_id?.user_name}
                                                             bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                                            favourite={handleFavourite}
+                                                            favourite={() => handleFavourite(index, "exclusive")}
                                                             type_img={curr?.type === "shared" ? shared : exclusive}
                                                             type_tag={curr.type === "shared" ? "Shared" : "Exclusive"}
                                                             feedHead={curr?.heading}
-                                                            feedTime={moment(curr.published_time_date).format("hh:mm A , DD MMMM YY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                                            // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                                                            feedTime={moment(curr.createdAt).format("hh:mm A , DD MMMM YYYY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                                            viewTransaction={"View details"}
+                                                            viewDetail={`/Feeddetail/content/${curr._id}`}
 
                                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                                             postcount={imageCount > 0 ? imageCount : null}
@@ -414,7 +397,6 @@ const PublishedContent = (props) => {
                                                 return (
                                                     <Col lg={3} md={4} sm={6}>
                                                         <ContentFeedCard
-                                                            // postcount={curr?.content?.length} 
                                                             feedImg={
                                                                 curr.content[0].media_type === "video" ?
                                                                     curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail
@@ -424,8 +406,8 @@ const PublishedContent = (props) => {
                                                                             audioic
                                                                             : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''}
                                                             feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
-                                                            feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
-                                                            userAvatar={imgs} 
+                                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
+                                                            userAvatar={imgs}
                                                             authorName={"pseudonymous"}
                                                             lnkto={`/Feeddetail/content/${curr._id}`}
                                                             fvticns={curr?.favourite_status === "true" ? favouritedic : favic}
@@ -434,12 +416,13 @@ const PublishedContent = (props) => {
                                                             most_viewed={true}
                                                             author_Name={curr?.hopper_id?.user_name}
                                                             bool_fav={curr?.favourite_status === "true" ? "false" : "true"}
-                                                            favourite={handleFavourite}
-                                                            tytype_img={curr?.type === "shared" ? shared : exclusive}
+                                                            favourite={() => handleFavourite(index, "shared")}
+                                                            type_img={curr?.type === "shared" ? shared : exclusive}
                                                             type_tag={curr.type === "shared" ? "Shared" : "Exclusive"}
                                                             feedHead={curr?.heading}
-                                                            feedTime={moment(curr.published_time_date).format("hh:mm A , DD MMMM YY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                                            // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                                                            feedTime={moment(curr.createdAt).format("hh:mm A , DD MMMM YYYY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                                            viewTransaction={"View details"}
+                                                            viewDetail={`/Feeddetail/content/${curr._id}`}
                                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                                             postcount={imageCount > 0 ? imageCount : null}
                                                             feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -481,7 +464,6 @@ const PublishedContent = (props) => {
                                                 return (
                                                     <Col lg={3} md={4} sm={6}>
                                                         <ContentFeedCard
-                                                            //  postcount={curr?.content?.length} 
                                                             feedImg={
                                                                 curr.content[0].media_type === "video" ?
                                                                     curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail
@@ -491,8 +473,8 @@ const PublishedContent = (props) => {
                                                                             audioic
                                                                             : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''}
                                                             feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
-                                                            feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null} 
-                                                            userAvatar={imgs} 
+                                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
+                                                            userAvatar={imgs}
                                                             authorName={"pseudonymous"}
                                                             lnkto={`/Feeddetail/content/${curr._id}`}
                                                             user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
@@ -502,12 +484,13 @@ const PublishedContent = (props) => {
                                                             author_Name={curr?.hopper_id?.user_name}
                                                             most_viewed={true}
                                                             bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                                            favourite={handleFavourite}
+                                                            favourite={() => handleFavourite(index, "crime")}
+                                                            viewTransaction={"View details"}
+                                                            viewDetail={`/Feeddetail/content/${curr._id}`}
                                                             type_img={curr?.type === "shared" ? shared : exclusive}
                                                             type_tag={curr.type === "shared" ? "Shared" : "Exclusive"}
                                                             feedHead={curr?.heading}
-                                                            feedTime={moment(curr.published_time_date).format("hh:mm A , DD MMMM YY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                                            // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                                                            feedTime={moment(curr.createdAt).format("hh:mm A , DD MMMM YYYY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
                                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                                             postcount={imageCount > 0 ? imageCount : null}
                                                             feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -550,7 +533,6 @@ const PublishedContent = (props) => {
                                                 return (
                                                     <Col lg={3} md={4} sm={6}>
                                                         <ContentFeedCard
-                                                            //  postcount={curr?.content?.length}
                                                             feedImg={
                                                                 curr.content[0].media_type === "video" ?
                                                                     curr.content[0].watermark || process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail
@@ -559,10 +541,7 @@ const PublishedContent = (props) => {
                                                                         : curr.content[0].media_type === "audio" ?
                                                                             audioic
                                                                             : curr?.content[0]?.media_type === "doc" || 'pdf' ? pdfic : ''}
-
-                                                            // feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera}
-
-                                                            feedTag={curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" : null}
+                                                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
                                                             userAvatar={imgs} authorName={"pseudonymous"}
                                                             lnkto={`/Feeddetail/content/${curr._id}`}
                                                             user_avatar={process.env.REACT_APP_AVATAR_IMAGE + curr?.hopper_id?.avatar_id?.avatar}
@@ -571,12 +550,13 @@ const PublishedContent = (props) => {
                                                             author_Name={curr?.hopper_id?.user_name}
                                                             most_viewed={true}
                                                             bool_fav={curr.favourite_status === "true" ? "false" : "true"}
-                                                            favourite={handleFavourite}
+                                                            favourite={() => handleFavourite(index, "celebrity")}
                                                             type_img={curr?.type === "shared" ? shared : exclusive}
                                                             type_tag={curr.type === "shared" ? "Shared" : "Exclusive"}
                                                             feedHead={curr?.heading}
-                                                            feedTime={moment(curr.published_time_date).format("hh:mm A , DD MMMM YY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
-                                                            // feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                                                            feedTime={moment(curr.createdAt).format("hh:mm A , DD MMMM YYYY")} feedLocation={curr.location} contentPrice={`${formatAmountInMillion(curr.ask_price || 0)}`}
+                                                            viewTransaction={"View details"}
+                                                            viewDetail={`/Feeddetail/content/${curr._id}`}
                                                             feedTypeImg1={imageCount > 0 ? cameraic : null}
                                                             postcount={imageCount > 0 ? imageCount : null}
                                                             feedTypeImg2={videoCount > 0 ? videoic : null}
@@ -587,8 +567,6 @@ const PublishedContent = (props) => {
                                                             postcount4={pdfCount > 0 ? pdfCount : null}
                                                             feedTypeImg5={docCount > 0 ? docsic : null}
                                                             postcount5={docCount > 0 ? docCount : null}
-
-
                                                         />
                                                     </Col>
                                                 )

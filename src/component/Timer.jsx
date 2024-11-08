@@ -53,7 +53,7 @@ const Timer = (props) => {
         <div>
             <div className="timeSlots_tiles">
                 <label>Time left</label>
-                <span className='sm-tiles'><BiTimeFive /> {props.deadline ? (!timeLeft.days ? (!isNaN(timeLeft?.hours) ? timeLeft?.hours + ":" + timeLeft?.minutes + ":" + timeLeft?.seconds : "") : (!isNaN(timeLeft?.days) ? timeLeft?.days + ":" + timeLeft?.hours + ":" + timeLeft?.minutes : "")) : " 00 min "}</span>
+                <span className='sm-tiles'><BiTimeFive /> {props.deadline ? (!timeLeft.days ? (!isNaN(timeLeft?.hours) ? timeLeft?.hours + "h:" + timeLeft?.minutes + "m:" + timeLeft?.seconds + "s" : "") : (!isNaN(timeLeft?.days) ? timeLeft?.days + "d:" + timeLeft?.hours + "h:" + timeLeft?.minutes + "m": "")) : " 00 min "}</span>
             </div>
         </div>
     );

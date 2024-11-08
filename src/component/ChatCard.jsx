@@ -1,25 +1,27 @@
-import { Button, Card, CardContent } from "@mui/material";
+import { Button, Card, CardContent, Tooltip, Typography } from "@mui/material";
 import * as React from "react";
 import Form from 'react-bootstrap/Form';
-import { BsArrowRight, BsMic } from "react-icons/bs";
+import { BsArrowRight, BsMic, BsPause, BsPlay } from "react-icons/bs";
 import { MdAdd } from "react-icons/md";
 import inpimg from '../assets/images/profile.webp';
 // import Button from 'react-bootstrap/Button';
 import { addDoc, collection, doc, getDoc, getFirestore, onSnapshot, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import moment from "moment";
-import { useEffect, useState } from "react";
+import { useEffect, useState,useRef } from "react";
 import presshopchatic from "../assets/images/chat-icons/presshoplogo.svg";
 import { auth, storage } from "../firebase";
 import { Get, Post } from "../services/user.services";
 import Loader from "./Loader";
 import { useDarkMode } from "../context/DarkModeContext";
+import { Container, Modal, Overlay } from "react-bootstrap";
+import { ReactMic } from "react-mic-recorder";
+import { useLocation } from "react-router-dom";
 // import io from "socket.io-client";
 function ChatCard(props) {
     const [roomId, setRoomId] = useState(null);
-    const [msg, setMsg] = useState("")
+    const [msg, setMsg] = useState(localStorage.getItem("contact_us_message") || "")
     const [messages, setMessages] = useState([]);
-    const [show, setShow] = useState(false)
     const [loading, setLoading] = useState(false)
     const [name, setName] = useState()
     const [profileImage, setProfileImage] = useState()
@@ -29,10 +31,63 @@ function ChatCard(props) {
     const [type, setType] = useState('')
 
     const { profileData } = useDarkMode();
+    const chatBoxRef =useRef(null);
+
 
     const userImage = profileData?.hasOwnProperty("admin_detail") ? profileData?.admin_detail?.admin_profile
-    : profileData?.profile_image
+        : profileData?.profile_image
 
+    const [preview, setPreview] = useState({
+        type: "",
+        path: "",
+        modalOpen: false,
+    });
+
+    const handleClosePreview = () => setPreview({
+        type: "",
+        path: "",
+        modalOpen: false,
+    });
+
+    // Recording -
+    const [show, setShow] = useState(false)
+    const [isRecording, setIsRecording] = useState(false);
+    const target = React.useRef(null);
+
+    const onStartRecording = () => {
+        setIsRecording(true);
+    };
+
+    const onStopRecording = async (recordedBlob) => {
+        setIsRecording(false);
+        try {
+            const formData = new FormData();
+            formData.append("path", "profileImg");
+            formData.append("media", recordedBlob?.blob);
+            setLoading(true)
+            const filePath = await Post("mediaHouse/uploadUserMedia", formData);
+            if (filePath) {
+                setPreview((prev) => ({
+                    ...prev,
+                    path: filePath?.data?.path,
+                    type: "audio",
+                }));
+            }
+            setLoading(false)
+        } catch (error) {
+            console.error("Error uploading audio:", error);
+            setLoading(false)
+        }
+    };
+
+    console.log("setPreview", preview)
+
+    // Contact us message sent on page load -
+    useEffect(() => {
+        if (localStorage.getItem("contact_us_message")) {
+            sendMessage(msg, 'text');
+        }
+    }, [roomDetails])
 
     const Profile = async () => {
         setLoading(true)
@@ -48,26 +103,34 @@ function ChatCard(props) {
     }
 
     const CreateRoom = async () => {
-        if (localStorage.getItem('internal')) {
-            setShow(false)
-            const obj = {
-                receiver_id: props.senderId,
-                room_type: "MediahousetoAdmin",
-                type: "external_content",
-                content_id: localStorage.getItem('internal')
-            }
+        setLoading(true);
+        try {
+            if (localStorage.getItem('internal')) {
+                setShow(false)
+                const obj = {
+                    receiver_id: props.senderId,
+                    room_type: "MediahousetoAdmin",
+                    type: "external_content_for_admin", // Old type was - (external_content) <-- This is for content wise room, but now there will be one chat for a user.
+                    content_id: localStorage.getItem('internal')
+                }
 
-            const resp = await Post(`mediaHouse/createRoom`, obj)
-            setRoomDetails(resp.data.details)
-        } else {
-            setShow(true)
-            const obj = {
-                receiver_id: props.senderId,
-                room_type: "MediahousetoAdmin",
+                const resp = await Post(`mediaHouse/createRoom`, obj)
+                setRoomDetails(resp.data.details)
+                setLoading(false);
+            } else {
+                setShow(false)
+                const obj = {
+                    receiver_id: props.senderId,
+                    room_type: "MediahousetoAdmin",
 
+                }
+                const resp = await Post(`mediaHouse/createRoom`, obj)
+                setRoomDetails(resp.data.details)
+                setLoading(false);
             }
-            const resp = await Post(`mediaHouse/createRoom`, obj)
-            setRoomDetails(resp.data.details)
+        }
+        catch (error) {
+            setLoading(false);
         }
     }
 
@@ -122,10 +185,14 @@ function ChatCard(props) {
             longitude: 0.0,
             isReply: "",
             isLocal: 1,
-            chat_with : "presshop and admin"
+            chat_with: "presshop and admin"
             // uid,
         }
 
+        console.log("newDoc", newDoc)
+
+        setMsg('');
+        setPreview({})
         try {
             await addDoc(messageRef, {
                 messageId: new Date(),
@@ -150,21 +217,25 @@ function ChatCard(props) {
                 isLocal: 1,
                 // uid,
             });
-            setMsg('');
             setFile(null)
             GetMessages()
-            setLastMessage(message, messageType, thumbnailURL ,roomDetails?.room_id , newDoc)
+            setLastMessage(message, messageType, thumbnailURL, roomDetails?.room_id, newDoc)
+
+            if (localStorage.getItem("contact_us_message")) {
+                localStorage.removeItem("contact_us_message")
+            }
         }
         catch (error) {
             // setLoading(false)
         }
     };
 
-    const chatBoxRef = React.useRef(null);
 
     const scrollToBottom = () => {
-        // messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+            if (chatBoxRef.current ) {
+                chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+              }
+       
     };
 
     const GetMessages = () => {
@@ -174,7 +245,7 @@ function ChatCard(props) {
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const newMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
                 setMessages(newMessages);
-                scrollToBottom();
+                // scrollToBottom();
             });
 
             return unsubscribe;
@@ -187,25 +258,37 @@ function ChatCard(props) {
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const newMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
                 setMessages(newMessages);
-                scrollToBottom();
+                // scrollToBottom();
             });
 
             return unsubscribe;
         }
     }
 
-    const handleFileChange = (event) => {
+    const handleFileChange = async (event) => {
+        setLoading(true);
         event.preventDefault();
-        const selectedFile = event.target.files[0];
-        setFile(selectedFile);
+        const file = event.target.files[0];
+        setFile(file);
+
+        // Uploading of files-
+        const storageRef = ref(storage, `chat/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        if (file.type.startsWith("video/")) {
+            setPreview((pre) => ({ ...pre, type: "video", path: downloadURL, modalOpen: true }));
+        } else if (file.type.startsWith("image/")) {
+            setPreview((pre) => ({ ...pre, type: "image", path: downloadURL, modalOpen: true }));
+        } else if (file.type.startsWith("audio/")) {
+            setPreview((pre) => ({ ...pre, type: "audio", path: downloadURL, modalOpen: true }));
+        }
+        setLoading(false);
     };
 
     const handleSend = async () => {
         if (file) {
-            const storageRef = ref(storage, `chat/${file.name}`);
             try {
-                const snapshot = await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(snapshot.ref);
                 let messageType = '';
                 let thumbnailURL = '';
 
@@ -219,51 +302,63 @@ function ChatCard(props) {
                 } else if (file.type.startsWith('audio/')) {
                     messageType = 'audio';
                 }
-                sendMessage(downloadURL, messageType, thumbnailURL);
+                sendMessage(preview?.path, messageType, thumbnailURL);
 
                 // setOpenModal(false);
             } catch (error) {
             } finally {
                 setFile(null);
             }
-        } else if (msg.trim() !== '') {
+        } 
+        else if (preview?.path) {
+            try {
+                let messageType = '';
+                let thumbnailURL = '';
+                
+                messageType = 'audio';
+                sendMessage(preview?.path, messageType, thumbnailURL);
+
+                // setOpenModal(false);
+            } catch (error) {
+            } finally {
+                setFile(null);
+            }
+        }else if (msg.trim() !== '') {
             sendMessage(msg, 'text');
         }
 
     };
 
-    const setLastMessage = async (message, messageType, thumbnailURL = "" , roomId , newDoc) => {
+    const setLastMessage = async (message, messageType, thumbnailURL = "", roomId, newDoc) => {
         const firestore = getFirestore();
         const docRef = doc(firestore, "Chat", roomId);
         const updatedFields = {
-          message: message,
-          messageType: messageType,
-          date: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    
+            message: message,
+            messageType: messageType,
+            date: new Date().toISOString().slice(0, 19).replace('T', ' ')
+
         }
-        
+
         try {
-          // Get the current data of the document
-          const docSnapshot = await getDoc(docRef);
-          if (docSnapshot.exists()) {
-            await updateDoc(docRef, updatedFields);
-          } else {
-           
-            await setDoc(docRef, newDoc); 
-          }
+            // Get the current data of the document
+            const docSnapshot = await getDoc(docRef);
+            if (docSnapshot.exists()) {
+                await updateDoc(docRef, updatedFields);
+            } else {
+
+                await setDoc(docRef, newDoc);
+            }
         } catch (error) {
-          throw error;
+            throw error;
         }
-      }
+    }
 
     const handleSendClick = (event) => {
         event.preventDefault();
-        if(roomDetails.room_id){
+        if (roomDetails.room_id) {
             handleSend();
         }
     };
-
-
 
     useEffect(() => {
         GetMessages()
@@ -271,111 +366,222 @@ function ChatCard(props) {
 
 
     useEffect(() => {
-        Profile()
+        Profile();
     }, [])
+    
+    useEffect(() => {
+      scrollToBottom();   
+    }, [messages])
 
     useEffect(() => {
-        CreateRoom()
+        CreateRoom();
+        
     }, [props.senderId])
-    
+
     return (
         <>
             {loading && <Loader />}
-            <div className="d-flex flex-row gap_20">
-                <Card className="chatmain cht_ht">
-                    <CardContent className="chatting">
-                        <div className="chatting_header">
-                            <p className="mb-0">
-                                {/* Presshop chat */}
-                                Presshop Chat
-                            </p>
-                        </div>
+            <Card className="chatmain cht_ht">
+                <CardContent className="chatting">
+                    <div className="chatting_header">
+                        <p className="mb-0">
+                            {/* Presshop chat */}
+                            Presshop Chat
+                        </p>
+                    </div>
 
-                        <div className="chat_msgs_scrl" ref={chatBoxRef}>
-                            {messages && messages.map((curr, index) => {
-                                const today = new Date()
-                                const secondDate = new Date(curr.current_time);
-                                return (
-                                    <div className="chatting_itm d-flex align-items-start" >
-                                        <img src={curr.senderImage} alt="User" className="usr_img" />
-                                        <div className="cht_txt">
-                                            <div className="d-flex align-items-center">
-                                                <p className="usr_name mb-0">{curr.senderName}
-                                                    {/* <img src={presshopchatic} alt="Presshop logo" className='ms-1' /> */}
-                                                    </p>
-                                                <p className="cht_time mb-0">{moment.utc(curr.date).local().format('hh:mm:A')}</p>
-                                            </div>
-                                            {curr.media !== null ? (
-                                                curr.messageType === "text" ? (
-                                                    <p className="mb-0 msg">{curr.message}</p>
-                                                ) : curr.messageType === "image" ? (
-                                                    <img
-                                                        src={curr.message}
-                                                        alt="User"
-                                                        className="usr_img"
-                                                        style={{ width: "100px" }}
-                                                    />
-                                                ) : curr.messageType === "video" ? (
-                                                    <video src={curr.message} controls style={{ width: "50%" }}></video>
-                                                ) : curr.messageType === "csv" ? (
-                                                    <a href={curr.message} download>Download CSV</a>
-                                                ) : curr.messageType === "audio" ? (
-                                                    <audio src={curr.message} download>Download CSV</audio>
-                                                ) : null
-                                            ) : (
-                                                <p className="mb-0 msg">{curr.message}</p>
-                                            )}
+                    <div className="chat_msgs_scrl" ref={chatBoxRef}>
+                        {messages?.map((curr, index) => {
+                            return (
+                                <div className="chatting_itm d-flex align-items-start" >
+                                    <img src={curr.senderImage} alt="User" className="usr_img" />
+                                    <div className="postedcmnt_info">
+                                        <h5>
+                                            {curr.senderName}
+                                            <span className="text-secondary time">
+                                                {moment(curr.date).add(5.5, "hour").format("h:mm A, DD MMM YYYY")}
+                                                {/* .format(`DD MMM YYYY`)}, {moment(curr.date).add(5.5, "hour").format(`hh:mm A`)} */}
+                                            </span>
+                                        </h5>
+                                        <Typography className="comment_text">
+                                            {curr?.messageType === 'text' && curr?.message}
+                                        </Typography>
+                                        <div onClick={() => handleShow(curr)} className="exp">
+                                            {curr?.messageType === 'image' && <img src={curr?.message} className="msgContent" />}
+                                        </div>
+                                        <div>
+                                            {curr?.messageType === 'video' && <video src={curr?.message} className="msgContent" controls controlsList="nodownload"></video>}
+                                        </div>
+                                        <div>
+                                            {curr?.messageType === 'audio' && <audio src={curr?.message} controls controlsList="nodownload"></audio>}
                                         </div>
                                     </div>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
+                                </div>
+                            )
+                            setPreview((pre) => ({ ...pre, modalOpen: true }));
+                        })}
+                    </div>
+                </CardContent>
 
-                    <Form onSubmit={handleSendClick}
-                    >
-                        <div className="chatting_type position-relative">
-                            <img src={userImage} alt="" className="typing_img" />
-                            <input type="text" className="inp_msg" value={msg} placeholder="Type here…"
-                                onChange={(e) => {
-                                    setMsg(e.target.value);
-                                    setType('text')
-                                }}
+                <Form onSubmit={handleSendClick}>
+                    <div className="chatting_type position-relative">
+                        <img src={userImage} alt="" className="typing_img" />
+                        <input type="text" className="inp_msg" value={msg} placeholder="Type here…" onChange={(e) => { setMsg(e.target.value); setType('text') }} />
+                        <div className="chatIn-options">
+                            {/* <input type='file' id="cht_add_img_presshop" className="cht_file_inp" onChange={(e) => handleFileChange(e)} /> */}
+                            {/* <label htmlFor="cht_add_img_presshop" className="cht_fl_inp_lbl">
+                                <MdAdd className="d_flex file_add_icn" />
+                            </label> */}
 
-                            />
-                            <div className="chatIn-options">
-                                <input type='file' id="cht_add_img" className="cht_file_inp" onChange={handleFileChange} />
-                                <label htmlFor="cht_add_img" className="cht_fl_inp_lbl">
-                                    <MdAdd className="d_flex file_add_icn" />
-                                </label>
-                                {/* <VscDeviceCameraVideo />
-                                <IoCallOutline /> */}
-                                <BsMic />
+                            {/* New code  */}
+                            <div className="uplod-mda">
+                                <MdAdd />
+                                <input type="file" onChange={handleFileChange} />
+                            </div>
 
-                                <Button type="submit" className='pe-0'>
-                                    <span className='chatIn-send'>
-                                        <BsArrowRight />
-                                    </span>
+                            <div>
+                                <Button ref={target} onClick={() => setShow(!show)}>
+                                    <BsMic className="chatMicIcn" />
                                 </Button>
+                                <Overlay
+                                    target={target.current}
+                                    show={show}
+                                    placement="top"
+                                    className=""
+                                >
+                                    <Tooltip id="overlay-example" className="react-mic-tooltip">
+                                        <div className="recordingPopup">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <h5>Record Audio</h5>
+                                                <div className="close-btn" onClick={() => setShow(false)}>
+                                                    <svg
+                                                        width="13"
+                                                        height="13"
+                                                        viewBox="0 0 13 13"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                    >
+                                                        <path
+                                                            d="M1.34277 1L11.3165 12"
+                                                            stroke="black"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M1.34277 12L11.3165 1"
+                                                            stroke="black"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div className="d-flex mt-3 justify-content-evenly clickable">
+                                                <Button
+                                                    className="rec_aud_btn"
+                                                    onClick={onStartRecording}
+                                                    disabled={isRecording}
+                                                >
+                                                    {" "}
+                                                    <BsPlay
+                                                        fontSize={"20px"}
+                                                    />{" "}
+                                                    Start
+                                                </Button>
+                                                <Button
+                                                    className="rec_aud_btn"
+                                                    onClick={onStopRecording}
+                                                    disabled={!isRecording}
+                                                >
+                                                    {" "}
+                                                    <BsPause
+                                                        fontSize={"20px"}
+                                                    />{" "}
+                                                    Stop
+                                                </Button>
+                                            </div>
+                                            <div>
+                                                <ReactMic
+                                                    record={isRecording}
+                                                    className="sound-wave w-100 my-2"
+                                                    onStop={onStopRecording}
+                                                />
+                                            </div>
+                                            <div className="text-end">
+                                                <button
+                                                    className="sendrecBtn"
+                                                    onClick={(e) => {
+                                                        handleSendClick(e);
+                                                        setShow(!show);
+                                                    }}
+                                                >
+                                                    Send
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </Tooltip>
+                                </Overlay>
                             </div>
+                            <span className="chatIn-send" onClick={handleSendClick}>
+                                <BsArrowRight />
+                            </span>
                         </div>
-                    </Form >
+                    </div>
+                </Form >
 
-                </Card >
+            </Card >
 
-                {/* {show ?
-                    <Card className="chatmain participants">
-                        <CardContent className="chatting">
-                            <div className="chatting_header d-flex align-items-start justify-content-between">
-                                <p className="mb-0">Participants</p>
-                                <span className="add_icn"><MdAdd /></span>
-                            </div>
-                            <div className="d-flex justify-content-end mt-5">
-                                <Link className="view_all_link">View all <BsArrowRight className='text-pink' /></Link>
-                            </div>
-                        </CardContent>
-                    </Card> : ''} */}
-            </div>
+            <Modal
+                show={preview?.modalOpen}
+                onHide={() => handleClosePreview()}
+                aria-labelledby="contained-modal-title-hcenter profile_mdl"
+                className="modal_wrapper"
+                dialogClassName="my-modal adm_reg_mdl mdl_dsn"
+            >
+                <Modal.Header className="modal-header profile_mdl_hdr_wrap" closeButton>
+                    <Modal.Title className="modal-title profile_modal_ttl">
+                        <p className="mb-0">Image Preview</p>
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="show-grid modal-body border-0">
+                    <Container>
+                        <div>
+                            {preview?.type === "image" ? (
+                                <img className="mdlPrevImg" src={preview?.path} />
+                            ) : preview?.type === "video" ? (
+                                <video
+                                    src={preview?.path}
+                                    className="msgContent"
+                                    controls
+                                ></video>
+                            ) : (
+                                ""
+                            )}
+                        </div>
+                    </Container>
+                </Modal.Body>
+                <Modal.Footer className="border-0 mb-4">
+                    <Button
+                        className="w-50 m-auto d-inline-block py-2 text-lowercase mdl_btn"
+                        variant="primary"
+                        type="submit"
+                        onClick={(e) => {
+                            handleSendClick(e);
+                            setPreview({
+                                type: "",
+                                path: "",
+                                modalOpen: false,
+                            })
+                        }}
+                    >
+                        <div className="link_white">
+                            Send
+                        </div>
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </>
     );
 }

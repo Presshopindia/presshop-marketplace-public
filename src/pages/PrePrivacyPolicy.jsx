@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DbFooter from '../component/DbFooter';
 import { Container, Row, Col } from "react-bootstrap";
 import tandcimg from "../assets/images/login-images/post_tandc.png";
-import { Button } from '@mui/material';
+import { Button, Tooltip } from '@mui/material';
 import { Link } from "react-router-dom";
 import Header from '../component/Header';
 import { BsArrowLeft } from 'react-icons/bs';
@@ -11,10 +11,15 @@ import moment from 'moment/moment';
 import html2pdf from 'html2pdf.js';
 import Footerlandingpage from '../component/Footerlandingpage';
 import HeaderN from '../component/HeaderN';
+import { FaRegArrowAltCircleDown, FaRegArrowAltCircleUp } from 'react-icons/fa';
 
 const PrePrivacyPolicy = () => {
 
     const [privacy, setPrivacy] = useState()
+
+    useEffect(() => {
+        window?.scrollTo(0, 0);
+    }, []);
 
     const PrivacyPolicy = async () => {
         const resp = await Get(`mediaHouse/getGenralMgmt?privacy_policy=privacy_policy`)
@@ -64,71 +69,33 @@ const PrePrivacyPolicy = () => {
                         <Row className="row-w-m m-0">
                             <Col lg="6" className="bg-white p-0">
                                 <div className="login_stepsWrap left-pdng post_lgn">
+                                    <Link className='back_link' onClick={() => window.history.back()}><BsArrowLeft className='text-pink' /> Back </Link>
                                     <div className='onboardMain' id="print-content">
-                                        {/* <div className="onboardIntro sign_section post">
-                                            <h1 className="mb-0 pg_hdng">Privacy Policy</h1>
+                                        <div className="onboardIntro sign_section post">
+                                        <div className='d-flex justify-content-between'>
+                                                <h1 className="mb-0 pg_hdng">Privacy Policy</h1>
+                                                <Tooltip title="Down"><Link className='back_link' onClick={() => window.scrollTo(0, document.body.scrollHeight)}><FaRegArrowAltCircleDown className='text-pink' /></Link></Tooltip>
+                                            </div>
                                             <span className="txt_updated">Updated on {moment(privacy?.updatedAt).format("DD MMMM, YYYY")}</span>
                                             <div className="onboardStep b_border top_txt">
                                                 <p>Please find our privacy policy listed below. If you have any questions, and would like to have a quick chat have with our helpful team members, kindly <a className="link"> contact us</a>. Thanks!
                                                 </p>
                                             </div>
-                                        </div> */}
+                                        </div>
                                         <div className="onboardStep upload_docs">
                                             <div className="onboardStep b_border top_txt mb-4">
                                                 <div className="txt_tandc" dangerouslySetInnerHTML={{ __html: privacy?.description }} />
-                                                {/* <p className="sub_sub_h">What & Why</p>
-                                                <p className='mb-4' >{privacy?.description}</p>
-                                            </div> */}
-                                                {/* <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h mb-3">What & Why</p>
-                                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h">What & Why</p>
-                                                    <p className='mb-4'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div>
-                                                <div className="txt_tandc">
-                                                    <p className="sub_sub_h mb-3">What & Why</p>
-                                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                                                </div> */}
                                             </div>
                                         </div>
                                     </div>
                                     <div className="d-flex justify-content-between tandc_btns">
                                         <Button className='w-100' variant='secondary' onClick={handlePdfDownloadClick}>Download</Button>
                                         <Button className='w-100 theme_btn' variant='primary' onClick={handlePrintClick}>Print</Button>
+                                        <Tooltip title="Down"><Link className='back_link' onClick={() => window.scrollTo(0, 0)}><FaRegArrowAltCircleUp className='text-pink' /></Link></Tooltip>
                                     </div>
                                 </div>
                             </Col>
                             <Col lg="6" className="">
-                                {/* <div className="left-side">
-                                    <img src={tandcimg} alt="" />
-                                    <h2 className="mt-3 text-center">View, chat, negotiate, and buy <span className='txt_bld'> content</span> instantly</h2>
-                                </div> */}
                                 <div className="left-side right-side text-center position-relative">
                                     <div className="tri"></div>
                                     <div className="circle"></div>

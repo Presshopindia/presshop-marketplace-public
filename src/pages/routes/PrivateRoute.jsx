@@ -36,7 +36,6 @@ const PrivateRoute = (props) => {
                     >
                          Ok
                     </Button>
-                    {/* </Modal.Footer> */}
                </Modal >
                <Component />
           </>

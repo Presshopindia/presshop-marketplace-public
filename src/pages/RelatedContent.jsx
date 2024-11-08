@@ -38,95 +38,59 @@ import Loader from '../component/Loader';
 import videoic from "../assets/images/video.svg";
 import interviewic from "../assets/images/interview.svg";
 import cameraic from "../assets/images/camera.svg";
+import docsic from "../assets/images/docsic.svg";
+import favouritedic from "../assets/images/favouritestar.svg";
+import favic from "../assets/images/star.svg";
+import { formatAmountInMillion } from '../component/commonFunction';
+import { PaginationComp } from '../component/Pagination';
 
 const RelatedContent = () => {
 
   // Sort and Filter-
-  const [openSortComponent, setOpenSortComponent] = useState(false);
-  const [openFilterComponent, setOpenFilterComponent] = useState(false);
-  const [content, setCont] = useState([])
+  const [content, setRelatedContent] = useState([])
   const [loading, setLoading] = useState(false);
+  const params = useParams();
 
-  const handleCloseFilterComponent = (values) => {
-    setOpenFilterComponent(values)
-  }
+  // Pagination-
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(0);
+  const [limit, setLimit] = useState(8)
 
-  const handleCloseSortComponent = (values) => {
-    setOpenSortComponent(values)
+  const handleFavourite = (i) => {
+    setRelatedContent((prev) => {
+      const allContent = [...prev];
+      allContent[i]["favourite_status"] = allContent[i]["favourite_status"] === "true" ? "false" : "true";
+      return allContent
+    })
   }
-  const handleFavourite = () => {
-    setFav(!fav)
-    PublishContent()
-  }
-  const PublishContent = async () => {
-    // console.log('test')
+  // Related content-gg
+  const Relatedcont = async () => {
     setLoading(true)
-    const all = await Get("mediaHouse/getCategoryType?type=content")
-
     try {
-
-      const all = await Post("mediaHouse/view/published/content", { content: "latest" })
-      setPublishedData((prev) => ({ ...prev, all: all.data.content }))
-
-      const exclusive = await Post("mediaHouse/view/published/content", { type: ["exclusive"] })
-      setPublishedData((prev) => ({ ...prev, exclusive: exclusive.data.content }))
-
-      const shared = await Post("mediaHouse/view/published/content", { type: ["shared"] })
-      setPublishedData((prev) => ({ ...prev, shared: shared.data.content }))
-
-      const crime = await Post("mediaHouse/view/published/content", { category_id: ["64f09d79db646e4f7791761b"] })
-      setPublishedData((prev) => ({ ...prev, crime: crime.data.content }))
-
-      const celebrity = await Post("mediaHouse/view/published/content", { category_id: ["64f09d1fdb646e4f779174a1"] })
-      setPublishedData((prev) => ({ ...prev, celebrity: celebrity.data.content }))
-
-      const resp = await Post(`mediaHouse/relatedContent`,
-        {
-          tag_id: [localStorage.getItem('tag_id')],
-          hopper_id: localStorage.getItem('hopper_id')
-        })
-      setCont(resp.data.content)
-      if (all && exclusive && shared && crime && celebrity) {
+      const resp = await Post(`mediaHouse/relatedContent`, {
+        tag_id: [localStorage.getItem('tag_id')],
+        hopper_id: params?.hopper_id,
+        category_id: params?.category_id,
+        limit: limit,
+        offset: (+(page - 1)) * limit
+      })
+      if (resp) {
+        setTotalPage(Math.ceil(resp.data.totalCount / limit))
+        setRelatedContent(resp.data.content)
         setLoading(false)
       }
-      // console.log(PublishedData)
     }
     catch (error) {
       setLoading(false)
     }
-
-  }
-  const [fav, setFav] = useState(false);
-  const [filterSortValue, setFilterSortValue] = useState("");
-
-  const Relatedcont = async () => {
-
-    // setLoading(true)
-
-    try {
-      const resp = await Post(`mediaHouse/relatedContent`, { tag_id: [localStorage.getItem('tag_id')], hopper_id: localStorage.getItem('hopper_id') })
-      setCont(resp.data.content)
-      if (resp) {
-        //setLoading(false)
-      }
-    }
-    catch (error) {
-      // console.log(error)
-      //  setLoading(false)
-    }
-  }
-  const timeValuesHandler = (values) => {
-    setTimeValues(values)
   }
 
   useEffect(() => {
     Relatedcont()
-    PublishContent()
-  }, [fav]);
+  }, [page]);
 
   return (
     <>
-      {/* {console.log(localStorage.getItem('tag_id'), `<------this is tag ius`)} */}
       {loading && <Loader />}
       <Header />
       <div className="feedTags_search">
@@ -154,23 +118,108 @@ const RelatedContent = () => {
                     <h1>Related content</h1>
                   </div>
                   <Row className=''>
-                    {content && content.map((curr) => {
+                    {content && content.map((curr, index) => {
+                      const Audio = curr?.content?.filter(
+                        (curr) => curr?.media_type === "audio"
+                      );
+                      const Video = curr?.content?.filter(
+                        (curr) => curr?.media_type === "video"
+                      );
+                      const Image = curr?.content?.filter(
+                        (curr) => curr?.media_type === "image"
+                      );
+                      const Pdf = curr?.content?.filter(
+                        (curr) => curr?.media_type === "pdf"
+                      );
+                      const Doc = curr?.content?.filter(
+                        (curr) => curr?.media_type === "doc"
+                      );
+
+                      const imageCount = Image.length;
+                      const videoCount = Video.length;
+                      const audioCount = Audio.length;
+                      const pdfCount = Pdf.length;
+                      const docCount = Doc.length;
+
                       return (
                         <Col md={3}>
-                          <ContentFeedCard postcount={curr?.content?.length}
-                            feedImg={curr.content[0].media_type === "video" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].thumbnail : curr.content[0].media_type === "image" ? process.env.REACT_APP_CONTENT_MEDIA + curr.content[0].media : audioic} feedType={curr.content[0].media_type === "video" ? contentVideo : contentCamera} feedTag={"Most Viewed"} userAvatar={imgs} authorName={"pseudonymous"}
+                          <ContentFeedCard
+
                             lnkto={`/Feeddetail/content/${curr._id}`}
-                            type_img={exclusive} type_tag={curr.status}
+                            viewTransaction={"View details"}
+                            viewDetail={`/Feeddetail/content/${curr._id}`}
+                            feedImg={
+                              curr?.content[0]?.media_type === "video"
+                                ? process.env.REACT_APP_CONTENT_MEDIA +
+                                curr?.content[0]?.thumbnail
+                                : curr?.content[0]?.media_type === "audio"
+                                  ? audioic
+                                  : curr?.content[0]?.watermark ||
+                                  process.env.REACT_APP_CONTENT_MEDIA +
+                                  curr?.content[0]?.media
+                            }
+                            feedType={contentVideo}
+                            feedTag={curr?.sales_prefix ? `${curr?.sales_prefix} ${curr?.discount_percent}% Off` : curr?.content_view_type == "mostpopular" ? "Most Popular" : curr?.content_view_type == "mostviewed" ? "Most viewed" :  null}
+                            user_avatar={
+                              process.env.REACT_APP_AVATAR_IMAGE +
+                              curr?.hopper_id?.avatar_id?.avatar ||
+                              authorimg
+                            }
+                            author_Name={curr.hopper_id?.user_name}
+                            type_img={
+                              curr?.type === "shared" ? shared : exclusive
+                            }
+                            type_tag={curr?.type}
                             feedHead={curr.heading}
-                            favourite={handleFavourite}
-                            feedTime={moment(curr?.updatedAt).format("DD MMMM, YYYY")} feedLocation={curr.location} contentPrice={curr.ask_price}
-                            feedTypeImg={curr.content[0].media_type === "audio" ? interviewic : cameraic}
+                            feedTime={moment(curr?.createdAt).format(
+                              "DD MMM, YYYY"
+                            )}
+                            feedLocation={curr.location}
+                            contentPrice={formatAmountInMillion(curr.ask_price)}
+                            fvticns={
+                              curr?.favourite_status === "true"
+                                ? favouritedic
+                                : favic
+                            }
+                            content_id={curr?._id}
+                            allContent={curr?.content}
+                            basketValue={curr?.basket_status}
+                            basket={()=>{console.log("myData");
+
+                              setRelatedContent((prev) => {
+                                const allContent = [...prev];
+                                allContent[index]["basket_status"] = allContent[index]["basket_status"] === "true" ? "false" : "true";
+                                return allContent
+                              })
+                            }}
+                            bool_fav={
+                              curr?.favourite_status === "true"
+                                ? "false"
+                                : "true"
+                            }
+                            favourite={() => handleFavourite(index)}
+                            feedTypeImg1={imageCount > 0 ? cameraic : null}
+                            postcount={imageCount > 0 ? imageCount : null}
+                            feedTypeImg2={videoCount > 0 ? videoic : null}
+                            postcount2={videoCount > 0 ? videoCount : null}
+                            feedTypeImg3={audioCount > 0 ? interviewic : null}
+                            postcount3={audioCount > 0 ? audioCount : null}
+                            feedTypeImg4={pdfCount > 0 ? docsic : null}
+                            postcount4={pdfCount > 0 ? pdfCount : null}
+                            feedTypeImg5={docCount > 0 ? docsic : null}
+                            postcount5={docCount > 0 ? docCount : null}
                           />
                         </Col>
                       )
                     })}
                     {/* <div className=""></div> */}
                   </Row>
+                  {totalPage?
+
+<PaginationComp totalPage={totalPage} path="Favourited-Content" type="fav" setPage={setPage} page={page} />
+:""   
+}
+                  {/* <PaginationComp totalPage={totalPage} path={`related-content/tags/${params?.hopper_id}/${params.category_id}`} type="fav" setPage={setPage} page={page} /> */}
                 </div>
               </div>
             </Col>

@@ -12,7 +12,7 @@ import user from "../../assets/images/user.svg";
 import lock from "../../assets/images/sortIcons/lock.svg";
 import eye from "../../assets/images/sortIcons/custom.svg";
 import Footerlandingpage from "../../component/Footerlandingpage";
-import { BsEyeSlash, BsEye } from "react-icons/bs";
+import { BsEyeSlash, BsEye, BsArrowLeft } from "react-icons/bs";
 import PhoneInput from "react-phone-number-input";
 import mail from "../../assets/images/mail.svg";
 import { Checkbox, FormControlLabel } from "@mui/material";
@@ -22,12 +22,14 @@ import DbFooter from "../../component/DbFooter";
 import Loader from "../../component/Loader";
 import callic from "../../assets/images/call.svg";
 import contactimg from "../../assets/images/login-images/contact_us_post.png";
+import { successToasterFun } from "../../component/commonFunction";
 
 // import Form from 'react-bootstrap/Form';
 
 const ContactusPost = () => {
   const [loading, setLoading] = useState(false);
   const [designation, setDesignation] = useState("");
+  const navigate = useNavigate()
 
   const [details, setDetails] = useState({
     first_name: "",
@@ -39,6 +41,10 @@ const ContactusPost = () => {
     designation: "",
     is_urgent: false,
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   function capitalizeFirstLetter(string) {
     return string?.charAt(0)?.toUpperCase() + string?.slice(1);
@@ -74,39 +80,30 @@ const ContactusPost = () => {
     }
   };
 
-  const getDesignation = async () => {
-    // const list = await Get(`mediaHouse/getCategoryType?type=designation`)
-    // console.log('details--------->',details)
-    // const designation = list.data.data.find((desig) => desig._id === details.designation)
-    // setDesignation(designation?.name)
-  };
-
   const ContactUs = async (e) => {
     e.preventDefault();
     setLoading(true);
 
+    if (!details?.content) {
+      setLoading(false);
+      toast.error("Message is required");
+      return;
+    }
+
     try {
       const resp = await Post(`mediaHouse/addCotactUs`, details);
-      // console.log(resp, "<-------resp")
       if (resp) {
         setLoading(false);
         setDetails({
           is_urgent: false,
           content: "",
         });
-        // toast.error('Message sent successfully')
+        successToasterFun("Thank you for contacting us.We will get back ASAP. Cheers!")
       }
     } catch (error) {
       setLoading(false);
-      // console.log(error, "<--------error")
     }
   };
-
-  useEffect(() => {
-    if (details.designation !== "") {
-      getDesignation();
-    }
-  }, [details]);
 
   useEffect(() => {
     Profile();
@@ -122,6 +119,7 @@ const ContactusPost = () => {
             <Row className="row-w-m m-0 position-relative">
               <Col lg="6" className="p-0">
                 <div className="left-side bg-white cstm_ht">
+                <Link className='back_link mb-2' onClick={() => window.history.back()}><BsArrowLeft className='text-pink' /> Back </Link>
                   <div className="pg_heading">
                     <h1>
                       <span className="txt_light">Hi, </span>
@@ -131,10 +129,12 @@ const ContactusPost = () => {
                   <div className="log_txt">
                     <Typography variant="body2">
                       Our helpful teams are available 24x7 to assist, and answer
-                      your questions. You can choose to send us a{" "}
-                      <a className="link">message</a>, an{" "}
-                      <a className="link">email</a>, or simply{" "}
-                      <a className="link">chat</a> with one of our live team
+                      your questions. You can choose to send us 
+                      {" "}
+                      {/* <a className="link">message</a>, an{" "} */}
+                      an 
+                      <a className="link"> email</a>, or simply{" "}
+                      <Link to={"/chat"} className="link">chat</Link> with one of our live team
                       members. We don't use Bots because we believe in keeping
                       everything real.
                     </Typography>
@@ -252,9 +252,10 @@ const ContactusPost = () => {
                           setDetails((prev) => ({
                             ...prev,
                             is_urgent: e.target.checked,
+                            content: e.target.checked ? "URGENT  "  : ""
                           }));
-                          // console.log(e.target.checked)
                         }}
+                        checked={details?.is_urgent}
                       />
                     </div>
                     <div className="contct_us inputs_wrap d-flex justify-content-between log_inputs">
@@ -268,7 +269,7 @@ const ContactusPost = () => {
                             as="textarea"
                             required
                             placeholder="Enter message"
-                            value={details.content}
+                            value={details?.content}
                             onChange={(e) => {
                               setDetails((prev) => ({
                                 ...prev,
@@ -280,7 +281,7 @@ const ContactusPost = () => {
                         </Form.Group>
                       </div>
                     </div>
-                    <Button
+                    {/* <Button
                       variant=""
                       type="submit"
                       className="theme-btn custom-ab w-100 cntct_btn sm_btn"
@@ -289,21 +290,28 @@ const ContactusPost = () => {
                     </Button>
                     <div className="or_opt">
                       <span>or</span>
-                    </div>
-                    <div className="d-flex justify-content-between btm_btns">
+                    </div> */}
+                    <div className="d-flex justify-content-between btm_btns mt-3">
                       <Button
-                        variant="secondary"
-                        className="w-100 cntct_btn sm_btn_blk"
+                        variant=""
+                        className="theme-btn custom-ab w-100 cntct_btn sm_btn"
+                        onClick={() => {
+                          localStorage.setItem("tabName", JSON.stringify("presshop"))
+                          localStorage.setItem("contact_us_message", details.content)
+                          navigate("/chat");
+                        }}
                       >
-                        <Link to={"/chat"}>Chat</Link>
+                        Chat
                       </Button>
                       <Button
+                        type="submit"
                         variant="secondary"
-                        className="w-100 cntct_btn sm_btn_blk"
+                        // className="w-100 cntct_btn sm_btn_blk"
+                        className="theme-btn custom-ab w-100 cntct_btn sm_btn emal-btn"
+
+                        onClick={(e) => ContactUs(e)}
                       >
-                        <Link to="mailto:mediahouse@mailinator.com">
-                          Email us
-                        </Link>
+                        Email us
                       </Button>
                     </div>
                   </Form>

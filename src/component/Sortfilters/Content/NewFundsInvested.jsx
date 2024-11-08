@@ -7,13 +7,17 @@ import monthlyic from "../../../assets/images/sortIcons/monthly.svg";
 
 import Form from "react-bootstrap/Form";
 
-const NewFundsInvested = ({closeSortComponent, fundsValues}) => {
+const NewFundsInvested = ({closeSortComponent, fundsValues,active,setActive}) => {
 
   const handleClose = (values) => {
+    if(values===false){
+      fundsValues({field : "", values: "", type: "funds"}) 
+      setActive("")
+    }
     closeSortComponent(values)
   }
 
-  const [active, setActive] = useState("")
+  // const [active, setActive] = useState("")
 
   const [filterSort, setFilterSort] = useState({field : "", values: "", type: "funds"})
 
@@ -21,11 +25,9 @@ const NewFundsInvested = ({closeSortComponent, fundsValues}) => {
     setFilterSort({field, values, type: "funds"})
     setActive(values);
   }
-
   const handleFilter = () => {
     fundsValues(filterSort)
   }
-
 
   return (
     <>

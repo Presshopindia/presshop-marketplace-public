@@ -4,7 +4,7 @@ import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import { Link, useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
-import HeaderN from "../component/HeaderN";
+// import HeaderN from "../component/HeaderN";
 import loginimg from "../assets/images/login-img.png";
 import { Post } from "../services/user.services";
 import { toast } from "react-toastify";
@@ -16,6 +16,8 @@ import { BsEyeSlash, BsEye } from "react-icons/bs";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { v4 as uuidv4 } from "uuid";
 import Loader from "../component/Loader";
+import { useDarkMode } from "../context/DarkModeContext";
+import LoginHeader from "../component/LoginHeader";
 //import io from "socket.io-client";
 //const socket = io.connect("https://betazone.promaticstechnologies.com:3005");
 
@@ -27,6 +29,8 @@ const Login = () => {
     email: "",
     password: "",
   });
+
+  const { setProfileChange } = useDarkMode();
 
   const [visibility, setVisibility] = useState(false);
   const Credentials = (e) => {
@@ -59,30 +63,33 @@ const Login = () => {
       const resp = await Post("auth/loginMediaHouse", obj);
       if (resp) {
         setLoading(false);
-        navigate("/dashboard");
+        navigate("/dashboard/exclusive");
         // toast.success("Login Successfully")
 
         localStorage.setItem("token", resp.data.token);
         localStorage.setItem("id", resp.data.user._id);
         localStorage.setItem("user", JSON.stringify(resp.data.user));
 
-        signInWithEmailAndPassword(
-          auth,
-          credentials.email,
-          credentials.password
-        )
-          .then((userCredential) => {
-            // Signed in successfully
-            const user = userCredential.user;
-            // console.log(user, "<------------userCredential.user");
-          })
+        window.location.reload();
 
-          .catch((error) => {
-            // Handle errors here
-          });
+        // signInWithEmailAndPassword(
+        //   auth,
+        //   credentials.email,
+        //   credentials.password
+        // )
+        //   .then((userCredential) => {
+        //     // Signed in successfully
+        //     const user = userCredential.user;
+        //     console.log(user, "<------------userCredential.user");
+        //   })
+
+        //   .catch((error) => {
+        //     // Handle errors here
+        //     console.log(error, "Look at here");
+        //   });
       }
     } catch (error) {
-      // toast.error(error?.response?.data?.errors?.msg)
+      toast.error(error?.response?.data?.errors?.msg.split("_").join(" "));
       setLoading(false);
     }
   };
@@ -103,15 +110,19 @@ const Login = () => {
     }
   };
   useEffect(() => {
+    window.scrollTo(0, 0);
     // socket.disconnect();
   }, []);
 
+  // const scrollToDiv = (divName) => {
+  //   targetRefs[divName].current.scrollIntoView({ behavior: "smooth" });
+  // };
+
   return (
     <>
-      <HeaderN />
-      {
-        loading && <Loader/>
-      }
+      {/* <HeaderN scrollToDiv={scrollToDiv}/> */}
+      <LoginHeader />
+      {loading && <Loader />}
       <div className="login-page">
         <Container fluid className="pdng">
           <div className="log-wrap">
@@ -132,17 +143,17 @@ const Login = () => {
                       Please enter your full name and password below to gain
                       access onto our marketplace platform. If you have
                       forgotten your password, please{" "}
-                      <a href="/forgot-password" className="link">
+                      <Link to="/User-Forget-Password" className="link">
                         click here
-                      </a>{" "}
+                      </Link>{" "}
                       and we will help create a new password for you. This
                       happens to most of us, and is absolutely fine.
                     </Typography>
                     <Typography variant="body2" className="mb-0">
                       If you face any trouble logging in, please{" "}
-                      <a href="/contact-us" className="link">
+                      <Link to="/contact-us" className="link">
                         contact
-                      </a>{" "}
+                      </Link>{" "}
                       our helpful team members who will be happy to assist. See
                       you on the other side. Cheers!
                     </Typography>
@@ -159,6 +170,7 @@ const Login = () => {
                         <Form.Control
                           type="email"
                           required
+                          autoComplete="off"
                           className="rnd grey"
                           placeholder="Enter registered email id *"
                           value={credentials.email}
@@ -175,6 +187,7 @@ const Login = () => {
                           type={!visibility ? "password" : "text"}
                           required
                           className="rnd grey"
+                          autoComplete="off"
                           placeholder="Enter password *"
                           value={credentials.password}
                           name="password"

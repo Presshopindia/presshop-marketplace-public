@@ -33,34 +33,57 @@ import dailyic from "../../../assets/images/sortIcons/daily.svg";
 import weeklyic from "../../../assets/images/sortIcons/weekly.svg";
 import monthlyic from "../../../assets/images/sortIcons/monthly.svg";
 
-const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
+const RecentActivity = ({
+  closeRecentActivity,
+  recentActivityValues,
+  handleCloseRecentActivity,
+  setActive,
+  active,
+}) => {
+  // const [active, setActive] = useState("");
+  const [filterName, setFilterName] = useState("");
 
-  const [active, setActive] = useState("")
-
-  const [filterSort, setFilterSort] = useState({ field: "", values: "", type: "braodcast" })
+  const [filterSort, setFilterSort] = useState({
+    field: "",
+    values: "",
+    type: "braodcast",
+  });
 
   const handleClose = (values) => {
-    closeRecentActivity(values)
-  }
-
-  // const handleSort = (field, values) => {
-  //   recentActivityValues({field, values});
-  // }
+    if (values === false) {
+      setActive("");
+      recentActivityValues({
+        field: "",
+        values: "",
+        type: "braodcast",
+      });
+    }
+    handleCloseRecentActivity();
+  };
 
   const handleClickTime = (field, values) => {
-    setFilterSort({ field, values, type: "recentactivity" })
-    setActive(values)
-  }
-
+    setFilterSort({ field, values, type: "recentactivity" });
+    setActive(values);
+  };
   const handleFilter = () => {
-    recentActivityValues(filterSort)
-  }
+    recentActivityValues(filterSort);
+    handleCloseRecentActivity();
+  };
 
   return (
     <>
       <div className="filter_wrap">
         <div className="srt_fltr_hdr">
-          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={() => handleClose(false)} />
+          <img
+            src={closeic}
+            height="17px"
+            className="icn close"
+            alt="Close"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }}
+          />
           <p className="hdng">Sort and filter</p>
           <div className="notf_icn_wrp" onClick={() => handleClose(false)}>
             <a className="link">Clear all</a>
@@ -72,27 +95,51 @@ const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
           </p>
         </div>
         <div className="sort_list">
-          <div className={`sort_item ${active === "daily" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("daily", "daily")}>
+          <div
+            className={`sort_item ${active === "daily" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("daily", "daily")}
+          >
             <img src={dailyic} className="icn" alt="Daily" />
             <p className="sort_txt">View daily</p>
           </div>
-          <div className={`sort_item ${active === "weekly" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("weekly", "weekly")}>
+          <div
+            className={`sort_item ${active === "weekly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("weekly", "weekly")}
+          >
             <img src={weeklyic} className="icn" alt="Weekly" />
             <p className="sort_txt">View weekly</p>
           </div>
-          <div className={`sort_item ${active === "monthly" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("monthly", "monthly")}>
+          <div
+            className={`sort_item ${active === "monthly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("monthly", "monthly")}
+          >
             <img src={monthlyic} className="icn" alt="Monthly" />
             <p className="sort_txt">View monthly</p>
           </div>
-          <div className={`sort_item ${active === "yearly" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("yearly", "yearly")}>
+          <div
+            className={`sort_item ${active === "yearly" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("yearly", "yearly")}
+          >
             <img src={calendaric} className="icn" alt="yearly" />
             <p className="sort_txt">View yearly</p>
           </div>
-          <div className={`sort_item ${active === "old" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={(e) => handleClickTime("activity", "old")}>
+          <div
+            className={`sort_item ${active === "old" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={(e) => handleClickTime("activity", "old")}
+          >
             <img src={relevanceic} className="icn" alt="relevance" />
             <p className="sort_txt">Relevance</p>
           </div>
-          <div className={`sort_item ${active === "new" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={(e) => handleClickTime("activity", "new")}>
+          <div
+            className={`sort_item ${active === "new" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={(e) => handleClickTime("activity", "new")}
+          >
             <img src={latestic} className="icn" alt="Latest content" />
             <p className="sort_txt">Latest content</p>
           </div>
@@ -127,7 +174,6 @@ const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
           </p>
         </div>
         <div className="sort_list">
-
           {/* <div className="sort_item">
             <img src={cameraic} className="icn" alt="Live tasks" />
             <p className="sort_txt">Images</p>
@@ -177,7 +223,6 @@ const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
             </div>
           </div> */}
 
-
           {/* <div className="sort_item">
             <img src={favouritic} className="icn" alt="favourited" />
             <p className="sort_txt">Favourited content</p>
@@ -186,11 +231,19 @@ const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
             <img src={paymentic} className="icn" alt="Under offer" />
             <p className="sort_txt">Content under offer</p>
           </div> */}
-          <div className={`sort_item ${active === "exclusive" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("contentType", "exclusive")}>
+          <div
+            className={`sort_item ${active === "exclusive" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("contentType", "exclusive")}
+          >
             <img src={exclusiveic} className="icn" alt="Exclusive" />
             <p className="sort_txt">Exclusive content</p>
           </div>
-          <div className={`sort_item ${active === "shared" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={() => handleClickTime("contentType", "shared")}>
+          <div
+            className={`sort_item ${active === "shared" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClickTime("contentType", "shared")}
+          >
             <img src={sharedic} className="icn" alt="Shared" />
             <p className="sort_txt">Shared content</p>
           </div>
@@ -231,7 +284,14 @@ const RecentActivity = ({ closeRecentActivity, recentActivityValues }) => {
             </div>
           </div> */}
         </div>
-        <button className="fltr_btn mt-3" onClick={() => { handleFilter(); handleClose() }}>Apply</button>
+        <button
+          className="fltr_btn mt-3"
+          onClick={() => {
+            handleFilter();
+          }}
+        >
+          Apply
+        </button>
       </div>
     </>
   );

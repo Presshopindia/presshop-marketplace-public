@@ -22,7 +22,7 @@ import Fundsinvested from "../component/Sortfilters/Dashboard/Fundsinvested";
 const AllContents = () => {
   const [openSortComponent, setOpenSortComponent] = useState(false);
   const [openFilterComponent, setOpenFilterComponent] = useState(false);
-
+  
   const handleCloseFilterComponent = (values) => {
     setOpenFilterComponent(values);
   };

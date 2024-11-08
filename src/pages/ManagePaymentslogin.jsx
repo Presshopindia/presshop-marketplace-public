@@ -135,9 +135,6 @@ const ManagePaymentslogin = () => {
                                 </div>
                             </Col>
                         </Row>
-                        {/* <div className="mt-4">
-                        <TopSearchesTipsCard />
-                    </div> */}
                     </div >
                 </Container >
             </div >

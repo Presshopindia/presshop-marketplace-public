@@ -20,7 +20,8 @@ import {
 
 import { Link, useNavigate } from "react-router-dom";
 import { Get, Patch, Post } from "../services/user.services";
-import uplddocimg from "../assets/images/login-images/upload_docs.png";
+// import uplddocimg from "../assets/images/login-images/upload_docs.png";
+import uplddocimg from "../assets/images/login-images/upload_docs.jpg";
 import closeic from "../assets/images/close.svg";
 import Header from "../component/Header";
 import { BsCircleFill, BsFillCheckCircleFill } from "react-icons/bs";
@@ -98,7 +99,7 @@ const Uploaddocs = () => {
         progress: undefined,
         theme: "colored",
         transition: Slide,
-        });
+      });
     }, 1000);
     // const resp = await Patch(`mediaHouse/uploadDocToBecomePro`, upload_docs);
     // if (resp) {
@@ -111,7 +112,8 @@ const Uploaddocs = () => {
     localStorage.setItem("Page2", JSON.stringify(upload_docs));
     localStorage.setItem("docs", JSON.stringify(docs));
     if (localStorage.getItem("Page2")) {
-      navigate("/add-payment-details");
+      // navigate("/add-payment-details");
+      navigate("/terms-and-conditions")
     }
   };
 
@@ -194,12 +196,21 @@ const Uploaddocs = () => {
                                 return (
                                   <li>
                                     {curr?.selected !== true ? (
-                                      <span className="doc_items_ic">
-                                        <BsCircleFill />
+                                      <span className="doc_items_ic doc_uplded doc-check">
+                                        <FormControlLabel
+                                          className="check_label me-0"
+                                          control={<Checkbox />}
+                                          checked={false}
+                                        />
                                       </span>
                                     ) : (
-                                      <span className="doc_items_ic doc_uplded">
-                                        <BsFillCheckCircleFill />
+                                      <span className="doc_items_ic doc_uplded doc-check">
+                                        {/* <BsFillCheckCircleFill /> */}
+                                        <FormControlLabel
+                                          className="check_label me-0"
+                                          control={<Checkbox />}
+                                          checked={true}
+                                        />
                                       </span>
                                     )}
                                     {curr?.document_name}
@@ -248,9 +259,9 @@ const Uploaddocs = () => {
                             </Col>
 
                             <Col md={12} className="mt-5">
-                              <div className="justify-content-between align-items-center d-flex flex-wrap gap-3">
+                              <div className="justify-content-start align-items-center d-flex flex-wrap gap-4">
                                 {docs?.map((el) => (
-                                  <div className="vw_doc position-relative">
+                                  <div className="vw_doc position-relative docs-upld">
                                     <div className="cls_icn">
                                       <img
                                         src={closeic}
@@ -273,6 +284,9 @@ const Uploaddocs = () => {
                                         alt="document"
                                       />
                                     )}
+                                    <div>
+                                      <p>{el?.name}</p>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -289,7 +303,7 @@ const Uploaddocs = () => {
                     >
                       Next
                     </Button>
-                    <h6 className="text-center mt-3">2 of 4</h6>
+                    <h6 className="text-center mt-3">2 of 3</h6>
                   </div>
                 </div>
               </Col>

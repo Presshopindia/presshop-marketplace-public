@@ -6,13 +6,16 @@ import accessCenter from "../assets/images/accessCenter.png";
 import addPic from "../assets/images/add-square.svg";
 // import 'react-phone-number-input/style.css';
 import tandcimg from "../assets/images/tandcimg.png";
-import { Checkbox, FormControlLabel, Button } from "@mui/material";
+import { Checkbox, FormControlLabel, Button, Tooltip } from "@mui/material";
 
 import { Link, useNavigate } from "react-router-dom";
 import { Get, Post } from "../services/user.services";
 import { toast } from "react-toastify";
 import Loader from "../component/Loader";
 import axios from "axios";
+import { successToasterFun } from "../component/commonFunction";
+import moment from "moment";
+import { FaRegArrowAltCircleDown, FaRegArrowAltCircleUp } from "react-icons/fa";
 
 const Tandc = () => {
   const navigate = useNavigate();
@@ -24,7 +27,11 @@ const Tandc = () => {
   const page3 = JSON.parse(localStorage.getItem("Page3"));
   const [loading, setLoading] = useState(false);
   const [cmsData, setCmsData] = useState("");
- 
+
+  useEffect(() => {
+    window?.scrollTo(0, 0);
+  }, []);
+
   const [isChecked, setIsChecked] = useState({
     sign_leagel_terms: {
       is_condition_one: false,
@@ -45,8 +52,7 @@ const Tandc = () => {
 
   const SignUp = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
+
     try {
       const obj = {
         phone: page1?.administrator_details?.phone,
@@ -55,14 +61,15 @@ const Tandc = () => {
         role: "MediaHouse",
         password: adminPopup?.password,
         verified: true,
-        full_name: page1?.administrator_details?.full_name,
-        first_name: page1?.administrator_details?.first_name,
-        last_name: page1?.administrator_details?.last_name,
+        full_name: `${adminPopup?.first_name} ${adminPopup?.last_name}`,
+        first_name: adminPopup?.first_name,
+        last_name: adminPopup?.last_name,
         designation_id: adminPopup?.designation_id,
         company_name: CompanyDetails?.company_name,
         company_number: CompanyDetails?.company_number,
         company_vat: CompanyDetails?.company_vat,
         profile_image: CompanyDetails?.profile_image,
+        user_type_id: CompanyDetails?.user_type,
         docs: JSON.parse(localStorage.getItem("docs")),
         // office_details: [
         //   {
@@ -93,9 +100,9 @@ const Tandc = () => {
         // ],
         office_details: officeDetails,
         admin_detail: {
-          full_name: page1?.administrator_details?.full_name,
-          first_name: page1?.administrator_details?.first_name,
-          last_name: page1?.administrator_details?.last_name,
+          full_name: `${adminPopup?.first_name} ${adminPopup?.last_name}`,
+          first_name: adminPopup?.first_name,
+          last_name: adminPopup?.last_name,  
           office_type: adminPopup?.designation_id,
           office_name: page1?.administrator_details?.office_name,
           department: page1?.administrator_details?.department,
@@ -143,14 +150,15 @@ const Tandc = () => {
       };
 
       const onboardDetails = {
-        AdminName: page1?.administrator_details?.full_name,
+        AdminName: `${adminPopup?.first_name} ${adminPopup?.last_name}`,
         AdminEmail: page1?.administrator_details?.office_email,
       };
 
+      setLoading(true);
       localStorage.setItem("OnboardDetails", JSON.stringify(onboardDetails));
       const resp = await Post("auth/registerMediaHouse", obj);
+      setLoading(false);
       if (resp) {
-        setLoading(false);
         localStorage.removeItem("OfficeDetails");
         localStorage.removeItem("AdminPopup");
         localStorage.removeItem("Page1");
@@ -162,19 +170,22 @@ const Tandc = () => {
       }
     } catch (error) {
       setLoading(false);
+      successToasterFun(error.message)
+      console.log("Error in mediahouse", error)
+      setLoading(false);
     }
   };
 
 
   const getCMS = async () => {
-    try{
+    try {
       setLoading(true);
       const cms = await Promise.all([Get("mediaHouse/getGenralMgmt?legal=legal"), Get("mediaHouse/getGenralMgmt?privacy_policy=privacy_policy")]);
       // console.log('cms---', cms)
       setCmsData(cms);
       setLoading(false);
     }
-    catch(error){
+    catch (error) {
       // console.log(error);
       setLoading(false);
     }
@@ -186,23 +197,25 @@ const Tandc = () => {
 
   return (
     <>
-    {
-      loading && <Loader/>
-    }
+      {
+        loading && <Loader />
+      }
       <HeaderN />
       <div className="page-wrap login-page p-0">
         <Container fluid className="pdng">
           <div className="log-wrap">
             <Row className="row-w-m m-0">
               <Col lg={6} md={6} sm={12} xs={12} className="p-0 lft_colm">
-                <Form onSubmit={SignUp}>
+                <Form onSubmit={(e) => SignUp(e)}>
                   <div className="login_stepsWrap left-pdng bg-white">
                     <div className="onboardMain">
-                      <div className="onboardIntro sign_section">
-                        <div className="pg_heading">
-                          <h1 className="mb-0">Sign legal T&C’s</h1>
+                      <div className="onboardIntro sign_section post">
+                        <div className='d-flex justify-content-between'>
+                          <h1 className="mb-0 pg_hdng">Legal T&Cs</h1>
+                          <Tooltip title="Down"><Link className='back_link' onClick={() => window.scrollTo(0, document.body.scrollHeight)}><FaRegArrowAltCircleDown className='text-pink' /></Link></Tooltip>
                         </div>
-                        <div className="onboardStep b_border top_txt">
+                        <span className="txt_updated">Updated on {moment(cmsData?.[0]?.data?.updatedAt)?.format("DD MMMM, YYYY")}</span>
+                        <div className="onboardStep b_border top_txt mt-4">
                           <p>
                             Please sign our legal terms & conditions, privacy
                             policy, and content licensing agreement to complete
@@ -237,7 +250,7 @@ const Tandc = () => {
                             </p>
                           </div>
                         </div> */}
-                        <div className="mb-4" dangerouslySetInnerHTML={{__html: cmsData[0]?.data?.status?.description || ""}}>
+                        <div className="mb-4" dangerouslySetInnerHTML={{ __html: cmsData[0]?.data?.status?.description || "" }}>
                         </div>
 
                         {/* <div className="onboardStep b_border top_txt mb-4">
@@ -261,7 +274,7 @@ const Tandc = () => {
                         </div> */}
 
                         {/* Privacy Policy */}
-                        <div className="mb-4" dangerouslySetInnerHTML={{__html: cmsData[1]?.data?.status?.description || ""}}>
+                        <div className="mb-4" dangerouslySetInnerHTML={{ __html: cmsData[1]?.data?.status?.description || "" }}>
                         </div>
                         {/* <div className="onboardStep b_border top_txt mb-4">
                           <p className="sub_h">Privacy policy</p>
@@ -302,15 +315,11 @@ const Tandc = () => {
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-100" variant="primary">
-                        Finish
-                      </Button>
-
-                      {/* <div className="stepFooter d-flex justify-content-evenly">
-                                                <Button onClick={handleBack}>Back</Button>
-                                                <Button className='' variant='primary' onClick={handleNext}>Next</Button>
-                                            </div> */}
-                      <h6 className="text-center mt-3">4 of 4</h6>
+                      <div className="stepFooter d-flex justify-content-between gap-padding">
+                        <Button type="submit" className="w-100" variant="primary">Finish</Button>
+                        {/* <Tooltip title="Down"><Link className='back_link' onClick={() => window.scrollTo(0, 0)}><FaRegArrowAltCircleUp className='text-pink' /></Link></Tooltip> */}
+                      </div>
+                      <h6 className="text-center mt-3">3 of 3</h6>
                     </div>
                   </div>
                 </Form>

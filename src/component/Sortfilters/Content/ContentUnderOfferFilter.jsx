@@ -30,63 +30,80 @@ import contentic from "../../../assets/images/sortIcons/content.svg";
 
 import Form from "react-bootstrap/Form";
 import { Get } from "../../../services/user.services";
+import { initStateOfUnderOffer } from "../../staticData";
 
-const ContentUnderOfferSort = ({ closeFilterComponent, feedMultiFilter }) => {
-  const handleClose = (values) => {
-    closeFilterComponent(values)
-  }
+const ContentUnderOfferFilter = ({
+  setContentUnderOffer,
+  contentUnderOffer,
+  favDev = true,
+  excDev = true,
+  shareDev = true
+}) => {
 
-  const [active, setActive] = useState("")
-
-  const [categoryId, setCategoryId] = useState([]);
-  const getCategory = async () => {
-    try {
-      const result = await Get("mediaHouse/getCategoryType?type=content");
-      setCategoryId(result?.data?.data)
-    }
-    catch (error) {
-      // console.log(error)
-    }
-  }
-
-  const [multiFilter, setMultiFilter] = useState([])
-
-  const handleClickValues = (field, values, type) => {
-    const existingIndex = multiFilter.findIndex((item) => item.values === values);
-
-    if (existingIndex !== -1) {
-      const updatedFilter = [...multiFilter];
-      updatedFilter.splice(existingIndex, 1);
-      setMultiFilter(updatedFilter);
+  // Handle click
+  const handleClick = (type, value) => {
+    if (type === "submit") {
+      setContentUnderOffer(prev => ({
+        ...prev,
+        filter: {
+          ...prev.filter,
+          active: prev.filter.active === "true" ? "false" : "true",
+          filter: "false"
+        }
+      }));
+    } else if (type === "type") {
+      setContentUnderOffer(prev => ({
+        ...prev,
+        filter: {
+          ...prev.filter,
+          type: prev.filter.type.includes(value)
+            ? prev.filter.type.filter(el => el !== value)
+            : [...prev.filter.type, value]
+        }
+      }));
+    } else if (type === "category") {
+      setContentUnderOffer(prev => ({
+        ...prev,
+        filter: {
+          ...prev.filter,
+          category: prev.filter.category.includes(value)
+            ? prev.filter.category.filter(el => el !== value)
+            : [...prev.filter.category, value]
+        }
+      }));
     } else {
-      setMultiFilter([...multiFilter, { field, values, type }]);
+      setContentUnderOffer(prev => ({
+        ...prev,
+        filter: {
+          ...prev.filter,
+          [type]: value
+        }
+      }));
     }
-    setActive((prevActive) => [...prevActive, values]);
-
   };
 
-  const handleFilter = () => {
-    feedMultiFilter(multiFilter)
-  }
-
-  const clearAll = () => {
-    setMultiFilter([])
-    setActive("")
-  }
-
-  useEffect(() => {
-    getCategory();
-  }, [])
-
   return (
-
     <>
       <div className="filter_wrap">
         <div className="srt_fltr_hdr">
-          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={() => handleClose(false)} />
+          <img
+            src={closeic}
+            height="17px"
+            className="icn close"
+            alt="Close"
+            onClick={() =>
+              setContentUnderOffer(prev => ({
+                ...prev,
+                filter: {
+                  ...prev.filter,
+                  filter: "false"
+                }
+              }))
+            }
+          />
           <p className="hdng">Filter</p>
-          <div className="notf_icn_wrp">
-            <a className="link" onClick={clearAll}>Clear all</a>
+          <div className="notf_icn_wrp" onClick={() => setContentUnderOffer({ ...contentUnderOffer, filter: initStateOfUnderOffer.filter })}>
+            <a className="link">Clear all</a>
           </div>
         </div>
         <div className="srt_sub_hdng mt-3">
@@ -95,51 +112,44 @@ const ContentUnderOfferSort = ({ closeFilterComponent, feedMultiFilter }) => {
           </p>
         </div>
         <div className="sort_list">
-          <div className={`sort_item 
-          
-          ${multiFilter?.some(item => item.values === true) ? "active" : ""}`}
-
-            style={{ cursor: "pointer" }} onClick={() => handleClickValues("content_under_offer", true, 2)}>
-            <img src={paymentic} className="icn" alt="Under offer" />
-            <p className="sort_txt">Content under offer</p>
+          <div className={`sort_item ${contentUnderOffer.filter.latestContent === "true" ? "active" : ""}`} onClick={() => handleClick("latestContent", contentUnderOffer.filter.latestContent === "true" ? "false" : "true")}>
+            <img src={latestic} className="icn" alt="Latest" />
+            <p className="sort_txt">Latest content</p>
           </div>
-          <div className={`sort_item ${multiFilter?.some(item => item.values === "exclusive") ? "active" : ""}`} style={{ cursor: "pointer" }} onClick={() => handleClickValues("type", "exclusive", 4)}>
-            <img src={exclusiveic} className="icn" alt="Exclusive" />
-            <p className="sort_txt">Exclusive content</p>
-          </div>
-          <div className={`sort_item ${multiFilter?.some(item => item.values === "shared") ? "active" : ""}`} style={{ cursor: "pointer" }} onClick={() => handleClickValues("type", "shared", 5)}>
-            <img src={sharedic} className="icn" alt="Shared" />
-            <p className="sort_txt">Shared content</p>
-          </div>
-          <div className="srt_sub_hdng mt-3">
-            <p className="sort_hdng" alt="">
-              Category
-            </p>
-          </div>
+          {
+            favDev && <div className={`sort_item ${contentUnderOffer.filter.favContent === "true" ? "active" : ""}`} onClick={() => handleClick("favContent", contentUnderOffer.filter.favContent === "true" ? "false" : "true")}>
+              <img src={favouritic} className="icn" alt="favourited" />
+              <p className="sort_txt">Favourited content</p>
+            </div>
+          }
+          {
+            excDev && <div className={`sort_item ${contentUnderOffer.filter?.type?.includes("exclusive") ? "active" : ""}`} onClick={() => handleClick("type", "exclusive")}>
+              <img src={exclusiveic} className="icn" alt="Exclusive" />
+              <p className="sort_txt">Exclusive content</p>
+            </div>
+          }
+          {
+            shareDev && <div className={`sort_item ${contentUnderOffer.filter?.type?.includes("shared") ? "active" : ""}`} onClick={() => handleClick("type", "shared")}>
+              <img src={sharedic} className="icn" alt="Shared" />
+              <p className="sort_txt">Shared content</p>
+            </div>
+          }
           <div className="d-flex flex-column gap-2">
-            {
-              categoryId && categoryId.map((curr, index) => {
-                return (
-                  <div className={`sort_item ${multiFilter?.some(item => item.values === categoryId[index]?._id) ? "active" : ""}`}
-                    style={{ cursor: "pointer" }} onClick={() => handleClickValues("category_id", categoryId[index]?._id, 7)}
-                  >
-                    <input type="checkbox" className="fltr_checkbx" />
-                    <img src={curr?.icon} className="icn" alt="Celebrity" />
-                    <p className="sort_txt">{curr?.name}</p>
-                  </div>
-
-                )
-              })
-
-
-            }
-
+            {contentUnderOffer?.categoryData?.map((curr, index) => (
+              <div className={`sort_item ${contentUnderOffer.filter?.category?.includes(curr?._id) ? "active" : ""}`} onClick={() => handleClick("category", curr?._id)} key={index}>
+                <input type="checkbox" className="fltr_checkbx" />
+                <img src={curr?.icon} className="icn" alt="Celebrity" />
+                <p className="sort_txt">{curr?.name}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <button className="fltr_btn mt-3" onClick={() => { handleFilter(); handleClose() }}>Apply</button>
+        <button className="fltr_btn mt-3" onClick={() => handleClick("submit", "")}>
+          Apply
+        </button>
       </div>
     </>
   );
 };
 
-export default ContentUnderOfferSort;
+export default ContentUnderOfferFilter;

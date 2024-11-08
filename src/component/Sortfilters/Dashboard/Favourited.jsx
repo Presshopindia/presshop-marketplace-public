@@ -30,34 +30,47 @@ import srchic from "../../../assets/images/sortIcons/Search.svg";
 import Form from "react-bootstrap/Form";
 import { values } from "lodash";
 
-const Favourited = ({ favourite_compo, favSortValues }) => {
-  const [active, setActive] = useState("")
-  const [filterSort, setFilterSort] = useState({ field: "", values: "", type: "fav" })
+const Favourited = ({ favourite_compo, favSortValues, active, setActive }) => {
+  //const [active, setActive] = useState("")
+  const [filterSort, setFilterSort] = useState({
+    field: "",
+    values: "",
+    type: "fav",
+  });
 
-  const handleCloseModal = () => {
-    favourite_compo(false)
-  }
+  const handleCloseModal = (value) => {
+    if (value == false) {
+      setActive("");
+      favSortValues({ field: "", values: "", type: "fav" });
+    }
+    favourite_compo(false);
+  };
 
   const handleSort = (field, values) => {
-    setFilterSort({ field, values, type: "fav" })
-    setActive(values)
-  }
+    setFilterSort({ field, values, type: "fav" });
+    setActive(values);
+  };
 
   // console.log("active 46", active);
 
   const handleFavSortFilter = () => {
     favSortValues(filterSort);
     // console.log("filterSort 52 ==>", filterSort)
-  }
-
+  };
 
   return (
     <>
       <div className="filter_wrap">
         <div className="srt_fltr_hdr">
-          <img src={closeic} height="17px" className="icn close" alt="Close" onClick={handleCloseModal} />
+          <img
+            src={closeic}
+            height="17px"
+            className="icn close"
+            alt="Close"
+            onClick={() => handleCloseModal()}
+          />
           <p className="hdng">Sort and filter</p>
-          <div className="notf_icn_wrp">
+          <div onClick={() => handleCloseModal(false)} className="notf_icn_wrp">
             <a className="link">Clear all</a>
           </div>
         </div>
@@ -67,11 +80,19 @@ const Favourited = ({ favourite_compo, favSortValues }) => {
           </p>
         </div>
         <div className="sort_list">
-          <div className={`sort_item ${active === "latest" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={(e) => handleSort("favcontent", "latest", "favContent")}>
+          <div
+            className={`sort_item ${active === "latest" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={(e) => handleSort("favcontent", "latest", "favContent")}
+          >
             <img src={latestic} className="icn" alt="Latest content" />
             <p className="sort_txt">Latest content</p>
           </div>
-          <div className={`sort_item ${active === "lowPrice" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={(e) => handleSort("favcontent", "lowPrice", "favContent")}>
+          <div
+            className={`sort_item ${active === "lowPrice" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={(e) => handleSort("favcontent", "lowPrice", "favContent")}
+          >
             <img
               src={lowestprcdic}
               className="icn"
@@ -79,7 +100,11 @@ const Favourited = ({ favourite_compo, favSortValues }) => {
             />
             <p className="sort_txt">Lowest priced content</p>
           </div>
-          <div className={`sort_item ${active === "highPrice" ? "active" : null}`} style={{ cursor: "pointer" }} onClick={(e) => handleSort("favcontent", "highPrice", "favContent")}>
+          <div
+            className={`sort_item ${active === "highPrice" ? "active" : null}`}
+            style={{ cursor: "pointer" }}
+            onClick={(e) => handleSort("favcontent", "highPrice", "favContent")}
+          >
             <img
               src={highestprcdic}
               className="icn"
@@ -89,11 +114,23 @@ const Favourited = ({ favourite_compo, favSortValues }) => {
           </div>
           <div className="sort_item">
             <img src={lowestprcdic} className="icn" alt="Latest content" />
-            <input type="number" placeholder="Min Price" onChange={(e) => handleSort("favMinPrice", e.target.value, "favContent")} />
+            <input
+              type="number"
+              placeholder="Min Price"
+              onChange={(e) =>
+                handleSort("favMinPrice", e.target.value, "favContent")
+              }
+            />
           </div>
           <div className="sort_item">
             <img src={highestprcdic} className="icn" alt="Latest content" />
-            <input type="number" placeholder="Min Price" onChange={(e) => handleSort("favMaxPrice", e.target.value, "favContent")} />
+            <input
+              type="number"
+              placeholder="Min Price"
+              onChange={(e) =>
+                handleSort("favMaxPrice", e.target.value, "favContent")
+              }
+            />
           </div>
 
           {/* <div className="sort_item">
@@ -211,7 +248,15 @@ const Favourited = ({ favourite_compo, favSortValues }) => {
             </div>
           </div>
         </div> */}
-        <button className="fltr_btn mt-3" onClick={() => { handleFavSortFilter(); handleCloseModal() }}>Apply</button>
+        <button
+          className="fltr_btn mt-3"
+          onClick={() => {
+            handleFavSortFilter();
+            handleCloseModal();
+          }}
+        >
+          Apply
+        </button>
       </div>
     </>
   );
